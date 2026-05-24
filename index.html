@@ -1184,6 +1184,7 @@
                 channelLeftIndex: 0,
                 channelRightIndex: 1,
                 channelLabel: "1-2",
+                deviceName: "",
                 spectrumSmoothed: [],
                 leftPpm: null,
                 rightPpm: null,
@@ -1911,12 +1912,39 @@
             if (!payload || payload.active !== false) startAudioMeter();
         }
 
+        function meterAudioConstraints(deviceId) {
+            var constraints = {
+                channelCount: { ideal: Math.max(2, state.audioMeter.channelRightIndex + 1) },
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+            };
+            if (deviceId) constraints.deviceId = { exact: deviceId };
+            return constraints;
+        }
+
+        function resolveMeterAudioConstraints() {
+            var targetName = (state.audioMeter.deviceName || "").toLowerCase();
+            if (!targetName || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                return Promise.resolve(meterAudioConstraints());
+            }
+            return navigator.mediaDevices.enumerateDevices().then(function(devices) {
+                var input = devices.find(function(device) {
+                    return device.kind === "audioinput" && device.label && device.label.toLowerCase().indexOf(targetName) !== -1;
+                });
+                return meterAudioConstraints(input && input.deviceId);
+            }).catch(function() {
+                return meterAudioConstraints();
+            });
+        }
+
         function applyMeterConfig(config) {
             if (!config || !config.audioChannels) return;
             var audioChannels = config.audioChannels;
             state.audioMeter.channelLeftIndex = Math.max(0, parseInt(audioChannels.left, 10) || 0);
             state.audioMeter.channelRightIndex = Math.max(0, parseInt(audioChannels.right, 10) || state.audioMeter.channelLeftIndex);
             state.audioMeter.channelLabel = audioChannels.label || ((state.audioMeter.channelLeftIndex + 1) + "-" + (state.audioMeter.channelRightIndex + 1));
+            state.audioMeter.deviceName = config.audioDeviceName || "";
         }
 
         function updateAudioMeterDom() {
@@ -2169,13 +2197,8 @@
             var requestToken = state.audioMeter.requestToken + 1;
             state.audioMeter.requestToken = requestToken;
             updateAudioMeterDom();
-            navigator.mediaDevices.getUserMedia({
-                audio: {
-                    channelCount: { ideal: Math.max(2, state.audioMeter.channelRightIndex + 1) },
-                    echoCancellation: false,
-                    noiseSuppression: false,
-                    autoGainControl: false
-                }
+            resolveMeterAudioConstraints().then(function(audioConstraints) {
+                return navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
             }).then(function(stream) {
                 var AudioContextClass = window.AudioContext || window.webkitAudioContext;
                 var context = new AudioContextClass();
@@ -4467,7 +4490,7 @@
                 }
                 var channelActive = state.view === "meter" ? !!state.solo[channel.id] : (state.view === "strip" && state.selectedId === channel.id);
                 var activeClass = state.copy.phase === "idle" ? (channelActive ? " active" : "") : "";
-                button.className = "btn-hw" + activeClass + copyClass;
+                button.className = "btn-hw" + (state.view === "meter" ? " solo" : "") + activeClass + copyClass + (state.view === "meter" && channelActive ? " on" : "");
                 var suffix = (state.sceneSaved[state.loadedScene] || {})[channel.id] || "";
                 button.innerHTML = "<div class='channel-button-main'>" + escapeHtml(baseLabel(channel)) + "</div><div class='channel-button-name'>" + escapeHtml(copyModeLabel || suffix.trim()) + "</div>";
                 button.dataset.meterChannel = channel.id;
@@ -4530,19 +4553,22 @@
                 if (!drag || !drag.active) return;
                 touchButton(buttonFromPoint(event));
             };
-            window.onpointerup = function(event) {
+            function finishDrag(event) {
                 if (drag && event.pointerId !== drag.pointerId) return;
                 if (drag && root.hasPointerCapture && root.hasPointerCapture(event.pointerId)) {
                     root.releasePointerCapture(event.pointerId);
                 }
                 if (drag && drag.active) {
-                    suppressStripClick = true;
                     setTimeout(function() { suppressStripClick = false; }, 120);
                     renderButtonsOnly();
                     updateAudioMeterDom();
+                } else {
+                    suppressStripClick = false;
                 }
                 drag = null;
-            };
+            }
+            root.onpointerup = finishDrag;
+            root.onpointercancel = finishDrag;
         }
 
         function renderMaster() {

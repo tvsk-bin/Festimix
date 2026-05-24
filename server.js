@@ -1,10 +1,36 @@
 "use strict";
 
 var JZZ = require("jzz");
+var childProcess = require("child_process");
+var fs = require("fs");
+var path = require("path");
 var readline = require("readline");
 var midiApp = require("./app");
+var packageJson = require("./package.json");
 
 var DEFAULT_MIDI_PORT = "Babyface Midi Port 1";
+var MIXER_PROFILES = [
+    { id: "yamaha01vDefault", label: "Yamaha 01V", integration: "midi" }
+];
+
+function moduleVersion(name) {
+    try {
+        var packagePath = require.resolve(name + "/package.json");
+        return JSON.parse(fs.readFileSync(packagePath, "utf8")).version || "unknown";
+    } catch (error) {
+        return "unknown";
+    }
+}
+
+function logServiceVersions() {
+    console.log("\nFestimix service versions:");
+    console.log("  app:", packageJson.name + " " + packageJson.version);
+    console.log("  node:", process.version);
+    console.log("  socket.io:", moduleVersion("socket.io"));
+    console.log("  express:", moduleVersion("express"));
+    console.log("  jzz:", moduleVersion("jzz"));
+    console.log("  midi mapping:", path.basename(require.resolve("./yamaha01v.mapping_v3.json")));
+}
 
 function listPorts() {
     var info = JZZ().info();
@@ -17,6 +43,42 @@ function listPorts() {
         console.log("  [" + index + "] " + port.name);
     });
     return info;
+}
+
+function listAudioInputs() {
+    if (process.platform !== "win32") return [];
+    try {
+        var script = [
+            "$ErrorActionPreference='SilentlyContinue'",
+            "$items=Get-CimInstance Win32_PnPEntity | Where-Object { $_.PNPClass -eq 'AudioEndpoint' -and $_.Status -eq 'OK' -and $_.Name -match '(Microphone|Line|Input|Mic|Analog|USB|RME|Audio)' } | Sort-Object Name",
+            "$items | ForEach-Object { $_.Name }"
+        ].join("; ");
+        var output = childProcess.execFileSync("powershell.exe", ["-NoProfile", "-Command", script], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+        var seen = {};
+        return output.split(/\r?\n/).map(function(line) { return line.trim(); }).filter(Boolean).filter(function(name) {
+            if (/lautsprecher|speaker|headphone|output|kopfh/i.test(name)) return false;
+            var key = name.toLowerCase();
+            if (seen[key]) return false;
+            seen[key] = true;
+            return true;
+        });
+    } catch (error) {
+        return [];
+    }
+}
+
+function listMeterAudioInputs() {
+    console.log("\nMeter audio bemenetek (aktiv Windows capture endpointok):");
+    var inputs = listAudioInputs();
+    if (!inputs.length) {
+        console.log("  Nem talaltam listazhato aktiv audio bemenetet.");
+        console.log("  Ha a meter nem indul, ellenorizd a Windows Sound/Input beallitasokat.");
+        return inputs;
+    }
+    inputs.forEach(function(name, index) {
+        console.log("  [" + index + "] " + name);
+    });
+    return inputs;
 }
 
 function findPortByName(ports, requested, exactOnly) {
@@ -128,6 +190,27 @@ function parseMeterAudioChannels(answer) {
     };
 }
 
+function pickAudioInputName(inputs, answer) {
+    var text = String(answer || "").trim();
+    if (!text) return process.env.O1V_METER_AUDIO_DEVICE || "";
+    var index = parseInt(text, 10);
+    if (!isNaN(index) && inputs[index]) return inputs[index];
+    var lower = text.toLowerCase();
+    return inputs.find(function(name) { return name.toLowerCase().indexOf(lower) !== -1; }) || text;
+}
+
+async function pickMixerProfile(rl) {
+    console.log("\nMixer tipus:");
+    MIXER_PROFILES.forEach(function(profile, index) {
+        console.log("  [" + index + "] " + profile.label + " (" + profile.integration + ")");
+    });
+    if (!process.stdin.isTTY) return MIXER_PROFILES[0];
+    var answer = await question(rl, "Valassz mixer tipust [0: " + MIXER_PROFILES[0].label + "]: ");
+    var index = parseInt(answer.trim(), 10);
+    if (!isNaN(index) && MIXER_PROFILES[index]) return MIXER_PROFILES[index];
+    return MIXER_PROFILES[0];
+}
+
 async function pickInteractivePort(ports, options, rl) {
     var configured = pickConfiguredPort(ports, options);
     if (configured) return configured;
@@ -157,29 +240,40 @@ async function pickInteractivePort(ports, options, rl) {
 }
 
 async function main() {
-    var info = listPorts();
+    logServiceVersions();
     var rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     var inputSelection;
     var outputSelection;
     var safeReset = false;
     var meterAudioChannels = parseMeterAudioChannels(process.env.O1V_METER_AUDIO_CHANNELS || "");
+    var meterAudioDeviceName = process.env.O1V_METER_AUDIO_DEVICE || "";
+    var mixerProfile = MIXER_PROFILES[0];
 
     try {
-        inputSelection = await pickInteractivePort(info.inputs, {
-            label: "input",
-            envName: "O1V_MIDI_INPUT",
-            indexEnvName: "O1V_MIDI_INPUT_INDEX",
-            defaultName: DEFAULT_MIDI_PORT
-        }, rl);
-        outputSelection = await pickInteractivePort(info.outputs, {
-            label: "output",
-            envName: "O1V_MIDI_OUTPUT",
-            indexEnvName: "O1V_MIDI_OUTPUT_INDEX",
-            defaultName: DEFAULT_MIDI_PORT
-        }, rl);
+        mixerProfile = await pickMixerProfile(rl);
+        if (mixerProfile.integration === "midi") {
+            var info = listPorts();
+            inputSelection = await pickInteractivePort(info.inputs, {
+                label: "input",
+                envName: "O1V_MIDI_INPUT",
+                indexEnvName: "O1V_MIDI_INPUT_INDEX",
+                defaultName: DEFAULT_MIDI_PORT
+            }, rl);
+            outputSelection = await pickInteractivePort(info.outputs, {
+                label: "output",
+                envName: "O1V_MIDI_OUTPUT",
+                indexEnvName: "O1V_MIDI_OUTPUT_INDEX",
+                defaultName: DEFAULT_MIDI_PORT
+            }, rl);
+        }
         if (process.stdin.isTTY) {
             var resetAnswer = await question(rl, "Nullazzam a Yamaha 01V-t safe reset SysEx-szel indulaskor? [y/N]: ");
             safeReset = resetAnswer.trim().toLowerCase() === "y" || resetAnswer.trim().toLowerCase() === "yes";
+            console.log("\nIndits merojelet azon a solo monitor audio bemeneten, amit a meterhez hasznalni akarsz.");
+            console.log("Igy konnyebb lesz a megfelelo aktiv hangkartyat/bemenetet kivalasztani.");
+            var audioInputs = listMeterAudioInputs();
+            var deviceAnswer = await question(rl, "Meter audio bemenet eszkoz [ENTER=default, index vagy nevreszlet]: ");
+            meterAudioDeviceName = pickAudioInputName(audioInputs, deviceAnswer);
             var meterAnswer = await question(rl, "Meter audio input csatorna/par [1-2]: ");
             meterAudioChannels = parseMeterAudioChannels(meterAnswer);
         }
@@ -187,22 +281,27 @@ async function main() {
         rl.close();
     }
 
-    var input = inputSelection.port;
-    var output = outputSelection.port;
+    var input = inputSelection && inputSelection.port;
+    var output = outputSelection && outputSelection.port;
     var port = parseInt(process.env.PORT || process.env.O1V_WEB_PORT || "3000", 10);
-    var profile = process.env.O1V_MIDI_PROFILE || "yamaha01vDefault";
+    var profile = process.env.O1V_MIDI_PROFILE || mixerProfile.id;
     var channel = parseInt(process.env.O1V_MIDI_CHANNEL || "1", 10);
 
-    console.log("\nSelected MIDI input:", input);
-    console.log("  reason:", inputSelection.reason);
-    console.log("Selected MIDI output:", output);
-    console.log("  reason:", outputSelection.reason);
+    console.log("\nSelected mixer:", mixerProfile.label);
+    console.log("Selected integration:", mixerProfile.integration);
+    if (mixerProfile.integration === "midi") {
+        console.log("Selected MIDI input:", input);
+        console.log("  reason:", inputSelection.reason);
+        console.log("Selected MIDI output:", output);
+        console.log("  reason:", outputSelection.reason);
+    }
     console.log("Selected MIDI profile:", profile);
     console.log("Selected MIDI channel:", channel);
+    console.log("Selected meter audio device:", meterAudioDeviceName || "default");
     console.log("Selected meter audio channels:", meterAudioChannels.label);
     console.log("Startup safe reset:", safeReset ? "YES" : "NO");
 
-    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, safeReset: safeReset, meterAudioChannels: meterAudioChannels });
+    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, safeReset: safeReset, meterAudioChannels: meterAudioChannels, meterAudioDeviceName: meterAudioDeviceName });
     if (result === 1) {
         console.error("Unable to open selected MIDI device.");
         process.exitCode = 1;
