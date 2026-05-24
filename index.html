@@ -947,6 +947,11 @@
             border-radius: 7px;
         }
 
+        .meter-channel.inactive {
+            opacity: 0.34;
+            filter: grayscale(1);
+        }
+
         .meter-label-row,
         .meter-numbers {
             display: flex;
@@ -1263,6 +1268,7 @@
         var suppressStripClick = false;
         var lastTopModeTap = { mode: null, time: 0 };
         var lastSceneButtonTap = { scene: null, time: 0 };
+        var lastMeterButtonTap = { key: null, time: 0 };
         var copyTimer = null;
 
         var masterByMode = {
@@ -1332,6 +1338,22 @@
             if (state.activeMasterSoloTarget === normalized) return;
             state.activeMasterSoloTarget = normalized;
             setMasterSolo(normalized || "__all__", !!normalized);
+        }
+
+        function isMeterDelegationMode() {
+            return state.view === "meter";
+        }
+
+        function isMeterDoubleTap(key) {
+            var now = Date.now();
+            var isDouble = lastMeterButtonTap.key === key && now - lastMeterButtonTap.time < 430;
+            lastMeterButtonTap = isDouble ? { key: null, time: 0 } : { key: key, time: now };
+            return isDouble;
+        }
+
+        function exitMeterMode() {
+            state.view = "mixer";
+            state.previousViewBeforeMeter = null;
         }
 
         function isAudioMeterSourceClient() {
@@ -1888,15 +1910,22 @@
 
         function updateAudioMeterDom() {
             var data = state.audioMeter.data;
+            var meterContext = meterDisplayContext();
+            var rightPpmValue = meterContext.stereo ? data.right_ppm : -60;
+            var rightRmsValue = meterContext.stereo ? data.right_rms : -60;
+            var rightPeakValue = meterContext.stereo ? data.right_peak : -60;
+            var rightHoldValue = meterContext.stereo ? data.right_peak_hold : -60;
             var pairs = {
                 leftPpm: data.left_ppm,
-                rightPpm: data.right_ppm,
+                rightPpm: rightPpmValue,
                 leftRms: data.left_rms,
-                rightRms: data.right_rms,
+                rightRms: rightRmsValue,
                 leftPeak: data.left_peak,
-                rightPeak: data.right_peak,
+                rightPeak: rightPeakValue,
                 leftHold: data.left_peak_hold,
-                rightHold: data.right_peak_hold
+                rightHold: rightHoldValue,
+                leftMeterLabel: meterContext.leftLabel,
+                rightMeterLabel: meterContext.rightLabel
             };
             Object.keys(pairs).forEach(function(id) {
                 var node = document.getElementById(id);
@@ -1907,9 +1936,11 @@
             var leftHoldLine = document.getElementById("leftHoldLine");
             var rightHoldLine = document.getElementById("rightHoldLine");
             if (leftBar) leftBar.style.width = dbToPercent(data.left_ppm, -60, 0) + "%";
-            if (rightBar) rightBar.style.width = dbToPercent(data.right_ppm, -60, 0) + "%";
+            if (rightBar) rightBar.style.width = dbToPercent(rightPpmValue, -60, 0) + "%";
             if (leftHoldLine) leftHoldLine.style.left = dbToPercent(data.left_peak_hold, -60, 0) + "%";
-            if (rightHoldLine) rightHoldLine.style.left = dbToPercent(data.right_peak_hold, -60, 0) + "%";
+            if (rightHoldLine) rightHoldLine.style.left = dbToPercent(rightHoldValue, -60, 0) + "%";
+            var rightChannel = document.getElementById("rightMeterChannel");
+            if (rightChannel) rightChannel.classList.toggle("inactive", !meterContext.stereo);
             drawSpectrum();
             updateInlineMeterDom();
         }
@@ -3012,6 +3043,15 @@
         }
 
         function topModeTap(mode) {
+            if (isMeterDelegationMode()) {
+                if (isMeterDoubleTap("mode:" + mode)) {
+                    exitMeterMode();
+                    setMode(mode);
+                    return;
+                }
+                meterSelectMasterMode(mode);
+                return;
+            }
             if (state.copy.phase === "source") {
                 setMode(mode);
                 setCopySource({ type: "bus", mode: mode });
@@ -3055,6 +3095,17 @@
         function setBank(bankId) {
             var bank = banks.find(function(item) { return item.id === bankId; });
             if (!bank || bank.disabled) return;
+            if (isMeterDelegationMode() && !bank.page) {
+                if (isMeterDoubleTap("bank:" + bankId)) {
+                    exitMeterMode();
+                }
+                state.bankId = bankId;
+                render();
+                return;
+            }
+            if (isMeterDelegationMode() && (bank.page === "scenes" || bank.page === "copy")) {
+                exitMeterMode();
+            }
             if (bank.page === "copy") {
                 copyButtonPress();
                 return;
@@ -3130,6 +3181,19 @@
         }
 
         function channelButton(channel) {
+            if (isMeterDelegationMode()) {
+                if (isMeterDoubleTap("channel:" + channel.id)) {
+                    exitMeterMode();
+                    state.view = "strip";
+                    state.selectedId = channel.id;
+                    state.selectedLabel = channel.label;
+                    sendChannelEqBundle(channel);
+                    render();
+                    return;
+                }
+                meterToggleChannelSolo(channel);
+                return;
+            }
             if (state.copy.phase === "source") {
                 setCopySource({ type: "channel", id: channel.id });
                 return;
@@ -3179,6 +3243,70 @@
             state.solo[channel.id] = enabled;
             setChannelSolo(channel.soloKey, enabled);
             syncSoloRouting();
+        }
+
+        function meterToggleChannelSolo(channel) {
+            if (!channel || !channel.soloKey) return;
+            var next = !state.solo[channel.id];
+            if (next) clearMasterSoloState(null);
+            state.solo[channel.id] = next;
+            setChannelSolo(channel.soloKey, next);
+            syncSoloRouting();
+            renderButtonsOnly();
+            updateAudioMeterDom();
+        }
+
+        function meterSelectMasterMode(mode) {
+            var master = masterByMode[mode];
+            if (!master) return;
+            state.mode = mode;
+            clearChannelSolos();
+            clearMasterSoloState(master.id);
+            state.masterSolo[master.id] = true;
+            syncSoloRouting();
+            render();
+        }
+
+        function meterSelectCurrentMaster() {
+            meterSelectMasterMode(state.mode);
+        }
+
+        function channelMeterLabel(channel) {
+            if (!channel) return "";
+            var suffix = ((state.sceneSaved[state.loadedScene] || {})[channel.id] || "").trim();
+            return suffix ? baseLabel(channel) + " " + suffix : baseLabel(channel);
+        }
+
+        function masterById(id) {
+            var result = null;
+            Object.keys(masterByMode).some(function(mode) {
+                if (masterByMode[mode].id === id) {
+                    result = masterByMode[mode];
+                    return true;
+                }
+                return false;
+            });
+            return result;
+        }
+
+        function isMonoMasterMeterSource(master) {
+            return master && (master.id === "aux1" || master.id === "aux2" || master.id === "aux3" || master.id === "aux4");
+        }
+
+        function meterDisplayContext() {
+            var channels = allChannels().filter(function(channel) { return !!state.solo[channel.id]; });
+            if (channels.length) {
+                var labels = channels.map(channelMeterLabel);
+                var title = channels.length > 1 ? "SUM OF: " + labels.join(", ") : labels[0];
+                var stereo = channels.some(isStereoWidthSource);
+                return { leftLabel: title, rightLabel: stereo ? title : "", stereo: stereo };
+            }
+
+            var masterId = state.activeMasterSoloTarget || activeManualMasterSoloTarget() || "stereo";
+            var master = masterById(masterId) || masterByMode.MIX;
+            var label = master.label;
+            var masterStereo = !isMonoMasterMeterSource(master);
+            return { leftLabel: label, rightLabel: masterStereo ? label : "", stereo: masterStereo };
         }
 
         function knobLabel(knob, value) {
@@ -3938,6 +4066,7 @@
             banks.forEach(function(bank) {
                 var button = document.createElement("button");
                 var active = bank.page ? state.view === bank.page : state.bankId === bank.id && state.view !== "scenes" && state.view !== "meter";
+                if (state.view === "meter" && !bank.page) active = state.bankId === bank.id;
                 if (bank.page === "copy") active = false;
                 button.className = "btn-hw" + (active ? " active" : "") + (bank.disabled ? " disabled" : "") + (bank.page === "copy" ? copyButtonClass() : "");
                 button.textContent = bank.page === "copy" ? copyButtonLabel() : bank.label;
@@ -4261,10 +4390,12 @@
             var rmsId = lower + "Rms";
             var peakId = lower + "Peak";
             var holdValueId = lower + "Hold";
+            var channelId = lower + "MeterChannel";
+            var labelId = lower + "MeterLabel";
             return [
-                "<div class='meter-channel'>",
+                "<div class='meter-channel' id='" + channelId + "'>",
                 "<div class='meter-label-row'>",
-                "<div class='meter-label'>" + label + "</div>",
+                "<div class='meter-label' id='" + labelId + "'>" + label + "</div>",
                 "<div class='meter-numbers'>",
                 "<span>PPM <strong id='" + ppmId + "'>-60</strong></span>",
                 "<span>RMS <strong id='" + rmsId + "'>-60</strong></span>",
@@ -4311,7 +4442,8 @@
                     copyClass = " copy-target";
                     copyModeLabel = (copyTarget.copyMode || "mix").toUpperCase();
                 }
-                var activeClass = state.copy.phase === "idle" ? (state.view === "strip" && state.selectedId === channel.id ? " active" : "") : "";
+                var channelActive = state.view === "meter" ? !!state.solo[channel.id] : (state.view === "strip" && state.selectedId === channel.id);
+                var activeClass = state.copy.phase === "idle" ? (channelActive ? " active" : "") : "";
                 button.className = "btn-hw" + activeClass + copyClass;
                 var suffix = (state.sceneSaved[state.loadedScene] || {})[channel.id] || "";
                 button.innerHTML = "<div class='channel-button-main'>" + escapeHtml(baseLabel(channel)) + "</div><div class='channel-button-name'>" + escapeHtml(copyModeLabel || suffix.trim()) + "</div>";
@@ -4392,6 +4524,18 @@
             select.className = "btn-hw master-select" + (state.view === "masterStrip" ? " active" : "") + masterCopyClass;
             select.textContent = master.label;
             select.onclick = function() {
+                if (isMeterDelegationMode()) {
+                    if (isMeterDoubleTap("master-select:" + state.mode)) {
+                        exitMeterMode();
+                        state.view = "masterStrip";
+                        state.selectedId = "master:" + state.mode;
+                        state.selectedLabel = master.label;
+                        render();
+                        return;
+                    }
+                    meterSelectCurrentMaster();
+                    return;
+                }
                 if (state.copy.phase === "source" && state.mode !== "MIX") {
                     setCopySource({ type: "masterSettings", mode: state.mode });
                     return;
