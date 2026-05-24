@@ -91,12 +91,12 @@ function connectOutport(input, output, port, options) {
     if (options.auxPrePost) {
         Object.keys(options.auxPrePost).forEach(function(auxId) {
             var mode = options.auxPrePost[auxId];
-            if (mode !== "pre") {
-                console.log("Startup AUX", auxId, "left at Yamaha default POST.");
+            if (mode !== "post") {
+                console.log("Startup AUX", auxId, "left in PRE startup mode.");
                 return;
             }
             try {
-                console.log("Setting startup AUX", auxId, "sends to PRE for input channels 1-16.");
+                console.log("Setting startup AUX", auxId, "sends to POST for input channels 1-16.");
                 midi.setAuxPrePostStartup(auxId, mode);
             } catch (error) {
                 console.warn("Startup AUX pre/post setup failed for " + auxId + ":", error.message);
