@@ -1181,6 +1181,9 @@
                 processor: null,
                 fftSize: 2048,
                 sampleRate: 44100,
+                channelLeftIndex: 0,
+                channelRightIndex: 1,
+                channelLabel: "1-2",
                 spectrumSmoothed: [],
                 leftPpm: null,
                 rightPpm: null,
@@ -1908,6 +1911,14 @@
             if (!payload || payload.active !== false) startAudioMeter();
         }
 
+        function applyMeterConfig(config) {
+            if (!config || !config.audioChannels) return;
+            var audioChannels = config.audioChannels;
+            state.audioMeter.channelLeftIndex = Math.max(0, parseInt(audioChannels.left, 10) || 0);
+            state.audioMeter.channelRightIndex = Math.max(0, parseInt(audioChannels.right, 10) || state.audioMeter.channelLeftIndex);
+            state.audioMeter.channelLabel = audioChannels.label || ((state.audioMeter.channelLeftIndex + 1) + "-" + (state.audioMeter.channelRightIndex + 1));
+        }
+
         function updateAudioMeterDom() {
             var data = state.audioMeter.data;
             var meterContext = meterDisplayContext();
@@ -2160,7 +2171,7 @@
             updateAudioMeterDom();
             navigator.mediaDevices.getUserMedia({
                 audio: {
-                    channelCount: { ideal: 2 },
+                    channelCount: { ideal: Math.max(2, state.audioMeter.channelRightIndex + 1) },
                     echoCancellation: false,
                     noiseSuppression: false,
                     autoGainControl: false
@@ -2176,9 +2187,12 @@
                     return;
                 }
                 processor.onaudioprocess = function(event) {
+                    var inputBuffer = event.inputBuffer;
+                    var leftIndex = Math.min(state.audioMeter.channelLeftIndex, inputBuffer.numberOfChannels - 1);
+                    var rightIndex = Math.min(state.audioMeter.channelRightIndex, inputBuffer.numberOfChannels - 1);
                     processAudioMeterFrame([
-                        event.inputBuffer.getChannelData(0),
-                        event.inputBuffer.numberOfChannels > 1 ? event.inputBuffer.getChannelData(1) : event.inputBuffer.getChannelData(0)
+                        inputBuffer.getChannelData(leftIndex),
+                        inputBuffer.getChannelData(rightIndex)
                     ]);
                 };
                 source.connect(processor);
@@ -3181,6 +3195,7 @@
         }
 
         function channelButton(channel) {
+            if (suppressStripClick) return;
             if (isMeterDelegationMode()) {
                 if (isMeterDoubleTap("channel:" + channel.id)) {
                     exitMeterMode();
@@ -3254,6 +3269,14 @@
             syncSoloRouting();
             renderButtonsOnly();
             updateAudioMeterDom();
+        }
+
+        function setMeterChannelSolo(channel, enabled) {
+            if (!channel || !channel.soloKey || !!state.solo[channel.id] === enabled) return;
+            if (enabled) clearMasterSoloState(null);
+            state.solo[channel.id] = enabled;
+            setChannelSolo(channel.soloKey, enabled);
+            syncSoloRouting();
         }
 
         function meterSelectMasterMode(mode) {
@@ -4447,12 +4470,79 @@
                 button.className = "btn-hw" + activeClass + copyClass;
                 var suffix = (state.sceneSaved[state.loadedScene] || {})[channel.id] || "";
                 button.innerHTML = "<div class='channel-button-main'>" + escapeHtml(baseLabel(channel)) + "</div><div class='channel-button-name'>" + escapeHtml(copyModeLabel || suffix.trim()) + "</div>";
+                button.dataset.meterChannel = channel.id;
                 button.onpointerup = function(event) {
                     event.preventDefault();
                     channelButton(channel);
                 };
                 root.appendChild(button);
             });
+            if (isMeterDelegationMode()) bindMeterChannelRowSwipe(root);
+        }
+
+        function bindMeterChannelRowSwipe(root) {
+            var drag = null;
+            function buttonFromPoint(event) {
+                var element = document.elementFromPoint(event.clientX, event.clientY);
+                var button = element && element.closest ? element.closest("[data-meter-channel]") : null;
+                if (!button || !drag) return null;
+                return button;
+            }
+            function channelFromButton(button) {
+                return currentChannels().find(function(channel) { return channel.id === button.dataset.meterChannel; });
+            }
+            function touchButton(button) {
+                if (!button || !drag || drag.touched[button.dataset.meterChannel]) return;
+                var channel = channelFromButton(button);
+                if (!channel) return;
+                drag.touched[button.dataset.meterChannel] = true;
+                setMeterChannelSolo(channel, drag.targetState);
+                button.classList.toggle("active", drag.targetState);
+            }
+            root.onpointerdown = function(event) {
+                var button = event.target.closest("[data-meter-channel]");
+                if (!button) return;
+                var channel = channelFromButton(button);
+                if (!channel) return;
+                event.preventDefault();
+                root.setPointerCapture(event.pointerId);
+                drag = {
+                    pointerId: event.pointerId,
+                    startButton: button,
+                    startX: event.clientX,
+                    startY: event.clientY,
+                    targetState: !state.solo[channel.id],
+                    active: false,
+                    touched: {}
+                };
+            };
+            root.onpointermove = function(event) {
+                if (!drag || event.pointerId !== drag.pointerId) return;
+                if (!drag.active && Math.abs(event.clientX - drag.startX) + Math.abs(event.clientY - drag.startY) > 18) {
+                    drag.active = true;
+                    suppressStripClick = true;
+                    touchButton(drag.startButton);
+                }
+                if (!drag.active) return;
+                touchButton(buttonFromPoint(event));
+            };
+            root.onpointerover = function(event) {
+                if (!drag || !drag.active) return;
+                touchButton(buttonFromPoint(event));
+            };
+            window.onpointerup = function(event) {
+                if (drag && event.pointerId !== drag.pointerId) return;
+                if (drag && root.hasPointerCapture && root.hasPointerCapture(event.pointerId)) {
+                    root.releasePointerCapture(event.pointerId);
+                }
+                if (drag && drag.active) {
+                    suppressStripClick = true;
+                    setTimeout(function() { suppressStripClick = false; }, 120);
+                    renderButtonsOnly();
+                    updateAudioMeterDom();
+                }
+                drag = null;
+            };
         }
 
         function renderMaster() {
@@ -4580,6 +4670,7 @@
 
         loadScenes();
         socket.on("scene store", applySceneStore);
+        socket.on("meter config", applyMeterConfig);
         socket.on("audio meter frame", applyAudioMeterFrame);
         socket.on("audio meter request", handleAudioMeterRequest);
         render();

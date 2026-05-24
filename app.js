@@ -59,6 +59,7 @@ function connectOutport(input, output, port, options) {
         .openMidiIn([input, 0]).or(function() { returncode = 1; });
     var midi = new MidiService(outPort, options);
     var engine = new LogicalEngine({ profile: "yamaha01v" });
+    var meterAudioChannels = options.meterAudioChannels || { left: 0, right: 1, label: "1-2" };
 
     function executeEngineCommands(commands) {
         return (commands || []).map(function(command) {
@@ -90,6 +91,7 @@ function connectOutport(input, output, port, options) {
     io.on("connection", (socket) => {
         socket.emit("scene store", readSceneStore());
         socket.emit("engine modules", engine.describeModules());
+        socket.emit("meter config", { audioChannels: meterAudioChannels });
         if (latestAudioMeterFrame) socket.emit("audio meter frame", latestAudioMeterFrame);
         socket.on("scene store save", (store) => {
             try {

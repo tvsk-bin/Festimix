@@ -114,6 +114,20 @@ function question(rl, prompt) {
     });
 }
 
+function parseMeterAudioChannels(answer) {
+    var text = String(answer || "").trim();
+    if (!text) return { left: 0, right: 1, label: "1-2" };
+    var matches = text.match(/\d+/g);
+    if (!matches || !matches.length) return { left: 0, right: 1, label: "1-2" };
+    var left = Math.max(1, parseInt(matches[0], 10));
+    var right = Math.max(1, parseInt(matches[1] || matches[0], 10));
+    return {
+        left: left - 1,
+        right: right - 1,
+        label: left === right ? String(left) : left + "-" + right
+    };
+}
+
 async function pickInteractivePort(ports, options, rl) {
     var configured = pickConfiguredPort(ports, options);
     if (configured) return configured;
@@ -148,6 +162,7 @@ async function main() {
     var inputSelection;
     var outputSelection;
     var safeReset = false;
+    var meterAudioChannels = parseMeterAudioChannels(process.env.O1V_METER_AUDIO_CHANNELS || "");
 
     try {
         inputSelection = await pickInteractivePort(info.inputs, {
@@ -165,6 +180,8 @@ async function main() {
         if (process.stdin.isTTY) {
             var resetAnswer = await question(rl, "Nullazzam a Yamaha 01V-t safe reset SysEx-szel indulaskor? [y/N]: ");
             safeReset = resetAnswer.trim().toLowerCase() === "y" || resetAnswer.trim().toLowerCase() === "yes";
+            var meterAnswer = await question(rl, "Meter audio input csatorna/par [1-2]: ");
+            meterAudioChannels = parseMeterAudioChannels(meterAnswer);
         }
     } finally {
         rl.close();
@@ -182,9 +199,10 @@ async function main() {
     console.log("  reason:", outputSelection.reason);
     console.log("Selected MIDI profile:", profile);
     console.log("Selected MIDI channel:", channel);
+    console.log("Selected meter audio channels:", meterAudioChannels.label);
     console.log("Startup safe reset:", safeReset ? "YES" : "NO");
 
-    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, safeReset: safeReset });
+    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, safeReset: safeReset, meterAudioChannels: meterAudioChannels });
     if (result === 1) {
         console.error("Unable to open selected MIDI device.");
         process.exitCode = 1;
