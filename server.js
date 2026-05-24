@@ -11,8 +11,30 @@ var DEFAULT_MIDI_PORT = "Babyface Midi Port 1";
 var SERVER_VERSION = "2.1.0";
 var lastRunSettingsPath = path.join(__dirname, "data", "last-run-settings.json");
 var MIXER_PROFILES = [
-    { id: "yamaha01vDefault", label: "Yamaha 01V", integration: "midi" }
+    { id: "yamaha01vDefault", label: "Yamaha 01V", integration: "midi", engineProfile: "yamaha01v" },
+    { id: "rmeBabyfaceOsc", label: "RME Babyface", integration: "osc", engineProfile: "rmeBabyface", defaultWorkspace: "12-4-2 live mixer.tmws" }
 ];
+var RME_BABYFACE_CONFIG = {
+    id: "rmeBabyfaceOsc",
+    label: "RME Babyface OSC",
+    routing: {
+        hardwareInputs: "CH1-12",
+        softwarePlayback: "CH13/14-CH15/16",
+        masterOut: "1/2",
+        soloOut: "Phones 3/4",
+        auxOuts: { aux1: "5", aux2: "6", aux3: "7", aux4: "8" }
+    },
+    eq: {
+        gainRange: [-20, 20],
+        qRange: [0.7, 5],
+        hpfRange: [20, 500],
+        lowBandMode: "HPF frequency only"
+    },
+    effects: {
+        effect1: ["SMALL", "MED", "LARGE", "WALLS"],
+        effect2: ["STEREO", "CROSS", "PONG"]
+    }
+};
 
 function defaultAuxPrePostModes() {
     return { AUX1: "pre", AUX2: "pre", AUX3: "pre", AUX4: "pre" };
@@ -204,6 +226,53 @@ function mixerProfileById(id) {
     return MIXER_PROFILES.find(function(profile) { return profile.id === id; }) || MIXER_PROFILES[0];
 }
 
+function defaultWorkspacePath(profile) {
+    var configured = process.env.O1V_DEFAULT_WORKSPACE || (profile && profile.defaultWorkspace);
+    if (!configured) return "";
+    if (path.isAbsolute(configured)) return configured;
+    return path.join(process.env.USERPROFILE || "", "Documents", configured);
+}
+
+function listSnapshotFiles() {
+    var documents = path.join(process.env.USERPROFILE || "", "Documents");
+    try {
+        if (!fs.existsSync(documents)) return [];
+        return fs.readdirSync(documents)
+            .filter(function(name) { return /\.tmss$/i.test(name); })
+            .sort()
+            .map(function(name) { return path.join(documents, name); });
+    } catch (error) {
+        console.warn("Snapshot list read failed:", error.message);
+        return [];
+    }
+}
+
+function startupConfigForProfile(profile) {
+    var workspacePath = defaultWorkspacePath(profile);
+    return {
+        workspacePath: workspacePath,
+        workspaceExists: !!(workspacePath && fs.existsSync(workspacePath)),
+        startupMode: process.env.FESTIMIX_STARTUP_MODE || "default",
+        snapshotPath: process.env.FESTIMIX_SNAPSHOT || ""
+    };
+}
+
+function openAssociatedFile(filePath, label) {
+    if (!filePath || !fs.existsSync(filePath)) return false;
+    try {
+        if (process.platform === "win32") {
+            childProcess.spawn("cmd.exe", ["/c", "start", "", filePath], { detached: true, stdio: "ignore" }).unref();
+        } else {
+            childProcess.spawn("xdg-open", [filePath], { detached: true, stdio: "ignore" }).unref();
+        }
+        console.log("Opened " + label + ":", filePath);
+        return true;
+    } catch (error) {
+        console.warn("Could not open " + label + ":", error.message);
+        return false;
+    }
+}
+
 function summarizeLastRunSettings(settings) {
     if (!settings) return;
     console.log("\nLast run settings:");
@@ -214,9 +283,15 @@ function summarizeLastRunSettings(settings) {
     console.log("  optional input bank:", settings.optionalInputBankEnabled ? "YES" : "NO");
     console.log("  aux pre/post:", JSON.stringify(settings.auxPrePost || defaultAuxPrePostModes()));
     console.log("  safe reset:", settings.safeReset ? "YES" : "NO");
+    if (settings.startupConfig) {
+        console.log("  workspace:", settings.startupConfig.workspacePath || "none");
+        console.log("  startup mode:", settings.startupConfig.startupMode || "default");
+        console.log("  snapshot:", settings.startupConfig.snapshotPath || "none");
+    }
 }
 
 async function askLoadLastRunSettings(rl) {
+    if (process.env.FESTIMIX_SKIP_LAST_RUN === "1") return null;
     if (!process.stdin.isTTY) return null;
     var settings = readLastRunSettings();
     if (!settings) return null;
@@ -267,10 +342,10 @@ function parseYesNoAnswer(answer, defaultValue) {
 }
 
 async function askAuxPrePostModes(rl, mixerProfile) {
-    var result = defaultAuxPrePostModes();
     if (!process.stdin.isTTY || !mixerProfile || mixerProfile.id !== "yamaha01vDefault") {
-        return result;
+        return {};
     }
+    var result = defaultAuxPrePostModes();
     console.log("\nYamaha 01V AUX send pre/post startup beallitas:");
     console.log("  Gyari alap: POST. Monitor hasznalathoz ajanlott: PRE.");
     console.log("  PRE valasztasnal az adott AUX osszes input csatornajat 1-16 atkapcsolom.");
@@ -283,14 +358,53 @@ async function askAuxPrePostModes(rl, mixerProfile) {
 
 async function pickMixerProfile(rl) {
     console.log("\nMixer tipus:");
+    var defaultProfile = mixerProfileById(process.env.FESTIMIX_DEFAULT_MIXER || "");
+    var defaultIndex = MIXER_PROFILES.findIndex(function(profile) { return profile.id === defaultProfile.id; });
+    if (defaultIndex < 0) defaultIndex = 0;
     MIXER_PROFILES.forEach(function(profile, index) {
         console.log("  [" + index + "] " + profile.label + " (" + profile.integration + ")");
     });
-    if (!process.stdin.isTTY) return MIXER_PROFILES[0];
-    var answer = await question(rl, "Valassz mixer tipust [0: " + MIXER_PROFILES[0].label + "]: ");
+    if (!process.stdin.isTTY) return MIXER_PROFILES[defaultIndex];
+    var answer = await question(rl, "Valassz mixer tipust [" + defaultIndex + ": " + MIXER_PROFILES[defaultIndex].label + "]: ");
+    if (!answer.trim()) return MIXER_PROFILES[defaultIndex];
     var index = parseInt(answer.trim(), 10);
     if (!isNaN(index) && MIXER_PROFILES[index]) return MIXER_PROFILES[index];
-    return MIXER_PROFILES[0];
+    return MIXER_PROFILES[defaultIndex];
+}
+
+async function askRmeStartupConfig(rl, profile) {
+    var config = startupConfigForProfile(profile);
+    console.log("\nRME Babyface OSC inditas:");
+    console.log("  Routing: master 1/2, solo Phones 3/4, AUX 5/6/7/8.");
+    console.log("  Figyelmeztetes: legyen bekapcsolva az adat extender (Behringer ADA vagy mas).");
+    console.log("  Workspace: " + config.workspacePath + (config.workspaceExists ? " [OK]" : " [NEM TALALHATO]"));
+    if (!config.workspaceExists) {
+        console.warn("  A workspace fajlt kesobb kezzel kell betolteni vagy a path-t javitani.");
+    }
+    if (!process.stdin.isTTY) return config;
+    var modeAnswer = await question(rl, "Default induljon vagy snapshot? [default/snapshot]: ");
+    var mode = String(modeAnswer || "").trim().toLowerCase();
+    config.startupMode = mode === "snapshot" ? "snapshot" : "default";
+    if (config.startupMode === "default") {
+        console.log("  RME default reset meg nincs definialva; egyelore nem kuldok reset parancsot.");
+        return config;
+    }
+    var snapshots = listSnapshotFiles();
+    if (!snapshots.length) {
+        console.log("  Nem talaltam .tmss snapshot fajlt a Documents mappaban.");
+        var manual = await question(rl, "Snapshot teljes path vagy ENTER kesobbre: ");
+        config.snapshotPath = manual.trim();
+        return config;
+    }
+    console.log("\nTotalMix snapshotok a Documents mappaban:");
+    snapshots.forEach(function(snapshot, index) {
+        console.log("  [" + index + "] " + path.basename(snapshot));
+    });
+    var answer = await question(rl, "Valassz snapshotot [0], vagy irj teljes path-t: ");
+    var trimmed = answer.trim();
+    var index = parseInt(trimmed, 10);
+    config.snapshotPath = !trimmed ? snapshots[0] : (!isNaN(index) && snapshots[index] ? snapshots[index] : trimmed);
+    return config;
 }
 
 async function pickInteractivePort(ports, options, rl) {
@@ -330,8 +444,9 @@ async function main() {
     var meterAudioChannels = parseMeterAudioChannels(process.env.O1V_METER_AUDIO_CHANNELS || "");
     var meterAudioDeviceName = process.env.O1V_METER_AUDIO_DEVICE || "";
     var optionalInputBankEnabled = parseYesNoAnswer(process.env.O1V_OPTIONAL_INPUT_BANK || "", false);
-    var auxPrePost = defaultAuxPrePostModes();
+    var auxPrePost = {};
     var mixerProfile = MIXER_PROFILES[0];
+    var startupConfig = null;
 
     try {
         var lastRunSettings = await askLoadLastRunSettings(rl);
@@ -344,8 +459,9 @@ async function main() {
             meterAudioDeviceName = lastRunSettings.meterAudioDeviceName || "";
             optionalInputBankEnabled = !!lastRunSettings.optionalInputBankEnabled;
             auxPrePost = lastRunSettings.auxPrePost || auxPrePost;
+            startupConfig = lastRunSettings.startupConfig || startupConfigForProfile(mixerProfile);
         } else {
-            mixerProfile = await pickMixerProfile(rl);
+            mixerProfile = process.env.FESTIMIX_MIXER_PROFILE ? mixerProfileById(process.env.FESTIMIX_MIXER_PROFILE) : await pickMixerProfile(rl);
             if (mixerProfile.integration === "midi") {
                 var info = listPorts();
                 inputSelection = await pickInteractivePort(info.inputs, {
@@ -361,9 +477,14 @@ async function main() {
                     defaultName: DEFAULT_MIDI_PORT
                 }, rl);
             }
+            if (mixerProfile.integration === "osc") {
+                startupConfig = await askRmeStartupConfig(rl, mixerProfile);
+            }
             if (process.stdin.isTTY) {
-                var resetAnswer = await question(rl, "Nullazzam a Yamaha 01V-t safe reset SysEx-szel indulaskor? [y/N]: ");
-                safeReset = resetAnswer.trim().toLowerCase() === "y" || resetAnswer.trim().toLowerCase() === "yes";
+                if (mixerProfile.integration === "midi") {
+                    var resetAnswer = await question(rl, "Nullazzam a Yamaha 01V-t safe reset SysEx-szel indulaskor? [y/N]: ");
+                    safeReset = resetAnswer.trim().toLowerCase() === "y" || resetAnswer.trim().toLowerCase() === "yes";
+                }
                 console.log("\nIndits merojelet azon a solo monitor audio bemeneten, amit a meterhez hasznalni akarsz.");
                 console.log("Igy konnyebb lesz a megfelelo aktiv hangkartyat/bemenetet kivalasztani.");
                 var audioInputs = listMeterAudioInputs();
@@ -400,6 +521,7 @@ async function main() {
     var port = parseInt(process.env.PORT || process.env.O1V_WEB_PORT || "3000", 10);
     var profile = process.env.O1V_MIDI_PROFILE || mixerProfile.id;
     var channel = parseInt(process.env.O1V_MIDI_CHANNEL || "1", 10);
+    startupConfig = startupConfig || startupConfigForProfile(mixerProfile);
 
     console.log("\nSelected mixer:", mixerProfile.label);
     console.log("Selected integration:", mixerProfile.integration);
@@ -414,10 +536,21 @@ async function main() {
     console.log("Selected meter audio device:", meterAudioDeviceName || "default");
     console.log("Selected meter audio channels:", meterAudioChannels.label);
     console.log("Optional input bank:", optionalInputBankEnabled ? "YES" : "NO");
+    if (mixerProfile.integration === "osc") {
+        console.log("Selected workspace:", startupConfig.workspacePath || "none", startupConfig.workspaceExists ? "[OK]" : "[NEM TALALHATO]");
+        console.log("Selected startup mode:", startupConfig.startupMode);
+        if (startupConfig.snapshotPath) console.log("Selected snapshot:", startupConfig.snapshotPath);
+    }
     if (mixerProfile.id === "yamaha01vDefault") {
         console.log("Selected AUX pre/post startup:", JSON.stringify(auxPrePost));
     }
     console.log("Startup safe reset:", safeReset ? "YES" : "NO");
+    if (mixerProfile.integration === "osc") {
+        openAssociatedFile(startupConfig.workspacePath, "TotalMix workspace");
+        if (startupConfig.startupMode === "snapshot") {
+            openAssociatedFile(startupConfig.snapshotPath, "TotalMix snapshot");
+        }
+    }
     writeLastRunSettings({
         mixerProfileId: mixerProfile.id,
         mixerProfile: { id: mixerProfile.id, label: mixerProfile.label, integration: mixerProfile.integration },
@@ -429,10 +562,12 @@ async function main() {
         auxPrePost: auxPrePost,
         safeReset: safeReset,
         midiProfile: profile,
-        midiChannel: channel
+        midiChannel: channel,
+        startupConfig: startupConfig
     });
 
-    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, safeReset: safeReset, meterAudioChannels: meterAudioChannels, meterAudioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled, auxPrePost: auxPrePost });
+    var mixerConfig = mixerProfile.id === "rmeBabyfaceOsc" ? RME_BABYFACE_CONFIG : null;
+    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, integration: mixerProfile.integration, engineProfile: mixerProfile.engineProfile, mixerProfileId: mixerProfile.id, mixerProfileLabel: mixerProfile.label, mixerConfig: mixerConfig, startupConfig: startupConfig, safeReset: safeReset, meterAudioChannels: meterAudioChannels, meterAudioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled, auxPrePost: auxPrePost });
     if (result === 1) {
         console.error("Unable to open selected MIDI device.");
         process.exitCode = 1;

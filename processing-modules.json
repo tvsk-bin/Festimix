@@ -38,6 +38,43 @@
           }
         }
       }
+    },
+    "rmeBabyface": {
+      "displayName": "RME Babyface OSC",
+      "slotAssignments": {
+        "channelPage": {
+          "slots": {
+            "tone": "ChannelToneEQ",
+            "pan": "ChannelPan",
+            "compressor": "MusicalChannelComp",
+            "busSends": "ChannelBusSends"
+          }
+        },
+        "auxMasterPage": {
+          "slots": {
+            "tone": "AuxMonitorEQ",
+            "compressor": "GlueMasterComp"
+          }
+        },
+        "effectMasterPage": {
+          "slots": {
+            "selector": "EffectSelector"
+          }
+        },
+        "returnChannelPage": {
+          "slots": {
+            "tone": "EffectReturnEQ",
+            "pan": "ChannelPan",
+            "busSends": "ChannelBusSends"
+          }
+        },
+        "mixMasterPage": {
+          "slots": {
+            "tone": "MasterToneEQ",
+            "compressor": "GlueMasterComp"
+          }
+        }
+      }
     }
   },
   "modules": {

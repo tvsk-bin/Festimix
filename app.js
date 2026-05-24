@@ -18,6 +18,56 @@ app.use("/assets", express.static(__dirname + '/assets'));
 var sceneStorePath = path.join(__dirname, "data", "mix-setups.json");
 var latestAudioMeterFrame = null;
 
+function createPlaceholderMixerService(options) {
+    options = options || {};
+    var profile = {
+        id: options.profile || options.mixerProfileId || "rmeBabyfaceOsc",
+        name: options.mixerProfileLabel || "RME Babyface OSC"
+    };
+    function ack(action, extra) {
+        return Object.assign({
+            sent: true,
+            transport: "rme-osc-placeholder",
+            action: action,
+            note: "OSC write mapping is not implemented yet; UI intent was accepted only."
+        }, extra || {});
+    }
+    return {
+        profile: profile,
+        channel: 1,
+        sendCommand: function(commandId) { return ack("sendCommand", { commandId: commandId }); },
+        sendParameter: function(parameterId, value) { return ack("sendParameter", { parameterId: parameterId, value: value }); },
+        sendParameterCc: function(parameterId, value) { return ack("sendParameterCc", { parameterId: parameterId, value: value }); },
+        setChannelOn: function(channel, enabled) { return ack("setChannelOn", { channel: channel, enabled: !!enabled }); },
+        setChannelSolo: function(channel, enabled) { return ack("setChannelSolo", { channel: channel, enabled: !!enabled }); },
+        setChannelPhase: function(channel, enabled) { return ack("setChannelPhase", { channel: channel, enabled: !!enabled }); },
+        setMasterOn: function(master, enabled) { return ack("setMasterOn", { master: master, enabled: !!enabled }); },
+        setMasterOnCc: function(master, enabled) { return ack("setMasterOnCc", { master: master, enabled: !!enabled }); },
+        setMasterSolo: function(master, enabled) { return ack("setMasterSolo", { master: master, enabled: !!enabled }); },
+        selectChannel: function(channel) { return ack("selectChannel", { channel: channel }); },
+        setAuxPrePostStartup: function(auxId, mode) { return ack("setAuxPrePostStartup", { aux: auxId, mode: mode }); },
+        writeEqParameter: function(channel, band, parameter, value) { return ack("writeEqParameter", { channel: channel, band: band, parameter: parameter, value: value }); },
+        writeDynamicsBundle: function(target, values) { return ack("writeDynamicsBundle", { target: target, values: values || {} }); },
+        writeSimplifiedEqControl: function(channel, controlId, value) { return ack("writeSimplifiedEqControl", { channel: channel, controlId: controlId, value: value }); },
+        sendLegacyUiControl: function(legacyId, value) { return ack("sendLegacyUiControl", { legacyId: legacyId, value: value }); },
+        sendControl: function(control, value) { return ack("sendControl", { control: control, value: value }); },
+        setProfile: function(profileId) {
+            profile.id = profileId;
+            profile.name = profileId;
+            return profile;
+        },
+        setChannel: function(channel) {
+            this.channel = parseInt(channel, 10) || 1;
+            return this.channel;
+        },
+        mapIncomingToLegacyUi: function() { return null; },
+        sendIdentityRequest: function() { return ack("sendIdentityRequest"); },
+        sendCh1HiMidGain: function(gainDb) { return ack("sendCh1HiMidGain", { gainDb: gainDb }); },
+        sendCh2HiMidGainFixed: function() { return ack("sendCh2HiMidGainFixed"); },
+        sendCh1PrototypeEqBand: function(band, gainDb) { return ack("sendCh1PrototypeEqBand", { band: band, gainDb: gainDb }); }
+    };
+}
+
 function emptySceneStore() {
     return {
         version: 1,
@@ -51,14 +101,23 @@ function writeSceneStore(store) {
 function connectOutport(input, output, port, options) {
     options = options || {};
     var returncode = 0;
-    var outPort = JZZ()
-        .or("Cannot start MIDI engine!")
-        .openMidiOut([output, 0]).or(function() { returncode = 1; });
-    var inPort = JZZ()
-        .or("Cannot start MIDI engine!")
-        .openMidiIn([input, 0]).or(function() { returncode = 1; });
-    var midi = new MidiService(outPort, options);
-    var engine = new LogicalEngine({ profile: "yamaha01v" });
+    var isOscMode = options.integration === "osc";
+    var outPort = null;
+    var inPort = null;
+    var midi;
+    if (isOscMode) {
+        console.log("Mixer transport: RME OSC placeholder (no Yamaha MIDI ports opened).");
+        midi = createPlaceholderMixerService(options);
+    } else {
+        outPort = JZZ()
+            .or("Cannot start MIDI engine!")
+            .openMidiOut([output, 0]).or(function() { returncode = 1; });
+        inPort = JZZ()
+            .or("Cannot start MIDI engine!")
+            .openMidiIn([input, 0]).or(function() { returncode = 1; });
+        midi = new MidiService(outPort, options);
+    }
+    var engine = new LogicalEngine({ profile: options.engineProfile || "yamaha01v" });
     var meterAudioChannels = options.meterAudioChannels || { left: 0, right: 1, label: "1-2" };
     var meterAudioDeviceName = options.meterAudioDeviceName || "";
     var optionalInputBankEnabled = !!options.optionalInputBankEnabled;
@@ -141,6 +200,13 @@ function connectOutport(input, output, port, options) {
     io.on("connection", (socket) => {
         socket.emit("scene store", readSceneStore());
         socket.emit("engine modules", engine.describeModules());
+        socket.emit("mixer config", {
+            profileId: options.mixerProfileId || midi.profile.id,
+            profileLabel: options.mixerProfileLabel || midi.profile.name,
+            integration: options.integration || "midi",
+            mixer: options.mixerConfig || null,
+            startup: options.startupConfig || null
+        });
         socket.emit("meter config", { audioChannels: meterAudioChannels, audioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled });
         if (latestAudioMeterFrame) socket.emit("audio meter frame", latestAudioMeterFrame);
         socket.on("scene store save", (store) => {
@@ -305,16 +371,18 @@ function connectOutport(input, output, port, options) {
                 socket.emit("eq prototype status", result);
             }
         });
-        inPort.connect(function(msg) {
-            if (msg && msg[0] === 0xf0) {
-                console.log("Incoming SysEx:", formatSysExBytes(Array.prototype.slice.call(msg)));
-                return;
-            }
-            var mapped = midi.mapIncomingToLegacyUi(msg);
-            if (mapped) {
-                io.emit("fader change", mapped.legacyId, mapped.value);
-            }
-        });
+        if (inPort) {
+            inPort.connect(function(msg) {
+                if (msg && msg[0] === 0xf0) {
+                    console.log("Incoming SysEx:", formatSysExBytes(Array.prototype.slice.call(msg)));
+                    return;
+                }
+                var mapped = midi.mapIncomingToLegacyUi(msg);
+                if (mapped) {
+                    io.emit("fader change", mapped.legacyId, mapped.value);
+                }
+            });
+        }
         socket.emit("midi status", { profile: midi.profile.id, profileName: midi.profile.name, channel: midi.channel });
     });
 
