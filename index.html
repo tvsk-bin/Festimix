@@ -261,6 +261,53 @@
             padding: 4px 0;
         }
 
+        .channel-meter-fader-box {
+            padding: 4px 0;
+        }
+
+        .channel-meter-fader-shell {
+            position: relative;
+            width: clamp(42px, 4.6vw, 58px);
+            height: 82%;
+            min-height: 92px;
+            max-height: 100%;
+        }
+
+        .channel-fader-meter {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: clamp(18px, 2.1vw, 26px);
+            transform: translateX(-50%);
+            overflow: hidden;
+            border: 1px solid #4a535c;
+            border-radius: 6px;
+            background: #0b0d0f;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+            pointer-events: none;
+        }
+
+        .channel-fader-meter-fill {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 0%;
+            background: linear-gradient(to top, #145c2d 0%, #1fb96b 62%, #d6aa21 80%, #d06618 92%, #d93030 100%);
+            transition: height 0.08s linear;
+        }
+
+        .channel-fader-meter-hold {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0%;
+            height: 2px;
+            background: #f2f2f2;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.65);
+        }
+
         input[type="range"].v-fader {
             writing-mode: vertical-lr;
             direction: rtl;
@@ -294,6 +341,34 @@
             border-radius: 50%;
         }
 
+        input[type="range"].v-fader.meter-fader {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            z-index: 2;
+        }
+
+        input[type="range"].v-fader.meter-fader::-webkit-slider-runnable-track {
+            background: transparent;
+            border-color: transparent;
+        }
+
+        input[type="range"].v-fader.meter-fader::-webkit-slider-thumb {
+            width: 0;
+            height: 0;
+            margin-left: 18px;
+            border-top: clamp(12px, 1.5vw, 18px) solid transparent;
+            border-bottom: clamp(12px, 1.5vw, 18px) solid transparent;
+            border-right: clamp(20px, 2.4vw, 30px) solid #d8d8d8;
+            border-left: 0 solid transparent;
+            background: transparent;
+            border-radius: 0;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.45);
+        }
+
         input[type="range"].v-fader::-moz-range-track {
             width: 8px;
             height: 100%;
@@ -308,6 +383,23 @@
             border: 2px solid #f1f1f1;
             background: #d8d8d8;
             border-radius: 50%;
+        }
+
+        input[type="range"].v-fader.meter-fader::-moz-range-track {
+            background: transparent;
+            border-color: transparent;
+        }
+
+        input[type="range"].v-fader.meter-fader::-moz-range-thumb {
+            width: 0;
+            height: 0;
+            border-top: clamp(12px, 1.5vw, 18px) solid transparent;
+            border-bottom: clamp(12px, 1.5vw, 18px) solid transparent;
+            border-right: clamp(20px, 2.4vw, 30px) solid #d8d8d8;
+            border-left: 0 solid transparent;
+            background: transparent;
+            border-radius: 0;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.45);
         }
 
         .master input[type="range"].v-fader {
@@ -1086,6 +1178,7 @@
             audioMeter: {
                 running: false,
                 requesting: false,
+                requestToken: 0,
                 status: "READY",
                 stream: null,
                 context: null,
@@ -1692,7 +1785,6 @@
         }
 
         function updateAudioMeterDom() {
-            if (state.view !== "meter") return;
             var data = state.audioMeter.data;
             var pairs = {
                 leftPpm: data.left_ppm,
@@ -1719,10 +1811,51 @@
             if (rightBar) rightBar.style.width = dbToPercent(data.right_ppm, -60, 0) + "%";
             if (leftHoldLine) leftHoldLine.style.left = dbToPercent(data.left_peak_hold, -60, 0) + "%";
             if (rightHoldLine) rightHoldLine.style.left = dbToPercent(data.right_peak_hold, -60, 0) + "%";
+            updateChannelMeterDom();
+        }
+
+        function channelMeterLevel() {
+            var data = state.audioMeter.data;
+            return Math.max(data.left_ppm, data.right_ppm);
+        }
+
+        function channelMeterHoldLevel() {
+            var data = state.audioMeter.data;
+            return Math.max(data.left_peak_hold, data.right_peak_hold);
+        }
+
+        function updateChannelMeterDom() {
+            var levelPercent = dbToPercent(channelMeterLevel(), -60, 0);
+            var holdPercent = dbToPercent(channelMeterHoldLevel(), -60, 0);
+            Array.prototype.forEach.call(document.querySelectorAll("[data-channel-meter-fill]"), function(node) {
+                node.style.height = levelPercent + "%";
+            });
+            Array.prototype.forEach.call(document.querySelectorAll("[data-channel-meter-hold]"), function(node) {
+                node.style.bottom = holdPercent + "%";
+            });
+        }
+
+        function hasChannelSolo() {
+            return allChannels().some(function(channel) {
+                return !!state.solo[channel.id];
+            });
+        }
+
+        function shouldAudioMeterRun() {
+            return state.view === "meter" || hasChannelSolo();
+        }
+
+        function syncAudioMeterService() {
+            if (shouldAudioMeterRun()) {
+                startAudioMeter();
+            } else if (state.audioMeter.running || state.audioMeter.requesting) {
+                stopAudioMeter();
+            }
         }
 
         function stopAudioMeter() {
             var meter = state.audioMeter;
+            meter.requestToken += 1;
             if (meter.processor) meter.processor.disconnect();
             if (meter.source) meter.source.disconnect();
             if (meter.stream) {
@@ -1749,6 +1882,8 @@
             resetAudioMeterData();
             state.audioMeter.requesting = true;
             state.audioMeter.status = "REQUESTING INPUT";
+            var requestToken = state.audioMeter.requestToken + 1;
+            state.audioMeter.requestToken = requestToken;
             updateAudioMeterDom();
             navigator.mediaDevices.getUserMedia({
                 audio: {
@@ -1762,6 +1897,11 @@
                 var context = new AudioContextClass();
                 var source = context.createMediaStreamSource(stream);
                 var processor = context.createScriptProcessor(1024, 2, 2);
+                if (state.audioMeter.requestToken !== requestToken || !shouldAudioMeterRun()) {
+                    stream.getTracks().forEach(function(track) { track.stop(); });
+                    context.close();
+                    return;
+                }
                 processor.onaudioprocess = function(event) {
                     processAudioMeterFrame([
                         event.inputBuffer.getChannelData(0),
@@ -2673,7 +2813,6 @@
         function setBank(bankId) {
             var bank = banks.find(function(item) { return item.id === bankId; });
             if (!bank || bank.disabled) return;
-            if (state.view === "meter" && bank.page !== "meter") stopAudioMeter();
             if (bank.page === "copy") {
                 copyButtonPress();
                 return;
@@ -2697,7 +2836,6 @@
             }
             if (bank.page === "meter") {
                 if (state.view === "meter" && state.previousViewBeforeMeter) {
-                    stopAudioMeter();
                     state.view = state.previousViewBeforeMeter.view || "mixer";
                     state.selectedId = state.previousViewBeforeMeter.selectedId || state.selectedId;
                     state.selectedLabel = state.previousViewBeforeMeter.selectedLabel || state.selectedLabel;
@@ -2782,6 +2920,7 @@
             var next = !state.solo[channel.id];
             state.solo[channel.id] = next;
             setChannelSolo(channel.soloKey, next);
+            syncAudioMeterService();
             renderButtonsOnly();
         }
 
@@ -2795,6 +2934,7 @@
             if (!!state.solo[channel.id] === enabled) return;
             state.solo[channel.id] = enabled;
             setChannelSolo(channel.soloKey, enabled);
+            syncAudioMeterService();
         }
 
         function knobLabel(knob, value) {
@@ -3444,6 +3584,7 @@
                 if (drag.action === "solo") {
                     state.solo[channel.id] = !state.solo[channel.id];
                     setChannelSolo(channel.soloKey, state.solo[channel.id]);
+                    syncAudioMeterService();
                 }
                 refreshTouchedButton(button, channel);
             }
@@ -3479,6 +3620,7 @@
             };
             window.onpointerup = function(event) {
                 if (drag && event.pointerId !== drag.pointerId) return;
+                var shouldRefreshStrips = drag && drag.action === "solo";
                 if (drag && grid.hasPointerCapture && grid.hasPointerCapture(event.pointerId)) {
                     grid.releasePointerCapture(event.pointerId);
                 }
@@ -3487,6 +3629,7 @@
                     suppressStripClick = true;
                     setTimeout(function() { suppressStripClick = false; }, 120);
                     drag = null;
+                    if (shouldRefreshStrips) renderButtonsOnly();
                     return;
                 }
                 if (drag && drag.active) {
@@ -3494,6 +3637,7 @@
                     setTimeout(function() { suppressStripClick = false; }, 120);
                 }
                 drag = null;
+                if (shouldRefreshStrips) renderButtonsOnly();
             };
         }
 
@@ -3566,6 +3710,7 @@
             });
             root.appendChild(grid);
             bindStripDrag(grid);
+            updateChannelMeterDom();
         }
 
         function renderStrip(channel) {
@@ -3581,9 +3726,10 @@
             solo.onclick = function() { toggleSolo(channel); };
 
             var faderBox = document.createElement("div");
-            faderBox.className = "fader-box";
+            var hasSoloMeter = !!state.solo[channel.id];
+            faderBox.className = "fader-box" + (hasSoloMeter ? " channel-meter-fader-box" : "");
             var fader = document.createElement("input");
-            fader.className = "v-fader";
+            fader.className = "v-fader" + (hasSoloMeter ? " meter-fader" : "");
             fader.type = "range";
             fader.min = "0";
             fader.max = "127";
@@ -3600,7 +3746,15 @@
                     if (group) sendParameter(group + "." + channel.midiKey, midiValue);
                 }
             };
-            faderBox.appendChild(fader);
+            if (hasSoloMeter) {
+                var shell = document.createElement("div");
+                shell.className = "channel-meter-fader-shell";
+                shell.innerHTML = "<div class='channel-fader-meter'><div class='channel-fader-meter-fill' data-channel-meter-fill='" + channel.id + "'></div><div class='channel-fader-meter-hold' data-channel-meter-hold='" + channel.id + "'></div></div>";
+                shell.appendChild(fader);
+                faderBox.appendChild(shell);
+            } else {
+                faderBox.appendChild(fader);
+            }
 
             var on = document.createElement("button");
             on.className = "btn-hw on-btn " + (channelOnState(channel) ? "on" : "off");
@@ -4005,6 +4159,7 @@
         function renderButtonsOnly() {
             renderChannelRow();
             if (state.view === "mixer") renderMixer();
+            syncAudioMeterService();
         }
 
         function render() {
@@ -4017,6 +4172,7 @@
             else if (state.view === "scenes") renderScenesPage();
             else if (state.view === "meter") renderMeterPage();
             else renderMixer();
+            syncAudioMeterService();
         }
 
         loadScenes();
