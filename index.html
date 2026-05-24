@@ -1811,7 +1811,7 @@
             if (rightBar) rightBar.style.width = dbToPercent(data.right_ppm, -60, 0) + "%";
             if (leftHoldLine) leftHoldLine.style.left = dbToPercent(data.left_peak_hold, -60, 0) + "%";
             if (rightHoldLine) rightHoldLine.style.left = dbToPercent(data.right_peak_hold, -60, 0) + "%";
-            updateChannelMeterDom();
+            updateInlineMeterDom();
         }
 
         function channelMeterLevel() {
@@ -1824,13 +1824,13 @@
             return Math.max(data.left_peak_hold, data.right_peak_hold);
         }
 
-        function updateChannelMeterDom() {
+        function updateInlineMeterDom() {
             var levelPercent = dbToPercent(channelMeterLevel(), -60, 0);
             var holdPercent = dbToPercent(channelMeterHoldLevel(), -60, 0);
-            Array.prototype.forEach.call(document.querySelectorAll("[data-channel-meter-fill]"), function(node) {
+            Array.prototype.forEach.call(document.querySelectorAll("[data-inline-meter-fill]"), function(node) {
                 node.style.height = levelPercent + "%";
             });
-            Array.prototype.forEach.call(document.querySelectorAll("[data-channel-meter-hold]"), function(node) {
+            Array.prototype.forEach.call(document.querySelectorAll("[data-inline-meter-hold]"), function(node) {
                 node.style.bottom = holdPercent + "%";
             });
         }
@@ -1841,8 +1841,26 @@
             });
         }
 
+        function hasMasterSolo() {
+            return Object.keys(state.masterSolo).some(function(key) {
+                return !!state.masterSolo[key];
+            });
+        }
+
+        function hasAnySoloSelection() {
+            return hasChannelSolo() || hasMasterSolo();
+        }
+
+        function isAutoMixMasterSolo(master) {
+            return master && master.id === "stereo" && state.mode === "MIX" && !hasAnySoloSelection();
+        }
+
+        function isMasterMeterActive(master) {
+            return !!(master && state.masterSolo[master.id]) || isAutoMixMasterSolo(master);
+        }
+
         function shouldAudioMeterRun() {
-            return state.view === "meter" || hasChannelSolo();
+            return state.view === "meter" || hasChannelSolo() || hasMasterSolo() || isAutoMixMasterSolo(masterByMode[state.mode]);
         }
 
         function syncAudioMeterService() {
@@ -3710,7 +3728,15 @@
             });
             root.appendChild(grid);
             bindStripDrag(grid);
-            updateChannelMeterDom();
+            updateInlineMeterDom();
+        }
+
+        function appendMeterFader(faderBox, fader, meterId) {
+            var shell = document.createElement("div");
+            shell.className = "channel-meter-fader-shell";
+            shell.innerHTML = "<div class='channel-fader-meter'><div class='channel-fader-meter-fill' data-inline-meter-fill='" + meterId + "'></div><div class='channel-fader-meter-hold' data-inline-meter-hold='" + meterId + "'></div></div>";
+            shell.appendChild(fader);
+            faderBox.appendChild(shell);
         }
 
         function renderStrip(channel) {
@@ -3747,11 +3773,7 @@
                 }
             };
             if (hasSoloMeter) {
-                var shell = document.createElement("div");
-                shell.className = "channel-meter-fader-shell";
-                shell.innerHTML = "<div class='channel-fader-meter'><div class='channel-fader-meter-fill' data-channel-meter-fill='" + channel.id + "'></div><div class='channel-fader-meter-hold' data-channel-meter-hold='" + channel.id + "'></div></div>";
-                shell.appendChild(fader);
-                faderBox.appendChild(shell);
+                appendMeterFader(faderBox, fader, "channel:" + channel.id);
             } else {
                 faderBox.appendChild(fader);
             }
@@ -4083,13 +4105,17 @@
             var key = master.parameter;
             root.innerHTML = "";
 
+            var masterMeterActive = isMasterMeterActive(master);
+            var autoMixMasterSolo = isAutoMixMasterSolo(master);
             var solo = document.createElement("button");
-            solo.className = "btn-hw solo" + (state.masterSolo[master.id] ? " on" : "");
+            solo.className = "btn-hw solo" + (masterMeterActive ? " on" : "");
             solo.textContent = "SOLO";
             solo.onclick = function() {
+                if (autoMixMasterSolo) return;
                 var next = !state.masterSolo[master.id];
                 state.masterSolo[master.id] = next;
                 setMasterSolo(master.onId || master.id, next);
+                syncAudioMeterService();
                 renderMaster();
             };
 
@@ -4098,9 +4124,9 @@
             title.textContent = master.label;
 
             var faderBox = document.createElement("div");
-            faderBox.className = "fader-box";
+            faderBox.className = "fader-box" + (masterMeterActive ? " channel-meter-fader-box" : "");
             var fader = document.createElement("input");
-            fader.className = "v-fader";
+            fader.className = "v-fader" + (masterMeterActive ? " meter-fader" : "");
             fader.type = "range";
             fader.min = "0";
             fader.max = "127";
@@ -4117,7 +4143,11 @@
                     sendParameter(linkedMaster.parameter, value);
                 }
             };
-            faderBox.appendChild(fader);
+            if (masterMeterActive) {
+                appendMeterFader(faderBox, fader, "master:" + master.id);
+            } else {
+                faderBox.appendChild(fader);
+            }
 
             var on = document.createElement("button");
             on.className = "btn-hw on-btn " + (masterOnState(master) ? "on" : "off");
@@ -4154,10 +4184,12 @@
             root.appendChild(faderBox);
             root.appendChild(on);
             root.appendChild(select);
+            updateInlineMeterDom();
         }
 
         function renderButtonsOnly() {
             renderChannelRow();
+            renderMaster();
             if (state.view === "mixer") renderMixer();
             syncAudioMeterService();
         }
