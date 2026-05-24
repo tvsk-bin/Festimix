@@ -805,6 +805,165 @@
             filter: grayscale(1);
         }
 
+        .meter-page {
+            height: 100%;
+            min-height: 0;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 10px;
+            padding: 6px 4px 8px;
+        }
+
+        .meter-header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) repeat(2, minmax(96px, 150px));
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        .meter-title {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 3px;
+            padding: 7px 10px;
+            background: #1d2227;
+            border-radius: 7px;
+            border: 1px solid #2c3237;
+        }
+
+        .meter-title strong {
+            font-size: clamp(15px, 2vw, 22px);
+            font-weight: 900;
+        }
+
+        .meter-title span {
+            color: var(--muted);
+            font-size: clamp(10px, 1.15vw, 13px);
+            font-weight: 700;
+        }
+
+        .meter-grid {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .meter-channel {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: auto minmax(42px, 1fr) 24px;
+            gap: 6px;
+            padding: 10px;
+            background: #1d2227;
+            border: 1px solid #2c3237;
+            border-radius: 7px;
+        }
+
+        .meter-label-row,
+        .meter-numbers {
+            display: flex;
+            gap: 10px;
+            align-items: baseline;
+            justify-content: space-between;
+            min-width: 0;
+        }
+
+        .meter-label {
+            font-size: clamp(16px, 2.2vw, 26px);
+            font-weight: 900;
+        }
+
+        .meter-numbers {
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            color: var(--muted);
+            font-size: clamp(10px, 1.25vw, 14px);
+            font-weight: 700;
+        }
+
+        .meter-wrap {
+            position: relative;
+            min-height: 42px;
+            overflow: hidden;
+            border: 1px solid #3b4249;
+            border-radius: 6px;
+            background: #0b0d0f;
+        }
+
+        .meter-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #145c2d 0%, #1fb96b 62%, #d6aa21 80%, #d06618 92%, #d93030 100%);
+            transition: width 0.08s linear;
+        }
+
+        .meter-hold-line {
+            position: absolute;
+            top: 0;
+            left: 0%;
+            width: 3px;
+            height: 100%;
+            background: #f2f2f2;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.55);
+        }
+
+        .meter-scale {
+            position: relative;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .meter-tick {
+            position: absolute;
+            top: 0;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+
+        .meter-tick::before {
+            content: "";
+            display: block;
+            width: 1px;
+            height: 7px;
+            margin: 0 auto 2px;
+            background: #687078;
+        }
+
+        .meter-lufs {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .meter-lufs-card {
+            min-width: 0;
+            padding: 10px;
+            background: #1d2227;
+            border: 1px solid #2c3237;
+            border-radius: 7px;
+        }
+
+        .meter-lufs-card span {
+            display: block;
+            color: var(--muted);
+            font-size: clamp(10px, 1.15vw, 13px);
+            font-weight: 800;
+        }
+
+        .meter-lufs-card strong {
+            display: block;
+            margin-top: 4px;
+            font-size: clamp(22px, 3vw, 34px);
+            font-weight: 800;
+        }
+
         @media (max-height: 560px) {
             .strip,
             .master,
@@ -886,6 +1045,12 @@
                 channels: []
             },
             {
+                id: "meter",
+                label: "METER",
+                page: "meter",
+                channels: []
+            },
+            {
                 id: "copy",
                 label: "COPY",
                 page: "copy",
@@ -920,6 +1085,35 @@
             pendingConfirm: null,
             sceneResetUndo: null,
             previousViewBeforeScenes: null,
+            previousViewBeforeMeter: null,
+            audioMeter: {
+                running: false,
+                status: "READY",
+                stream: null,
+                context: null,
+                source: null,
+                processor: null,
+                leftPpm: null,
+                rightPpm: null,
+                leftPeakHold: -60,
+                rightPeakHold: -60,
+                leftPeakTime: 0,
+                rightPeakTime: 0,
+                integratedPower: 0,
+                lufsBlocks: 0,
+                data: {
+                    left_rms: -60,
+                    right_rms: -60,
+                    left_ppm: -60,
+                    right_ppm: -60,
+                    left_peak: -60,
+                    right_peak: -60,
+                    left_peak_hold: -60,
+                    right_peak_hold: -60,
+                    momentary_lufs: -70,
+                    integrated_lufs: -70
+                }
+            },
             copy: {
                 phase: "idle",
                 source: null,
@@ -1384,6 +1578,209 @@
         function escapeHtml(value) {
             return String(value).replace(/[&<>"']/g, function(char) {
                 return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char];
+            });
+        }
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function dbToPercent(db, minDb, maxDb) {
+            var value = clamp(parseFloat(db) || minDb, minDb, maxDb);
+            return ((value - minDb) / (maxDb - minDb)) * 100;
+        }
+
+        function dbfs(value) {
+            return Math.max(-60, 20 * Math.log10(Math.max(value, 1e-12)));
+        }
+
+        function lufsFromPower(power) {
+            return Math.max(-70, -0.691 + 10 * Math.log10(Math.max(power, 1e-12)));
+        }
+
+        function createBallisticMeter(attackMs, releaseMs, rateHz) {
+            function coeff(ms) {
+                return Math.exp(-1 / ((ms / 1000) * rateHz));
+            }
+            return {
+                value: -60,
+                attackCoeff: coeff(attackMs),
+                releaseCoeff: coeff(releaseMs),
+                process: function(targetDb) {
+                    var selectedCoeff = targetDb > this.value ? this.attackCoeff : this.releaseCoeff;
+                    this.value = (selectedCoeff * this.value) + ((1 - selectedCoeff) * targetDb);
+                    return this.value;
+                }
+            };
+        }
+
+        function resetAudioMeterData() {
+            var meter = state.audioMeter;
+            meter.leftPpm = createBallisticMeter(10, 1500, 30);
+            meter.rightPpm = createBallisticMeter(10, 1500, 30);
+            meter.leftPeakHold = -60;
+            meter.rightPeakHold = -60;
+            meter.leftPeakTime = 0;
+            meter.rightPeakTime = 0;
+            meter.integratedPower = 0;
+            meter.lufsBlocks = 0;
+            meter.data = {
+                left_rms: -60,
+                right_rms: -60,
+                left_ppm: -60,
+                right_ppm: -60,
+                left_peak: -60,
+                right_peak: -60,
+                left_peak_hold: -60,
+                right_peak_hold: -60,
+                momentary_lufs: -70,
+                integrated_lufs: -70
+            };
+        }
+
+        function roundDb(value) {
+            return Math.round(value * 10) / 10;
+        }
+
+        function updatePeakHold(peakDb, channel) {
+            var meter = state.audioMeter;
+            var now = Date.now() / 1000;
+            var holdKey = channel + "PeakHold";
+            var timeKey = channel + "PeakTime";
+            if (peakDb >= meter[holdKey] || (now - meter[timeKey]) > 2) {
+                meter[holdKey] = peakDb;
+                meter[timeKey] = now;
+            }
+            return meter[holdKey];
+        }
+
+        function processAudioMeterFrame(input) {
+            var meter = state.audioMeter;
+            var leftSum = 0;
+            var rightSum = 0;
+            var leftPeak = 0;
+            var rightPeak = 0;
+            var right = input.length > 1 ? input[1] : input[0];
+            var length = input[0].length;
+            for (var i = 0; i < length; i++) {
+                var l = input[0][i] || 0;
+                var r = right[i] || 0;
+                leftSum += l * l;
+                rightSum += r * r;
+                leftPeak = Math.max(leftPeak, Math.abs(l));
+                rightPeak = Math.max(rightPeak, Math.abs(r));
+            }
+
+            var leftRmsDb = dbfs(Math.sqrt(leftSum / length));
+            var rightRmsDb = dbfs(Math.sqrt(rightSum / length));
+            var leftPeakDb = dbfs(leftPeak);
+            var rightPeakDb = dbfs(rightPeak);
+            var stereoPower = ((leftSum / length) + (rightSum / length)) / 2;
+            meter.integratedPower += stereoPower;
+            meter.lufsBlocks += 1;
+            meter.data = {
+                left_rms: roundDb(leftRmsDb),
+                right_rms: roundDb(rightRmsDb),
+                left_ppm: roundDb(meter.leftPpm.process(leftRmsDb)),
+                right_ppm: roundDb(meter.rightPpm.process(rightRmsDb)),
+                left_peak: roundDb(leftPeakDb),
+                right_peak: roundDb(rightPeakDb),
+                left_peak_hold: roundDb(updatePeakHold(leftPeakDb, "left")),
+                right_peak_hold: roundDb(updatePeakHold(rightPeakDb, "right")),
+                momentary_lufs: roundDb(lufsFromPower(stereoPower)),
+                integrated_lufs: roundDb(lufsFromPower(meter.integratedPower / meter.lufsBlocks))
+            };
+            updateAudioMeterDom();
+        }
+
+        function updateAudioMeterDom() {
+            if (state.view !== "meter") return;
+            var data = state.audioMeter.data;
+            var pairs = {
+                leftPpm: data.left_ppm,
+                rightPpm: data.right_ppm,
+                leftRms: data.left_rms,
+                rightRms: data.right_rms,
+                leftPeak: data.left_peak,
+                rightPeak: data.right_peak,
+                leftHold: data.left_peak_hold,
+                rightHold: data.right_peak_hold,
+                momentaryLufs: data.momentary_lufs,
+                integratedLufs: data.integrated_lufs,
+                meterStatus: state.audioMeter.status
+            };
+            Object.keys(pairs).forEach(function(id) {
+                var node = document.getElementById(id);
+                if (node) node.textContent = pairs[id];
+            });
+            var leftBar = document.getElementById("leftBar");
+            var rightBar = document.getElementById("rightBar");
+            var leftHoldLine = document.getElementById("leftHoldLine");
+            var rightHoldLine = document.getElementById("rightHoldLine");
+            if (leftBar) leftBar.style.width = dbToPercent(data.left_ppm, -60, 0) + "%";
+            if (rightBar) rightBar.style.width = dbToPercent(data.right_ppm, -60, 0) + "%";
+            if (leftHoldLine) leftHoldLine.style.left = dbToPercent(data.left_peak_hold, -60, 0) + "%";
+            if (rightHoldLine) rightHoldLine.style.left = dbToPercent(data.right_peak_hold, -60, 0) + "%";
+        }
+
+        function stopAudioMeter() {
+            var meter = state.audioMeter;
+            if (meter.processor) meter.processor.disconnect();
+            if (meter.source) meter.source.disconnect();
+            if (meter.stream) {
+                meter.stream.getTracks().forEach(function(track) { track.stop(); });
+            }
+            if (meter.context && meter.context.state !== "closed") meter.context.close();
+            meter.processor = null;
+            meter.source = null;
+            meter.stream = null;
+            meter.context = null;
+            meter.running = false;
+            meter.status = "STOPPED";
+            updateAudioMeterDom();
+        }
+
+        function startAudioMeter() {
+            if (state.audioMeter.running) return;
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                state.audioMeter.status = "NO AUDIO API";
+                updateAudioMeterDom();
+                return;
+            }
+            resetAudioMeterData();
+            state.audioMeter.status = "REQUESTING INPUT";
+            updateAudioMeterDom();
+            navigator.mediaDevices.getUserMedia({
+                audio: {
+                    channelCount: { ideal: 2 },
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false
+                }
+            }).then(function(stream) {
+                var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                var context = new AudioContextClass();
+                var source = context.createMediaStreamSource(stream);
+                var processor = context.createScriptProcessor(1024, 2, 2);
+                processor.onaudioprocess = function(event) {
+                    processAudioMeterFrame([
+                        event.inputBuffer.getChannelData(0),
+                        event.inputBuffer.numberOfChannels > 1 ? event.inputBuffer.getChannelData(1) : event.inputBuffer.getChannelData(0)
+                    ]);
+                };
+                source.connect(processor);
+                processor.connect(context.destination);
+                state.audioMeter.stream = stream;
+                state.audioMeter.context = context;
+                state.audioMeter.source = source;
+                state.audioMeter.processor = processor;
+                state.audioMeter.running = true;
+                state.audioMeter.status = "RUNNING";
+                updateAudioMeterDom();
+            }).catch(function(error) {
+                stopAudioMeter();
+                state.audioMeter.status = error && error.name ? error.name : "INPUT ERROR";
+                updateAudioMeterDom();
             });
         }
 
@@ -2296,9 +2693,28 @@
                 render();
                 return;
             }
+            if (bank.page === "meter") {
+                if (state.view === "meter" && state.previousViewBeforeMeter) {
+                    state.view = state.previousViewBeforeMeter.view || "mixer";
+                    state.selectedId = state.previousViewBeforeMeter.selectedId || state.selectedId;
+                    state.selectedLabel = state.previousViewBeforeMeter.selectedLabel || state.selectedLabel;
+                    state.previousViewBeforeMeter = null;
+                } else {
+                    state.previousViewBeforeMeter = {
+                        view: state.view,
+                        selectedId: state.selectedId,
+                        selectedLabel: state.selectedLabel
+                    };
+                    state.view = "meter";
+                }
+                state.previousViewBeforeScenes = null;
+                render();
+                return;
+            }
             state.bankId = bankId;
             state.view = "mixer";
             state.previousViewBeforeScenes = null;
+            state.previousViewBeforeMeter = null;
             render();
         }
 
@@ -3128,7 +3544,7 @@
             root.appendChild(mark);
             banks.forEach(function(bank) {
                 var button = document.createElement("button");
-                var active = bank.page === "scenes" ? state.view === "scenes" : state.bankId === bank.id && state.view !== "scenes";
+                var active = bank.page ? state.view === bank.page : state.bankId === bank.id && state.view !== "scenes" && state.view !== "meter";
                 if (bank.page === "copy") active = false;
                 button.className = "btn-hw" + (active ? " active" : "") + (bank.disabled ? " disabled" : "") + (bank.page === "copy" ? copyButtonClass() : "");
                 button.textContent = bank.page === "copy" ? copyButtonLabel() : bank.label;
@@ -3423,6 +3839,64 @@
             document.getElementById("sceneSave").onclick = function() { startConfirm("save"); };
         }
 
+        function meterScaleHtml(id) {
+            var ticks = [-60, -50, -40, -30, -24, -18, -12, -9, -6, -3, 0];
+            return "<div class='meter-scale' id='" + id + "'>" + ticks.map(function(tick) {
+                return "<span class='meter-tick' style='left:" + dbToPercent(tick, -60, 0) + "%'>" + tick + "</span>";
+            }).join("") + "</div>";
+        }
+
+        function meterChannelHtml(side, label) {
+            var lower = side.toLowerCase();
+            var barId = lower + "Bar";
+            var holdId = lower + "HoldLine";
+            var ppmId = lower + "Ppm";
+            var rmsId = lower + "Rms";
+            var peakId = lower + "Peak";
+            var holdValueId = lower + "Hold";
+            return [
+                "<div class='meter-channel'>",
+                "<div class='meter-label-row'>",
+                "<div class='meter-label'>" + label + "</div>",
+                "<div class='meter-numbers'>",
+                "<span>PPM <strong id='" + ppmId + "'>-60</strong></span>",
+                "<span>RMS <strong id='" + rmsId + "'>-60</strong></span>",
+                "<span>PEAK <strong id='" + peakId + "'>-60</strong></span>",
+                "<span>HOLD <strong id='" + holdValueId + "'>-60</strong></span>",
+                "</div>",
+                "</div>",
+                "<div class='meter-wrap'><div id='" + barId + "' class='meter-fill'></div><div id='" + holdId + "' class='meter-hold-line'></div></div>",
+                meterScaleHtml(lower + "Scale"),
+                "</div>"
+            ].join("");
+        }
+
+        function renderMeterPage() {
+            var root = document.getElementById("workArea");
+            root.innerHTML = "";
+            var page = document.createElement("div");
+            page.className = "meter-page";
+            page.innerHTML = [
+                "<div class='meter-header'>",
+                "<div class='meter-title'><strong>STEREO AUDIO METER</strong><span id='meterStatus'>" + escapeHtml(state.audioMeter.status) + "</span></div>",
+                "<button class='btn-hw on-btn" + (state.audioMeter.running ? " on" : "") + "' id='meterStart'>START</button>",
+                "<button class='btn-hw on-btn off' id='meterStop'>STOP</button>",
+                "</div>",
+                "<div class='meter-grid'>",
+                meterChannelHtml("Left", "LEFT"),
+                meterChannelHtml("Right", "RIGHT"),
+                "</div>",
+                "<div class='meter-lufs'>",
+                "<div class='meter-lufs-card'><span>MOMENTARY LUFS APPROX</span><strong><span id='momentaryLufs'>-70</span> LUFS</strong></div>",
+                "<div class='meter-lufs-card'><span>INTEGRATED LUFS APPROX</span><strong><span id='integratedLufs'>-70</span> LUFS</strong></div>",
+                "</div>"
+            ].join("");
+            root.appendChild(page);
+            document.getElementById("meterStart").onclick = startAudioMeter;
+            document.getElementById("meterStop").onclick = stopAudioMeter;
+            updateAudioMeterDom();
+        }
+
         function renderChannelRow() {
             var root = document.getElementById("channelRow");
             root.innerHTML = "";
@@ -3541,6 +4015,7 @@
             if (state.view === "strip") renderStripPage();
             else if (state.view === "masterStrip") renderMasterStripPage();
             else if (state.view === "scenes") renderScenesPage();
+            else if (state.view === "meter") renderMeterPage();
             else renderMixer();
         }
 
