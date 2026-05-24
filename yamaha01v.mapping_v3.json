@@ -1,0 +1,1189 @@
+{
+  "device": {
+    "manufacturer": "Yamaha",
+    "model": "01V",
+    "protocol": "MIDI + SysEx",
+    "mappingVersion": "2.1-preliminary",
+    "status": "reverse-engineered",
+    "lastUpdated": "2026-05-12"
+  },
+  "midi": {
+    "defaultChannel": 1,
+    "localControlRecommendedForRuntime": true,
+    "localControlRecommendedForSniffing": false
+  },
+  "ignorePatterns": [
+    "F043303E042502F7",
+    "F043303E04254FF7",
+    "F043303E042550F7",
+    "F043303E042556F7",
+    "F043303E042567F7"
+  ],
+  "sysex": {
+    "yamahaHeader": [
+      "F0",
+      "43",
+      "1n",
+      "3E"
+    ],
+    "universalIdentityRequest": "F0 7E 7F 06 01 F7",
+    "sceneSafeReset": "F0 43 10 3E 04 02 00 00 7F F7",
+    "sceneSafeResetStatus": "confirmed_working_scene_00_function_call"
+  },
+  "commands": {
+    "effect.preset.hall": { "type": "sysexRaw", "rawHex": "F043007E00684C4D20203842333465715265766572622048616C6C200000010D00010608000000020000000D0000000800000604000001040000020C000000000000000400000A0C0000000C0000000000000505000000000000000000000000000000000000000000000000000048F7", "description": "Effect preset 1: Reverb Hall" },
+    "effect.preset.room": { "type": "sysexRaw", "rawHex": "F043007E00684C4D202038423334657152657665726220526F6F6D200000000700000906000000030000000B00000008000006020000030C0000030200000000000000040000090E000000000000010900000508000000000000000000000000000000000000000000000000000132F7", "description": "Effect preset 2: Reverb Room" },
+    "effect.preset.stage": { "type": "sysexRaw", "rawHex": "F043007E00684C4D20203842333465715265766572622053746167650000000F00010C0C00000006000000070000000600000401000007080000020700000000000000040000090F00000000000000000000050D00000000000000000000000000000000000000000000000000026EF7", "description": "Effect preset 3: Reverb Stage" },
+    "effect.preset.plate": { "type": "sysexRaw", "rawHex": "F043007E00684C4D202038423334657152657665726220506C6174650000010700010A040000000200000009000000060000040600000A0000000302000000000000000400000A010000000F000000000000050100000000000000000000000000000000000000000000000000030CF7", "description": "Effect preset 4: Reverb Plate" },
+    "effect.preset.echo": { "type": "sysexRaw", "rawHex": "F043007E00684C4D20203842333465714563686F202020202020202000060E0000000004000009050009090C00000006000003010009090C000000060000080600060E0000000004000008060000000300000000000005030000000000000000000000000000000000000000000B35F7", "description": "Effect preset 12: Echo" },
+    "effect.preset.delay": { "type": "sysexRaw", "rawHex": "F043007E00684C4D20203842333465714D6F6E6F2044656C617920200000000000090C04000000060000080B00000005000000000000050C00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000739F7", "description": "Effect preset 8: Mono Delay" },
+    "effect.preset.chorus": { "type": "sysexRaw", "rawHex": "F043007E00684C4D202038423334657143686F7275732020202020200000000E0000000A0000010C0000020F00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000C7AF7", "description": "Effect preset 13: Chorus" },
+    "effect.preset.symphonic": { "type": "sysexRaw", "rawHex": "F043007E00684C4D202038423334657153796D70686F6E69632020200000010F00000008000003020000030200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000E26F7", "description": "Effect preset 15: Symphonic" },
+    "effect1.preset.hall": { "type": "sysexRaw", "rawHex": "F043007E00684C4D20203842333465705265766572622048616C6C200000010D00010608000000020000000D0000000800000604000001040000020C000000000000000400000A0C0000000C0000000000000505000000000000000000000000000000000000000000000000000049F7", "description": "EFF1 effect preset 1: Reverb Hall" },
+    "effect1.preset.room": { "type": "sysexRaw", "rawHex": "F043007E00684C4D202038423334657052657665726220526F6F6D200000000700000906000000030000000B00000008000006020000030C0000030200000000000000040000090E000000000000010900000508000000000000000000000000000000000000000000000000000133F7", "description": "EFF1 effect preset 2: Reverb Room" },
+    "effect1.preset.stage": { "type": "sysexRaw", "rawHex": "F043007E00684C4D20203842333465705265766572622053746167650000000F00010C0C00000006000000070000000600000401000007080000020700000000000000040000090F00000000000000000000050D00000000000000000000000000000000000000000000000000026FF7", "description": "EFF1 effect preset 3: Reverb Stage" },
+    "effect1.preset.plate": { "type": "sysexRaw", "rawHex": "F043007E00684C4D202038423334657052657665726220506C6174650000010700010A040000000200000009000000060000040600000A0000000302000000000000000400000A010000000F000000000000050100000000000000000000000000000000000000000000000000030DF7", "description": "EFF1 effect preset 4: Reverb Plate" },
+    "effect1.preset.echo": { "type": "sysexRaw", "rawHex": "F043007E00684C4D20203842333465704563686F202020202020202000060E0000000004000009050009090C00000006000003010009090C000000060000080600060E0000000004000008060000000300000000000005030000000000000000000000000000000000000000000B36F7", "description": "EFF1 effect preset 12: Echo" },
+    "effect1.preset.delay": { "type": "sysexRaw", "rawHex": "F043007E00684C4D20203842333465704D6F6E6F2044656C617920200000000000090C04000000060000080B00000005000000000000050C0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000073AF7", "description": "EFF1 effect preset 8: Mono Delay" },
+    "effect1.preset.chorus": { "type": "sysexRaw", "rawHex": "F043007E00684C4D202038423334657043686F7275732020202020200000000E0000000A0000010C0000020F00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000C7BF7", "description": "EFF1 effect preset 13: Chorus" },
+    "effect1.preset.symphonic": { "type": "sysexRaw", "rawHex": "F043007E00684C4D202038423334657053796D70686F6E69632020200000010F00000008000003020000030200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000E27F7", "description": "EFF1 effect preset 15: Symphonic" },
+    "dynamicsPreset.master.comp": { "type": "sysexRaw", "rawHex": "F043007E00244C4D2020384233347972436F6D702020202020202020000000060002020E030C000002051EF7", "description": "MASTER dynamics preset: COMP (Comp)" },
+    "dynamicsPreset.master.shape": { "type": "sysexRaw", "rawHex": "F043007E00244C4D2020384233347972536F6C6F20566F63616C31200000000600010202010F0004020D2AF7", "description": "MASTER dynamics preset: SHAPE (Solo Vocal1)" },
+    "dynamicsPreset.master.glue": { "type": "sysexRaw", "rawHex": "F043007E00244C4D2020384233347972546F74616C20436F6D7031200000000800000204050E000503032BF7", "description": "MASTER dynamics preset: GLUE (Total Comp1)" },
+    "dynamicsPreset.master.limiter": { "type": "sysexRaw", "rawHex": "F043007E00244C4D20203842333479724C696D697465723120202020000500070509020D0104010E06050CF7", "description": "MASTER dynamics preset: LIMITER (Limiter1)" },
+    "dynamicsPreset.master.clipper": { "type": "sysexRaw", "rawHex": "F043007E00244C4D20203842333479724C696D6974657232202020200000000F0000030600000000020B2EF7", "description": "MASTER dynamics preset: CLIPPER (Limiter2 / preset 38)" },
+    "dynamicsPreset.aux1.comp": { "type": "sysexRaw", "rawHex": "F043007E00244C4D202038423334796E436F6D702020202020202020000000060002020E030C0000020522F7", "description": "AUX1 dynamics preset: COMP (Comp)" },
+    "dynamicsPreset.aux1.shape": { "type": "sysexRaw", "rawHex": "F043007E00244C4D202038423334796E536F6C6F20566F63616C31200000000600010202010F0004020D2EF7", "description": "AUX1 dynamics preset: VOCAL (Solo Vocal1)" },
+    "dynamicsPreset.aux1.glue": { "type": "sysexRaw", "rawHex": "F043007E00244C4D202038423334796E546F74616C20436F6D7031200000000800000204050E000503032FF7", "description": "AUX1 dynamics preset: GLUE (Total Comp1)" },
+    "dynamicsPreset.aux1.limiter": { "type": "sysexRaw", "rawHex": "F043007E00244C4D202038423334796E4C696D697465723120202020000500070509020D0104010E060510F7", "description": "AUX1 dynamics preset: LIMITER (Limiter1)" },
+    "dynamicsPreset.aux2.comp": { "type": "sysexRaw", "rawHex": "F043007E00244C4D202038423334796F436F6D702020202020202020000000060002020E030C0000020521F7", "description": "AUX2 dynamics preset: COMP (Comp)" },
+    "dynamicsPreset.aux2.shape": { "type": "sysexRaw", "rawHex": "F043007E00244C4D202038423334796F536F6C6F20566F63616C31200000000600010202010F0004020D2DF7", "description": "AUX2 dynamics preset: VOCAL (Solo Vocal1)" },
+    "dynamicsPreset.aux2.glue": { "type": "sysexRaw", "rawHex": "F043007E00244C4D202038423334796F546F74616C20436F6D7031200000000800000204050E000503032EF7", "description": "AUX2 dynamics preset: GLUE (Total Comp1)" },
+    "dynamicsPreset.aux2.limiter": { "type": "sysexRaw", "rawHex": "F043007E00244C4D202038423334796F4C696D697465723120202020000500070509020D0104010E06050FF7", "description": "AUX2 dynamics preset: LIMITER (Limiter1)" },
+    "dynamicsPreset.aux3.comp": { "type": "sysexRaw", "rawHex": "F043007E00244C4D2020384233347970436F6D702020202020202020000000060002020E030C0000020520F7", "description": "AUX3 dynamics preset: COMP (Comp)" },
+    "dynamicsPreset.aux3.shape": { "type": "sysexRaw", "rawHex": "F043007E00244C4D2020384233347970536F6C6F20566F63616C31200000000600010202010F0004020D2CF7", "description": "AUX3 dynamics preset: VOCAL (Solo Vocal1)" },
+    "dynamicsPreset.aux3.glue": { "type": "sysexRaw", "rawHex": "F043007E00244C4D2020384233347970546F74616C20436F6D7031200000000800000204050E000503032DF7", "description": "AUX3 dynamics preset: GLUE (Total Comp1)" },
+    "dynamicsPreset.aux3.limiter": { "type": "sysexRaw", "rawHex": "F043007E00244C4D20203842333479704C696D697465723120202020000500070509020D0104010E06050EF7", "description": "AUX3 dynamics preset: LIMITER (Limiter1)" },
+    "dynamicsPreset.aux4.comp": { "type": "sysexRaw", "rawHex": "F043007E00244C4D2020384233347971436F6D702020202020202020000000060002020E030C000002051FF7", "description": "AUX4 dynamics preset: COMP (Comp)" },
+    "dynamicsPreset.aux4.shape": { "type": "sysexRaw", "rawHex": "F043007E00244C4D2020384233347971536F6C6F20566F63616C31200000000600010202010F0004020D2BF7", "description": "AUX4 dynamics preset: VOCAL (Solo Vocal1)" },
+    "dynamicsPreset.aux4.glue": { "type": "sysexRaw", "rawHex": "F043007E00244C4D2020384233347971546F74616C20436F6D7031200000000800000204050E000503032CF7", "description": "AUX4 dynamics preset: GLUE (Total Comp1)" },
+    "dynamicsPreset.aux4.limiter": { "type": "sysexRaw", "rawHex": "F043007E00244C4D20203842333479714C696D697465723120202020000500070509020D0104010E06050DF7", "description": "AUX4 dynamics preset: LIMITER (Limiter1)" }
+  },
+  "ccMappings": {
+    "validated": true,
+    "source": "Yamaha 01V default Control Change table",
+    "channelFader": {
+      "CH1": 1,
+      "CH2": 2,
+      "CH3": 3,
+      "CH4": 4,
+      "CH5": 5,
+      "CH6": 6,
+      "CH7": 7,
+      "CH8": 8,
+      "CH9": 9,
+      "CH10": 10,
+      "CH11": 11,
+      "CH12": 12,
+      "CH13_14": 13,
+      "CH15_16": 14,
+      "RTN1": 15,
+      "RTN2": 16
+    },
+    "masterFader": {
+      "AUX1": 17,
+      "AUX2": 18,
+      "AUX3": 19,
+      "AUX4": 20,
+      "BUS1": 21,
+      "BUS2": 22,
+      "BUS3": 23,
+      "BUS4": 24,
+      "EFFECT1": 25,
+      "EFFECT2": 26,
+      "STEREO": 27
+    },
+    "channelOn": {
+      "CH1": 28,
+      "CH2": 29,
+      "CH3": 30,
+      "CH4": 31,
+      "CH5": 33,
+      "CH6": 34,
+      "CH7": 35,
+      "CH8": 36,
+      "CH9": 37,
+      "CH10": 38,
+      "CH11": 39,
+      "CH12": 40,
+      "CH13_14": 41,
+      "CH15_16": 42,
+      "RTN1": 43,
+      "RTN2": 44
+    },
+    "masterOn": {
+      "AUX1": 45,
+      "AUX2": 46,
+      "AUX3": 47,
+      "AUX4": 48,
+      "BUS1": 49,
+      "BUS2": 50,
+      "BUS3": 51,
+      "BUS4": 52,
+      "EFFECT1": 53,
+      "EFFECT2": 54,
+      "STEREO": 55
+    },
+    "pan": {
+      "CH1": 56,
+      "CH2": 57,
+      "CH3": 58,
+      "CH4": 59,
+      "CH5": 60,
+      "CH6": 61,
+      "CH7": 62,
+      "CH8": 63,
+      "CH9": 64,
+      "CH10": 65,
+      "CH11": 66,
+      "CH12": 67,
+      "CH13_L": 68,
+      "CH13_R": 69,
+      "CH15_L": 70,
+      "CH15_R": 71,
+      "RTN1_L": 72,
+      "RTN1_R": 73,
+      "RTN2_L": 74,
+      "RTN2_R": 75,
+      "STEREO_BALANCE": 76
+    },
+    "fx1Send": {
+      "CH1": 91,
+      "CH2": 92,
+      "CH3": 93,
+      "CH4": 94,
+      "CH5": 95,
+      "CH6": 102,
+      "CH7": 103,
+      "CH8": 104,
+      "CH9": 105,
+      "CH10": 106,
+      "CH11": 107,
+      "CH12": 108,
+      "CH13_14": 109,
+      "CH15_16": 110
+    },
+    "fx2Send": {
+      "CH1": 77,
+      "CH2": 78,
+      "CH3": 79,
+      "CH4": 80,
+      "CH5": 81,
+      "CH6": 82,
+      "CH7": 83,
+      "CH8": 84,
+      "CH9": 85,
+      "CH10": 86,
+      "CH11": 87,
+      "CH12": 88,
+      "CH13_14": 89,
+      "CH15_16": 90
+    }
+  },
+  "eqEngine": {
+    "type": "address-based",
+    "formula": {
+      "validatedChannels": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "baseLowFreqCh1": "0x0120",
+      "channelStride": "0x01",
+      "bandStride": "0x16",
+      "parameterOffsets": {
+        "FREQ": "0x000",
+        "GAIN": "0x058",
+        "Q": "0x0B0"
+      },
+      "bands": {
+        "LOW": 0,
+        "LO_MID": 1,
+        "HI_MID": 2,
+        "HIGH": 3
+      },
+      "equation": "address = baseLowFreqCh1 + ((channel - 1) * channelStride) + (bandIndex * bandStride) + parameterOffset"
+    }
+  },
+  "validatedEqAddresses": {
+    "CH1": {
+      "LOW": {
+        "FREQ": "0x0120",
+        "GAIN": "0x0178",
+        "Q_OR_TYPE": "0x01D0"
+      },
+      "LO_MID": {
+        "FREQ": "0x0136",
+        "GAIN": "0x018E",
+        "Q": "0x01E6"
+      },
+      "HI_MID": {
+        "FREQ": "0x014C",
+        "GAIN": "0x01A4",
+        "Q": "0x01FC"
+      },
+      "HIGH": {
+        "FREQ": "0x0162",
+        "GAIN": "0x01BA",
+        "Q_OR_TYPE": "0x0212"
+      }
+    },
+    "CH9": {
+      "LOW": {
+        "FREQ": "0x02D4",
+        "GAIN": "0x032C",
+        "Q_OR_TYPE": "0x0404"
+      },
+      "LO_MID": {
+        "FREQ": "0x02EA",
+        "GAIN": "0x0342",
+        "Q": "0x041A"
+      },
+      "HI_MID": {
+        "FREQ": "0x0300",
+        "GAIN": "0x0358",
+        "Q": "0x0430"
+      },
+      "HIGH": {
+        "FREQ": "0x0316",
+        "GAIN": "0x036E",
+        "Q_OR_TYPE": "0x04C6"
+      }
+    }
+  },
+  "eqExpandedCh1toCh8": {
+    "status": "validated_from_sniffed_absolute_eq_parameter_change_logs",
+    "notes": "These addresses are decoded 14-bit addresses for F0 43 10 3E 04 30 aaH aaL value F7. CH1 comes from ch1 eq L-LM-MH-H - Q-G-F.log; CH2 HI_MID GAIN 0x01A5 was hardware-confirmed, and CH1-CH8 follow the observed +1 target offset. They override eqEngine formula for CH1-CH8.",
+    "1": {
+      "LOW": { "GAIN": "0x0178", "FREQ": "0x0120", "Q_OR_TYPE": "0x01D0" },
+      "LO_MID": { "GAIN": "0x018E", "FREQ": "0x0136", "Q": "0x01E6" },
+      "HI_MID": { "GAIN": "0x01A4", "FREQ": "0x014C", "Q": "0x01FC" },
+      "HIGH": { "GAIN": "0x01BA", "FREQ": "0x0162", "Q_OR_TYPE": "0x0212" }
+    },
+    "2": {
+      "LOW": { "GAIN": "0x0179", "FREQ": "0x0121", "Q_OR_TYPE": "0x01D1" },
+      "LO_MID": { "GAIN": "0x018F", "FREQ": "0x0137", "Q": "0x01E7" },
+      "HI_MID": { "GAIN": "0x01A5", "FREQ": "0x014D", "Q": "0x01FD" },
+      "HIGH": { "GAIN": "0x01BB", "FREQ": "0x0163", "Q_OR_TYPE": "0x0213" }
+    },
+    "3": {
+      "LOW": { "GAIN": "0x017A", "FREQ": "0x0122", "Q_OR_TYPE": "0x01D2" },
+      "LO_MID": { "GAIN": "0x0190", "FREQ": "0x0138", "Q": "0x01E8" },
+      "HI_MID": { "GAIN": "0x01A6", "FREQ": "0x014E", "Q": "0x01FE" },
+      "HIGH": { "GAIN": "0x01BC", "FREQ": "0x0164", "Q_OR_TYPE": "0x0214" }
+    },
+    "4": {
+      "LOW": { "GAIN": "0x017B", "FREQ": "0x0123", "Q_OR_TYPE": "0x01D3" },
+      "LO_MID": { "GAIN": "0x0191", "FREQ": "0x0139", "Q": "0x01E9" },
+      "HI_MID": { "GAIN": "0x01A7", "FREQ": "0x014F", "Q": "0x01FF" },
+      "HIGH": { "GAIN": "0x01BD", "FREQ": "0x0165", "Q_OR_TYPE": "0x0215" }
+    },
+    "5": {
+      "LOW": { "GAIN": "0x017C", "FREQ": "0x0124", "Q_OR_TYPE": "0x01D4" },
+      "LO_MID": { "GAIN": "0x0192", "FREQ": "0x013A", "Q": "0x01EA" },
+      "HI_MID": { "GAIN": "0x01A8", "FREQ": "0x0150", "Q": "0x0200" },
+      "HIGH": { "GAIN": "0x01BE", "FREQ": "0x0166", "Q_OR_TYPE": "0x0216" }
+    },
+    "6": {
+      "LOW": { "GAIN": "0x017D", "FREQ": "0x0125", "Q_OR_TYPE": "0x01D5" },
+      "LO_MID": { "GAIN": "0x0193", "FREQ": "0x013B", "Q": "0x01EB" },
+      "HI_MID": { "GAIN": "0x01A9", "FREQ": "0x0151", "Q": "0x0201" },
+      "HIGH": { "GAIN": "0x01BF", "FREQ": "0x0167", "Q_OR_TYPE": "0x0217" }
+    },
+    "7": {
+      "LOW": { "GAIN": "0x017E", "FREQ": "0x0126", "Q_OR_TYPE": "0x01D6" },
+      "LO_MID": { "GAIN": "0x0194", "FREQ": "0x013C", "Q": "0x01EC" },
+      "HI_MID": { "GAIN": "0x01AA", "FREQ": "0x0152", "Q": "0x0202" },
+      "HIGH": { "GAIN": "0x01C0", "FREQ": "0x0168", "Q_OR_TYPE": "0x0218" }
+    },
+    "8": {
+      "LOW": { "GAIN": "0x017F", "FREQ": "0x0127", "Q_OR_TYPE": "0x01D7" },
+      "LO_MID": { "GAIN": "0x0195", "FREQ": "0x013D", "Q": "0x01ED" },
+      "HI_MID": { "GAIN": "0x01AB", "FREQ": "0x0153", "Q": "0x0203" },
+      "HIGH": { "GAIN": "0x01C1", "FREQ": "0x0169", "Q_OR_TYPE": "0x0219" }
+    },
+    "9": {
+      "LOW": { "GAIN": "0x0180", "FREQ": "0x0128", "Q_OR_TYPE": "0x01D8" },
+      "LO_MID": { "GAIN": "0x0196", "FREQ": "0x013E", "Q": "0x01EE" },
+      "HI_MID": { "GAIN": "0x01AC", "FREQ": "0x0154", "Q": "0x0204" },
+      "HIGH": { "GAIN": "0x01C2", "FREQ": "0x016A", "Q_OR_TYPE": "0x021A" }
+    },
+    "10": {
+      "LOW": { "GAIN": "0x0181", "FREQ": "0x0129", "Q_OR_TYPE": "0x01D9" },
+      "LO_MID": { "GAIN": "0x0197", "FREQ": "0x013F", "Q": "0x01EF" },
+      "HI_MID": { "GAIN": "0x01AD", "FREQ": "0x0155", "Q": "0x0205" },
+      "HIGH": { "GAIN": "0x01C3", "FREQ": "0x016B", "Q_OR_TYPE": "0x021B" }
+    },
+    "11": {
+      "LOW": { "GAIN": "0x0182", "FREQ": "0x012A", "Q_OR_TYPE": "0x01DA" },
+      "LO_MID": { "GAIN": "0x0198", "FREQ": "0x0140", "Q": "0x01F0" },
+      "HI_MID": { "GAIN": "0x01AE", "FREQ": "0x0156", "Q": "0x0206" },
+      "HIGH": { "GAIN": "0x01C4", "FREQ": "0x016C", "Q_OR_TYPE": "0x021C" }
+    },
+    "12": {
+      "LOW": { "GAIN": "0x0183", "FREQ": "0x012B", "Q_OR_TYPE": "0x01DB" },
+      "LO_MID": { "GAIN": "0x0199", "FREQ": "0x0141", "Q": "0x01F1" },
+      "HI_MID": { "GAIN": "0x01AF", "FREQ": "0x0157", "Q": "0x0207" },
+      "HIGH": { "GAIN": "0x01C5", "FREQ": "0x016D", "Q_OR_TYPE": "0x021D" }
+    },
+    "13_14": {
+      "LOW": { "GAIN": "0x0184", "FREQ": "0x012C", "Q_OR_TYPE": "0x01DC" },
+      "LO_MID": { "GAIN": "0x019A", "FREQ": "0x0142", "Q": "0x01F2" },
+      "HI_MID": { "GAIN": "0x01B0", "FREQ": "0x0158", "Q": "0x0208" },
+      "HIGH": { "GAIN": "0x01C6", "FREQ": "0x016E", "Q_OR_TYPE": "0x021E" }
+    },
+    "15_16": {
+      "LOW": { "GAIN": "0x0185", "FREQ": "0x012D", "Q_OR_TYPE": "0x01DD" },
+      "LO_MID": { "GAIN": "0x019B", "FREQ": "0x0143", "Q": "0x01F3" },
+      "HI_MID": { "GAIN": "0x01B1", "FREQ": "0x0159", "Q": "0x0209" },
+      "HIGH": { "GAIN": "0x01C7", "FREQ": "0x016F", "Q_OR_TYPE": "0x021F" }
+    }
+  },
+  "channelEqModel": {
+    "status": "implemented_authoritative_simplified_channel_eq",
+    "notes": [
+      "UI HPF controls Yamaha LOW as HPF by forcing LOW Q/type, frequency and gain.",
+      "UI BASS controls Yamaha LO_MID with Q=1 and fixed 125 Hz.",
+      "UI MID controls Yamaha HI_MID with Q=1 and the selected UI frequency.",
+      "UI HIGH controls Yamaha HIGH with shelf mode and fixed 8000 Hz.",
+      "MID frequency raw values are intentionally table-driven here so hardware corrections do not require code changes."
+    ],
+    "rawValues": {
+      "qOne": "0x14",
+      "hpfMode": "0x2C",
+      "lowShelfMode": "0x00",
+      "hpfFreq": {
+        "75": "0x16",
+        "100": "0x1B"
+      },
+      "hpfOffFreq": "0x1B",
+      "hpfGainOn": "0x24",
+      "hpfGainOff": "0x22",
+      "bassFixedFreq125": "0x1F",
+      "midFreq": {
+        "250": "0x2B",
+        "500": "0x37",
+        "1000": "0x43",
+        "2000": "0x4F",
+        "4000": "0x5B"
+      },
+      "highShelfMode": "0x2A",
+      "highFixedFreq8000": "0x6B"
+    }
+  },
+  "eqExpandedTargets": {
+    "status": "derived_from_RTN_AUX_STEREO_EQ_logs",
+    "notes": "Decoded 14-bit addresses for F0 43 10 3E 04 30 aaH aaL value F7. Order follows log filenames L-LM-MH-H / Q-G-F. UI behavior is intentionally separate from these raw addresses.",
+    "RTN1": {
+      "LOW": { "GAIN": "0x0186", "FREQ": "0x012E", "Q_OR_TYPE": "0x01DE" },
+      "LO_MID": { "GAIN": "0x019C", "FREQ": "0x0144", "Q": "0x01F4" },
+      "HI_MID": { "GAIN": "0x01B2", "FREQ": "0x015A", "Q": "0x020A" },
+      "HIGH": { "GAIN": "0x01C8", "FREQ": "0x0170", "Q_OR_TYPE": "0x0220" }
+    },
+    "RTN2": {
+      "LOW": { "GAIN": "0x0187", "FREQ": "0x012F", "Q_OR_TYPE": "0x01DF" },
+      "LO_MID": { "GAIN": "0x019D", "FREQ": "0x0145", "Q": "0x01F5" },
+      "HI_MID": { "GAIN": "0x01B3", "FREQ": "0x015B", "Q": "0x020B" },
+      "HIGH": { "GAIN": "0x01C9", "FREQ": "0x0171", "Q_OR_TYPE": "0x0221" }
+    },
+    "AUX1": {
+      "LOW": { "GAIN": "0x0188", "FREQ": "0x0130", "Q_OR_TYPE": "0x01E0" },
+      "LO_MID": { "GAIN": "0x019E", "FREQ": "0x0146", "Q": "0x01F6" },
+      "HI_MID": { "GAIN": "0x01B4", "FREQ": "0x015C", "Q": "0x020C" },
+      "HIGH": { "GAIN": "0x01CA", "FREQ": "0x0172", "Q_OR_TYPE": "0x0222" }
+    },
+    "AUX2": {
+      "LOW": { "GAIN": "0x0189", "FREQ": "0x0131", "Q_OR_TYPE": "0x01E1" },
+      "LO_MID": { "GAIN": "0x019F", "FREQ": "0x0147", "Q": "0x01F7" },
+      "HI_MID": { "GAIN": "0x01B5", "FREQ": "0x015D", "Q": "0x020D" },
+      "HIGH": { "GAIN": "0x01CB", "FREQ": "0x0173", "Q_OR_TYPE": "0x0223" }
+    },
+    "AUX3": {
+      "LOW": { "GAIN": "0x018A", "FREQ": "0x0132", "Q_OR_TYPE": "0x01E2" },
+      "LO_MID": { "GAIN": "0x01A0", "FREQ": "0x0148", "Q": "0x01F8" },
+      "HI_MID": { "GAIN": "0x01B6", "FREQ": "0x015E", "Q": "0x020E" },
+      "HIGH": { "GAIN": "0x01CC", "FREQ": "0x0174", "Q_OR_TYPE": "0x0224" }
+    },
+    "AUX4": {
+      "LOW": { "GAIN": "0x018B", "FREQ": "0x0133", "Q_OR_TYPE": "0x01E3" },
+      "LO_MID": { "GAIN": "0x01A1", "FREQ": "0x0149", "Q": "0x01F9" },
+      "HI_MID": { "GAIN": "0x01B7", "FREQ": "0x015F", "Q": "0x020F" },
+      "HIGH": { "GAIN": "0x01CD", "FREQ": "0x0175", "Q_OR_TYPE": "0x0225" }
+    },
+    "STEREO": {
+      "LOW": { "GAIN": "0x018C", "FREQ": "0x0134", "Q_OR_TYPE": "0x01E4" },
+      "LO_MID": { "GAIN": "0x01A2", "FREQ": "0x014A", "Q": "0x01FA" },
+      "HI_MID": { "GAIN": "0x01B8", "FREQ": "0x0160", "Q": "0x0210" },
+      "HIGH": { "GAIN": "0x01CE", "FREQ": "0x0176", "Q_OR_TYPE": "0x0226" }
+    }
+  },
+  "eqBandModes": {
+    "LOW": {
+      "confirmed": {
+        "HPF": "0x00",
+        "L_SHELF": "0x2C"
+      },
+      "notes": [
+        "In HPF mode gain becomes binary ON/OFF behavior."
+      ]
+    },
+    "HIGH": {
+      "confirmed": {
+        "LPF": "0x00"
+      },
+      "suspected": {
+        "H_SHELF": "0x2A"
+      },
+      "notes": [
+        "In LPF mode gain becomes binary ON/OFF behavior."
+      ]
+    }
+  },
+  "uiDefaults": {
+    "eqPageEntry": {
+      "LOW": {
+        "mode": "L_SHELF"
+      },
+      "LO_MID": {
+        "Q": 1.0
+      },
+      "HI_MID": {
+        "Q": 1.0
+      },
+      "HIGH": {
+        "mode": "H_SHELF"
+      }
+    }
+  },
+  "masterEqModel": {
+    "status": "implemented_authoritative_fast_musical_master_eq",
+    "notes": [
+      "Dedicated MasterToneEQ module for broad live tonal shaping.",
+      "LOW and HIGH are shelves. LO-MID and HI-MID are bells.",
+      "Q is fixed internally at 1.0 for every master EQ band and is not exposed in the UI.",
+      "Frequency raw values are table-driven here so hardware corrections do not require code changes."
+    ],
+    "rawValues": {
+      "fixedQ": 1.0,
+      "qOne": "0x14",
+      "lowShelfMode": "0x29",
+      "highShelfMode": "0x2A",
+      "frequencies": {
+        "LOW": {
+          "60": "0x11",
+          "80": "0x17",
+          "100": "0x1B",
+          "120": "0x1F"
+        },
+        "LO_MID": {
+          "250": "0x2B",
+          "400": "0x34",
+          "630": "0x3C",
+          "1000": "0x43"
+        },
+        "HI_MID": {
+          "1000": "0x43",
+          "2000": "0x4F",
+          "4000": "0x5B",
+          "6000": "0x62"
+        },
+        "HIGH": {
+          "8000": "0x6B",
+          "10000": "0x70",
+          "12000": "0x73"
+        }
+      }
+    }
+  },
+  "auxEqModel": {
+    "status": "implemented_authoritative_aux_monitor_eq",
+    "notes": [
+      "Dedicated AuxMonitorEQ module for fast monitor feedback control.",
+      "HPF uses the same radio-style interaction as other HPF controls.",
+      "LOW NOTCH and HIGH NOTCH are narrow fixed-Q cuts with an INIT boost mode for finding feedback.",
+      "Raw frequency and Q values are intentionally editable here."
+    ],
+    "rawValues": {
+      "hpfMode": "0x2C",
+      "hpfOffMode": "0x00",
+      "hpfGainOn": "0x24",
+      "hpfGainOff": "0x22",
+      "hpfFreq": {
+        "75": "0x16",
+        "100": "0x1B",
+        "175": "0x26",
+        "250": "0x2B"
+      },
+      "hpfOffFreq": "0x1B",
+      "notchQ": "0x02",
+      "presenceQ": "0x18",
+      "presenceFreq5000": "0x60",
+      "lowNotchFreqRawRange": {
+        "minHz": 100,
+        "maxHz": 1000,
+        "minRaw": "0x1B",
+        "maxRaw": "0x43"
+      },
+      "highNotchFreqRawRange": {
+        "minHz": 800,
+        "maxHz": 6000,
+        "minRaw": "0x40",
+        "maxRaw": "0x62"
+      }
+    }
+  },
+  "effectReturnEqModel": {
+    "status": "implemented_authoritative_effect_return_eq",
+    "notes": [
+      "Dedicated EffectReturnEQ module for RTN1/RTN2 shaping, not effect master bus EQ.",
+      "EFF1 page targets RTN1 EQ. EFF2 page targets RTN2 EQ.",
+      "Frequencies and Q are fixed internally; UI exposes HPF and three musical gain controls only."
+    ],
+    "rawValues": {
+      "qOne": "0x14",
+      "hpfMode": "0x2C",
+      "hpfOffMode": "0x00",
+      "hpfGainOn": "0x24",
+      "hpfGainOff": "0x22",
+      "hpfFreq": {
+        "100": "0x1B",
+        "175": "0x26",
+        "250": "0x2B",
+        "500": "0x37"
+      },
+      "hpfOffFreq": "0x1B",
+      "lowFixedFreq125": "0x1F",
+      "midFixedFreq2500": "0x52",
+      "airFixedFreq10000": "0x70"
+    }
+  },
+  "navigation": {
+    "confirmed": true,
+    "knownPages": [
+      "HOME",
+      "EQ",
+      "DYNAMICS",
+      "VIEW",
+      "OPTION"
+    ]
+  },
+  "stereoBehavior": {
+    "CH13_14": {
+      "linked": true
+    },
+    "CH15_16": {
+      "linked": true
+    },
+    "notes": [
+      "Stereo channels behave differently from mono channels.",
+      "SELECT cannot self-toggle on Yamaha 01V."
+    ]
+  },
+  "returns": {
+    "RTN1": {
+      "exists": true,
+      "validated": false
+    },
+    "RTN2": {
+      "exists": true,
+      "validated": false
+    }
+  },
+  "masterSection": {
+    "AUX": {
+      "AUX1": {
+        "masterAddress": "0x001C"
+      },
+      "AUX2": {
+        "masterAddress": "0x001D"
+      },
+      "AUX3": {
+        "masterAddress": "0x001E"
+      },
+      "AUX4": {
+        "masterAddress": "0x001F"
+      }
+    },
+    "FX": {
+      "FX1": {
+        "masterAddress": "0x0025"
+      },
+      "FX2": {
+        "masterAddress": "0x0026"
+      },
+      "note": "FX master fader addresses derived from FX master and return faders logs."
+    },
+    "STEREO": {
+      "masterAddress": "0x0024",
+      "validated": "confirmed_from_master_fader_on_different_pages_sysex_log"
+    }
+  },
+  "sysexParameters": {
+    "pan": {
+      "CH13_L": "0x0374",
+      "CH13_R": "0x0375",
+      "CH15_L": "0x0376",
+      "CH15_R": "0x0377",
+      "RTN1_L": "0x0378",
+      "RTN1_R": "0x0379",
+      "RTN2_L": "0x037A",
+      "RTN2_R": "0x037B",
+      "validated": "from stereo 1314, 1516, eff1 ret, eff2 ret pan es csatornavaltasok.log"
+    },
+    "attenuator": {
+      "notes": "0x5D is the sniffed -3 dB mono attenuation value. Address sequence is kept for future level/trim logic.",
+      "monoStereoMinus3dbValue": "0x5D",
+      "unityValue": "0x60",
+      "CH13_14": {
+        "left": "0x03E2",
+        "right": "0x03E3"
+      },
+      "CH15_16": {
+        "left": "0x03E3"
+      }
+    },
+    "masterFader": {
+      "STEREO": "0x0024",
+      "AUX1": "0x001C",
+      "AUX2": "0x001D",
+      "AUX3": "0x001E",
+      "AUX4": "0x001F",
+      "EFFECT1": "0x0026",
+      "EFFECT2": "0x0025"
+    },
+    "effectReturnSend": {
+      "validated": true,
+      "transport": {
+        "family": "F0 43 10 3E 04",
+        "valueEncoding": "7bit",
+        "sendRule": "send exact stored prefix bytes"
+      },
+      "master": {
+        "effRtn1": { "prefix": ["0x30", "0x00", "0x1A"] },
+        "effRtn2": { "prefix": ["0x30", "0x00", "0x1B"] }
+      },
+      "eff1": {
+        "effRtn2": { "prefix": ["0x30", "0x01", "0x04"] }
+      },
+      "eff2": {
+        "effRtn1": { "prefix": ["0x30", "0x01", "0x05"] }
+      },
+      "aux1": {
+        "effRtn1": { "prefix": ["0x30", "0x00", "0x7B"] },
+        "effRtn2": { "prefix": ["0x30", "0x00", "0x7C"] }
+      },
+      "aux2": {
+        "effRtn1": { "prefix": ["0x30", "0x00", "0x7D"] },
+        "effRtn2": { "prefix": ["0x30", "0x00", "0x7E"] }
+      },
+      "aux3": {
+        "effRtn1": { "prefix": ["0x30", "0x00", "0x7F"] },
+        "effRtn2": { "prefix": ["0x30", "0x01", "0x00"] }
+      },
+      "aux4": {
+        "effRtn1": { "prefix": ["0x30", "0x01", "0x01"] },
+        "effRtn2": { "prefix": ["0x30", "0x01", "0x02"] }
+      },
+      "fx1Send": {
+        "RTN2": { "prefix": ["0x30", "0x01", "0x04"] }
+      },
+      "fx2Send": {
+        "RTN1": { "prefix": ["0x30", "0x01", "0x05"] }
+      }
+    }
+  },
+  "logicEngineConcept": {
+    "enabled": true,
+    "notes": [
+      "UI controls should not directly represent Yamaha parameters.",
+      "A higher-level logic engine should translate UI intent into parameter bundles.",
+      "One-knob compressor should use model-specific parameter bundles.",
+      "Future devices may reuse UI while using different logic engines."
+    ]
+  },
+  "smartEqConcept": {
+    "enabled": true,
+    "ideas": [
+      "Adaptive Q based on boost/cut direction",
+      "Automatic shelf behavior",
+      "Program-dependent EQ response"
+    ]
+  },
+  "needsValidation": [
+    "AUX send write test using preferred prefix",
+    "Dynamics OUT_GAIN exact role",
+    "Dynamics RATIO exact role",
+    "Exact H.SHELF value",
+    "Exact LPF mode value",
+    "Exact Q=1 encoded value",
+    "Exact frequency encoding table",
+    "Master EQ addresses",
+    "ON/OFF exact state direction for stereo/returns",
+    "ON/OFF state values",
+    "RTN select logic",
+    "Solo exact on/off direction",
+    "Stereo master addresses"
+  ],
+  "auxSends": {
+    "status": "derived_from_aux_1-4_master_and_channels_log",
+    "messageFamily": "editBufferParameter7bitObserved",
+    "sendPreferred": "use editBuffer7bitWrite prefix when writing unless hardware test proves 0x30 is required",
+    "masters": {
+      "AUX1": "0x001C",
+      "AUX2": "0x001D",
+      "AUX3": "0x001E",
+      "AUX4": "0x001F"
+    },
+    "sends": {
+      "AUX1": {
+        "CH1": "0x0027",
+        "CH2": "0x0028",
+        "CH3": "0x0029",
+        "CH4": "0x002A",
+        "CH5": "0x002B",
+        "CH6": "0x002C",
+        "CH7": "0x002D",
+        "CH8": "0x002E",
+        "CH9": "0x002F",
+        "CH10": "0x0030",
+        "CH11": "0x0031",
+        "CH12": "0x0032",
+        "CH13_14": "0x006F",
+        "CH15_16": "0x0070"
+      },
+      "AUX2": {
+        "CH1": "0x0033",
+        "CH2": "0x0034",
+        "CH3": "0x0035",
+        "CH4": "0x0036",
+        "CH5": "0x0037",
+        "CH6": "0x0038",
+        "CH7": "0x0039",
+        "CH8": "0x003A",
+        "CH9": "0x003B",
+        "CH10": "0x003C",
+        "CH11": "0x003D",
+        "CH12": "0x003E",
+        "CH13_14": "0x0071",
+        "CH15_16": "0x0072"
+      },
+      "AUX3": {
+        "CH1": "0x003F",
+        "CH2": "0x0040",
+        "CH3": "0x0041",
+        "CH4": "0x0042",
+        "CH5": "0x0043",
+        "CH6": "0x0044",
+        "CH7": "0x0045",
+        "CH8": "0x0046",
+        "CH9": "0x0047",
+        "CH10": "0x0048",
+        "CH11": "0x0049",
+        "CH12": "0x004A",
+        "CH13_14": "0x0073",
+        "CH15_16": "0x0074"
+      },
+      "AUX4": {
+        "CH1": "0x004B",
+        "CH2": "0x004C",
+        "CH3": "0x004D",
+        "CH4": "0x004E",
+        "CH5": "0x004F",
+        "CH6": "0x0050",
+        "CH7": "0x0051",
+        "CH8": "0x0052",
+        "CH9": "0x0053",
+        "CH10": "0x0054",
+        "CH11": "0x0055",
+        "CH12": "0x0056",
+        "CH13_14": "0x0075",
+        "CH15_16": "0x0076"
+      }
+    }
+  },
+  "dynamics": {
+    "status": "preliminary_derived_from_sniff_logs",
+    "transport": {
+      "parameter7bitFamily": "editBuffer7bitWrite",
+      "onOffFormat": "F0 43 10 3E 04 60 aaH aaL encodedValue F7",
+      "parameterWideFormat": "F0 43 10 3E 04 00 aaH aaL valueH valueL F7",
+      "wideValueEncoding": "valueH = (raw >> 7) & 0x7F, valueL = raw & 0x7F",
+      "addressEncoding": "address = (aaH << 7) + aaL"
+    },
+    "authoritativeBundleOrder": [
+      "ON_OFF",
+      "THRESHOLD",
+      "RATIO",
+      "ATTACK",
+      "RELEASE",
+      "KNEE",
+      "OUT_GAIN"
+    ],
+    "targetAddressing": {
+      "notes": "Parameter base addresses are stored as decoded 14-bit addresses. The table values sniffed as 0x0526 mean aaH=0x05, aaL=0x26, decoded address 0x02A6.",
+      "rule": "For dynamics parameters except ON_OFF: decodedAddress = decodedBaseAddress + targetOffset.",
+      "targetOffsets": {
+        "CH1": 0,
+        "CH2": 1,
+        "CH3": 2,
+        "CH4": 3,
+        "CH5": 4,
+        "CH6": 5,
+        "CH7": 6,
+        "CH8": 7,
+        "CH9": 8,
+        "CH10": 9,
+        "CH11": 10,
+        "CH12": 11,
+        "CH13_14": 12,
+        "CH15_16": 13,
+        "AUX1": 14,
+        "AUX2": 15,
+        "AUX3": 16,
+        "AUX4": 17,
+        "STEREO": 18
+      },
+      "onOffAddressGroups": [
+        {
+          "targets": ["CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8"],
+          "address": "0x0258",
+          "targetIndexes": {
+            "CH1": 0,
+            "CH2": 1,
+            "CH3": 2,
+            "CH4": 3,
+            "CH5": 4,
+            "CH6": 5,
+            "CH7": 6,
+            "CH8": 7
+          }
+        },
+        {
+          "targets": ["CH9", "CH10", "CH11", "CH12", "CH13_14", "CH15_16"],
+          "address": "0x0259",
+          "targetIndexes": {
+            "CH9": 0,
+            "CH10": 1,
+            "CH11": 2,
+            "CH12": 3,
+            "CH13_14": 4,
+            "CH15_16": 5
+          }
+        },
+        {
+          "targets": ["AUX1", "AUX2", "AUX3", "AUX4", "STEREO"],
+          "address": "0x025A",
+          "targetIndexes": {
+            "AUX1": 0,
+            "AUX2": 1,
+            "AUX3": 2,
+            "AUX4": 3,
+            "STEREO": 7
+          }
+        }
+      ]
+    },
+    "messageFamiliesObserved": [
+      "F0 43 10 3E 04 30 aaH aaL value F7",
+      "F0 43 10 3E 04 00 aaH aaL valueH valueL F7"
+    ],
+    "parameters": {
+      "ON_OFF": {
+        "address": "0x0258",
+        "status": "provided_for_compressor_mapping",
+        "encoding": "targetIndexedBoolean7bit",
+        "family": "dynamicsOnOff",
+        "raw": {
+          "enabledOffset": "0x08"
+        },
+        "real": {
+          "values": [
+            "OFF",
+            "ON"
+          ]
+        }
+      },
+      "THRESHOLD": {
+        "address": "0x02A6",
+        "status": "provided_for_compressor_mapping",
+        "encoding": "linear7bit",
+        "raw": {
+          "min": "0x00",
+          "max": "0x36"
+        },
+        "real": {
+          "min": -54,
+          "max": 0,
+          "unit": "dB"
+        }
+      },
+      "ATTACK": {
+        "address": "0x02BA",
+        "status": "provided_for_compressor_mapping",
+        "encoding": "linear7bit",
+        "raw": {
+          "min": "0x00",
+          "max": "0x78"
+        },
+        "real": {
+          "min": 0,
+          "max": 120,
+          "unit": "ms"
+        }
+      },
+      "RELEASE": {
+        "address": "0x02E2",
+        "status": "provided_for_compressor_mapping",
+        "encoding": "logWide",
+        "raw": {
+          "min": "0x000",
+          "max": "0x09F"
+        },
+        "real": {
+          "min": 6,
+          "max": 46000,
+          "unit": "ms"
+        }
+      },
+      "OUT_GAIN": {
+        "address": "0x02CE",
+        "status": "provided_for_compressor_mapping",
+        "encoding": "linear7bit",
+        "raw": {
+          "min": "0x00",
+          "max": "0x24"
+        },
+        "real": {
+          "min": 0,
+          "max": 18,
+          "unit": "dB"
+        }
+      },
+      "KNEE": {
+        "address": "0x0292",
+        "status": "provided_for_compressor_mapping",
+        "encoding": "enumWide",
+        "raw": {
+          "hard": "0x000",
+          "1": "0x001",
+          "2": "0x002",
+          "3": "0x003",
+          "4": "0x004",
+          "5": "0x005"
+        },
+        "real": {
+          "values": [
+            "hard",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        }
+      },
+      "RATIO": {
+        "address": "0x027E",
+        "status": "provided_for_compressor_mapping",
+        "encoding": "enum7bit",
+        "raw": {
+          "1:1": "0x00",
+          "1.1:1": "0x01",
+          "1.3:1": "0x02",
+          "1.5:1": "0x03",
+          "1.7:1": "0x04",
+          "2:1": "0x05",
+          "2.5:1": "0x06",
+          "3:1": "0x07",
+          "3.5:1": "0x08",
+          "4:1": "0x09",
+          "5:1": "0x0A",
+          "6:1": "0x0B",
+          "8:1": "0x0C",
+          "10:1": "0x0D",
+          "20:1": "0x0E",
+          "INF": "0x0F"
+        },
+        "real": {
+          "values": [
+            "1:1",
+            "1.1:1",
+            "1.3:1",
+            "1.5:1",
+            "1.7:1",
+            "2:1",
+            "2.5:1",
+            "3:1",
+            "3.5:1",
+            "4:1",
+            "5:1",
+            "6:1",
+            "8:1",
+            "10:1",
+            "20:1",
+            "INF"
+          ]
+        }
+      }
+    },
+    "notes": [
+      "Parameter order supplied by file name: threshold, attack, release, out gain, knee, ratio. Release and Knee were later re-measured separately and should override earlier ambiguous interpretation.",
+      "Current addresses are used as provided. If per-channel or per-master dynamics address offsets are later sniffed, add a dynamics target/address formula here without changing logicalEngine.js."
+    ]
+  },
+  "buttonSysex": {
+    "status": "partially_confirmed",
+    "onOffObserved": {
+      "family": "F0 43 10 3E 04 60 01 31 data F7",
+      "notes": "Two values state-pair. Logs begin with OFF for these captures, so first value is treated as OFF and second as ON.",
+      "CH13_14": {
+        "values": [
+          "0x04",
+          "0x0C"
+        ]
+      },
+      "CH15_16": {
+        "values": [
+          "0x05",
+          "0x0D"
+        ]
+      },
+      "RTN1": {
+        "values": [
+          "0x06",
+          "0x0E"
+        ]
+      },
+      "RTN2": {
+        "values": [
+          "0x07",
+          "0x0F"
+        ]
+      }
+    },
+    "masterOnObserved": {
+      "family": "F0 43 10 3E 04 60 01 34 data F7",
+      "notes": "Observed from master onoff.log. Log started with OFF, so values are treated as OFF then ON.",
+      "STEREO": {
+        "values": [
+          "0x07",
+          "0x0F"
+        ]
+      }
+    },
+    "phaseObserved": {
+      "validated": true,
+      "source": "reverse 1-16 on 16-1 off.log",
+      "notes": "Phase exists only for input channels. OFF is the lower value, ON is lower value + 0x08. Stereo UI pairs send both physical channels.",
+      "families": {
+        "CH1_8": "F0 43 10 3E 04 60 01 36 data F7",
+        "CH9_16": "F0 43 10 3E 04 60 01 37 data F7"
+      },
+      "channels": {
+        "CH1": [{ "family": "CH1_8", "values": ["0x00", "0x08"] }],
+        "CH2": [{ "family": "CH1_8", "values": ["0x01", "0x09"] }],
+        "CH3": [{ "family": "CH1_8", "values": ["0x02", "0x0A"] }],
+        "CH4": [{ "family": "CH1_8", "values": ["0x03", "0x0B"] }],
+        "CH5": [{ "family": "CH1_8", "values": ["0x04", "0x0C"] }],
+        "CH6": [{ "family": "CH1_8", "values": ["0x05", "0x0D"] }],
+        "CH7": [{ "family": "CH1_8", "values": ["0x06", "0x0E"] }],
+        "CH8": [{ "family": "CH1_8", "values": ["0x07", "0x0F"] }],
+        "CH9": [{ "family": "CH9_16", "values": ["0x00", "0x08"] }],
+        "CH10": [{ "family": "CH9_16", "values": ["0x01", "0x09"] }],
+        "CH11": [{ "family": "CH9_16", "values": ["0x02", "0x0A"] }],
+        "CH12": [{ "family": "CH9_16", "values": ["0x03", "0x0B"] }],
+        "CH13_14": [
+          { "family": "CH9_16", "values": ["0x04", "0x0C"] },
+          { "family": "CH9_16", "values": ["0x05", "0x0D"] }
+        ],
+        "CH15_16": [
+          { "family": "CH9_16", "values": ["0x06", "0x0E"] },
+          { "family": "CH9_16", "values": ["0x07", "0x0F"] }
+        ]
+      }
+    },
+    "selectObserved": {
+      "family": "F0 43 10 3E 04 23 01 channelCode 09 02 F7",
+      "CH1": {
+        "channelCode": "0x00",
+        "bytes": "F0 43 10 3E 04 23 01 00 09 02 F7"
+      },
+      "CH13_14": {
+        "channelCode": "0x0C",
+        "bytes": "F0 43 10 3E 04 23 01 0C 09 02 F7"
+      },
+      "CH15_16": {
+        "channelCode": "0x0D",
+        "bytes": "F0 43 10 3E 04 23 01 0D 09 02 F7"
+      },
+      "RTN1": {
+        "channelCode": "0x0E",
+        "bytes": "F0 43 10 3E 04 23 01 0E 09 02 F7"
+      },
+      "RTN2": {
+        "channelCode": "0x0F",
+        "bytes": "F0 43 10 3E 04 23 01 0F 09 02 F7"
+      }
+    },
+    "soloObserved": {
+      "familyA": "F0 43 10 3E 04 61 00 10 data F7",
+      "familyB": "F0 43 10 3E 04 61 00 0A data F7",
+      "notes": "Solo appears to emit/require paired messages. Exact on/off direction still needs validation.",
+      "CH13_14": {
+        "valuesA": [
+          "0x04",
+          "0x0C"
+        ],
+        "valuesB": [
+          "0x05",
+          "0x0D"
+        ]
+      },
+      "CH15_16": {
+        "valuesA": [
+          "0x05",
+          "0x0D"
+        ],
+        "valuesB": [
+          "0x05",
+          "0x0D"
+        ]
+      },
+      "RTN1": {
+        "valuesA": [
+          "0x06",
+          "0x0E"
+        ],
+        "valuesB": [
+          "0x05",
+          "0x0D"
+        ]
+      },
+      "RTN2": {
+        "valuesA": [
+          "0x07",
+          "0x0F"
+        ],
+        "valuesB": [
+          "0x05",
+          "0x0D"
+        ]
+      }
+    }
+  }
+}

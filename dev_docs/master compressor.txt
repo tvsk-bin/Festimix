@@ -1,0 +1,278 @@
+Implement a MASTER COMPRESSOR section for the Yamaha 01V mixer UI.
+
+This is NOT a full engineering compressor editor.
+
+The goal is:
+- fast broadcast workflow
+- musical operation
+- touch-friendly control
+- predictable behavior
+
+Do NOT expose all Yamaha compressor parameters.
+
+--------------------------------------------------
+MASTER COMPRESSOR CONCEPT
+--------------------------------------------------
+
+The master compressor should behave like a:
+- broadcast glue compressor
+- live bus compressor
+- safety limiter
+
+It should NOT feel like:
+- a studio mastering plugin
+- a technical dynamics editor
+
+--------------------------------------------------
+UI STRUCTURE
+--------------------------------------------------
+
+The MASTER COMPRESSOR section should contain:
+
+1. STYLE buttons
+2. THRESHOLD control
+3. RATIO control
+4. OUTPUT GAIN control
+
+Do NOT expose:
+- attack
+- release
+- knee
+- raw Yamaha dynamics pages
+
+Those remain internally managed by the engine.
+
+--------------------------------------------------
+STYLE BUTTONS
+--------------------------------------------------
+
+Implement these style buttons:
+
+[ GLUE ]
+[ PUNCH ]
+[ LIMIT ]
+
+Only one style may be active at a time.
+
+The style defines:
+- compressor character
+- attack/release behavior
+- knee behavior
+- internal parameter ranges
+
+--------------------------------------------------
+STYLE DEFINITIONS
+--------------------------------------------------
+
+Use these Yamaha-inspired reference settings.
+
+These are NOT preset recalls.
+These are engine anchor values.
+
+--------------------------------------------------
+GLUE STYLE
+--------------------------------------------------
+
+Inspired by:
+- Total Comp1
+- gentle bus compression
+
+Base values:
+
+threshold: -18 dB
+ratio: 3.5:1
+attack: 94 ms
+release: 447 ms
+knee: hard
+outputGain: +2.5 dB
+
+Behavior:
+- smooth
+- musical
+- cohesive
+- broadcast-safe
+
+Ratio range:
+1.2:1 → 4:1
+
+--------------------------------------------------
+PUNCH STYLE
+--------------------------------------------------
+
+Inspired by:
+- Solo Vocal presets
+- modern broadcast density
+
+Base values:
+
+threshold: -20 dB
+ratio: 2.5:1
+attack: 31 ms
+release: 342 ms
+knee: medium
+outputGain: +2.0 dB
+
+Behavior:
+- forward
+- dense
+- energetic
+- articulate
+
+Ratio range:
+2:1 → 6:1
+
+--------------------------------------------------
+LIMIT STYLE
+--------------------------------------------------
+
+Inspired by:
+- Limiter presets
+- protection / peak control
+
+Base values:
+
+threshold: -9 dB
+ratio: 8:1
+attack: 0 ms
+release: 319 ms
+knee: hard
+outputGain: 0 dB
+
+Behavior:
+- protective
+- aggressive
+- peak control
+- dense
+
+Ratio range:
+4:1 → infinity
+
+--------------------------------------------------
+THRESHOLD CONTROL
+--------------------------------------------------
+
+Expose threshold as the main compressor amount control.
+
+This is the primary operator adjustment.
+
+Reason:
+- threshold is intuitive
+- threshold compensates naturally for EQ boosts/cuts
+- threshold is fast to operate during live work
+
+The threshold control should:
+- behave smoothly
+- support fine adjustment
+- not jump abruptly
+
+--------------------------------------------------
+RATIO CONTROL
+--------------------------------------------------
+
+Expose ratio as a secondary character/intensity control.
+
+IMPORTANT:
+The ratio range depends on the active style.
+
+Do NOT allow absurd values.
+
+Examples:
+
+GLUE:
+1.2 → 4
+
+PUNCH:
+2 → 6
+
+LIMIT:
+4 → infinity
+
+Ratio should feel:
+- musical
+- constrained
+- safe
+
+--------------------------------------------------
+OUTPUT GAIN CONTROL
+--------------------------------------------------
+
+Expose output gain / makeup gain.
+
+Purpose:
+- loudness compensation
+- level matching
+- post-compression trim
+
+This control is important for:
+- EQ compensation
+- bypass comparison
+- broadcast consistency
+
+--------------------------------------------------
+ENGINE BEHAVIOR
+--------------------------------------------------
+
+Whenever any visible compressor parameter changes:
+- resend the full compressor parameter bundle authoritatively
+
+Always resend:
+- threshold
+- ratio
+- attack
+- release
+- knee
+- output gain
+
+Do NOT assume the Yamaha console state is already correct.
+
+The physical mixer may have been changed manually.
+
+--------------------------------------------------
+SMOOTHING REQUIREMENTS
+--------------------------------------------------
+
+Prevent audible jumps.
+
+Implement:
+- parameter smoothing
+- ramping
+- update throttling
+
+Suggested:
+- 20–30 Hz max update rate
+- 250 ms smoothing default
+- threshold/output gain smoothed more carefully
+
+Do NOT spam hundreds of MIDI messages instantly.
+
+--------------------------------------------------
+FUTURE SUPPORT
+--------------------------------------------------
+
+The architecture must remain compatible with:
+- Yamaha 01V96
+- Yamaha DM1000
+- LS9
+- future engines
+
+The UI should remain reusable.
+
+Only the engine/mapping layer should vary per device.
+
+--------------------------------------------------
+IMPORTANT UX GOAL
+--------------------------------------------------
+
+The compressor should feel:
+
+- simple
+- musical
+- fast
+- reliable
+- broadcast-oriented
+
+NOT:
+- technical
+- overwhelming
+- mastering-focused
+- parameter-heavy

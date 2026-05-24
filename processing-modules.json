@@ -1,0 +1,265 @@
+{
+  "version": 1,
+  "notes": "Configurable processing modules and page slot assignments. Modules emit abstract engine intents; Yamaha SysEx/CC translation remains in the MIDI mapping layer.",
+  "profiles": {
+    "yamaha01v": {
+      "displayName": "Yamaha 01V Default",
+      "slotAssignments": {
+        "channelPage": {
+          "slots": {
+            "tone": "ChannelToneEQ",
+            "pan": "ChannelPan",
+            "compressor": "MusicalChannelComp",
+            "busSends": "ChannelBusSends"
+          }
+        },
+        "auxMasterPage": {
+          "slots": {
+            "tone": "AuxMonitorEQ",
+            "compressor": "GlueMasterComp"
+          }
+        },
+        "effectMasterPage": {
+          "slots": {
+            "selector": "EffectSelector"
+          }
+        },
+        "returnChannelPage": {
+          "slots": {
+            "tone": "EffectReturnEQ",
+            "pan": "ChannelPan",
+            "busSends": "ChannelBusSends"
+          }
+        },
+        "mixMasterPage": {
+          "slots": {
+            "tone": "MasterToneEQ",
+            "compressor": "GlueMasterComp"
+          }
+        }
+      }
+    }
+  },
+  "modules": {
+    "ChannelToneEQ": {
+      "id": "ChannelToneEQ",
+      "displayName": "Channel Tone EQ",
+      "type": "eq",
+      "uiRole": "channel.tone",
+      "controls": {
+        "hpf": { "type": "toggleSelector", "values": ["75", "100"] },
+        "lowGain": { "type": "knob", "range": [-18, 18], "unit": "dB" },
+        "midFrequency": { "type": "selector", "values": [250, 500, 1000, 2000, 4000] },
+        "midGain": { "type": "knob", "range": [-18, 18], "unit": "dB" },
+        "highGain": { "type": "knob", "range": [-18, 18], "unit": "dB" }
+      },
+      "engineBehavior": {
+        "kind": "channelToneEq",
+        "authoritative": true,
+        "notes": "Simplified channel EQ. LOW UI maps to Yamaha LO-MID, MID maps to Yamaha HI-MID, HIGH forces shelf-like behavior."
+      },
+      "yamahaTranslation": {
+        "kind": "abstractIntent",
+        "intentTypes": ["eq.writeParameter"],
+        "mappingLayer": "yamaha01v.mapping_v3.json"
+      }
+    },
+    "ChannelPan": {
+      "id": "ChannelPan",
+      "displayName": "Channel Pan",
+      "type": "pan",
+      "uiRole": "channel.pan",
+      "controls": {
+        "pan": { "type": "knob", "range": [-16, 16] },
+        "stereoPreset": { "type": "radio", "values": ["L", "R", "L+R"] }
+      },
+      "engineBehavior": {
+        "kind": "passThrough",
+        "authoritative": false
+      },
+      "yamahaTranslation": {
+        "kind": "midiParameter",
+        "mappingLayer": "yamaha01v.mapping_v3.json"
+      }
+    },
+    "MusicalChannelComp": {
+      "id": "MusicalChannelComp",
+      "displayName": "Musical Channel Compressor",
+      "type": "compressor",
+      "uiRole": "channel.compressor",
+      "controls": {
+        "preset": { "type": "swipeSelector", "values": ["OFF", "COMP", "KICK", "SNARE", "BASS", "FUNKY", "GUITAR", "VOCAL", "GLUE"] },
+        "amount": { "type": "knob", "range": [0, 127], "center": 64 }
+      },
+      "engineBehavior": {
+        "kind": "musicalCompressor",
+        "authoritative": true,
+        "presetCenter": 64,
+        "thresholdRange": [-54, 0],
+        "outGainRange": [0, 18],
+        "presets": {
+          "COMP": { "yamahaPreset": "Comp #01", "threshold": -8, "outGain": 0, "thresholdFactor": 0.30, "gainFactor": 0.08, "ratio": 2.5, "attack": 60, "release": 250, "knee": 2 },
+          "KICK": { "yamahaPreset": "A.Dr.BD #07", "threshold": -24, "outGain": 5.5, "thresholdFactor": 0.22, "gainFactor": 0.05, "ratio": 3, "attack": 9, "release": 58, "knee": 2 },
+          "SNARE": { "yamahaPreset": "A.Dr.SN #10", "threshold": -17, "outGain": 3.5, "thresholdFactor": 0.28, "gainFactor": 0.10, "ratio": 2.5, "attack": 8, "release": 12, "knee": 2 },
+          "BASS": { "yamahaPreset": "E.B.Finger #16", "threshold": -12, "outGain": 4.5, "thresholdFactor": 0.25, "gainFactor": 0.09, "ratio": 2, "attack": 15, "release": 470, "knee": 2 },
+          "FUNKY": { "yamahaPreset": "E.B.Slap #17", "threshold": -12, "outGain": 4.0, "thresholdFactor": 0.20, "gainFactor": 0.12, "ratio": 1.7, "attack": 6, "release": 133, "knee": "hard" },
+          "GUITAR": { "yamahaPreset": "E.Guitar #21", "threshold": -8, "outGain": 2.5, "thresholdFactor": 0.35, "gainFactor": 0.14, "ratio": 3.5, "attack": 7, "release": 261, "knee": 4 },
+          "VOCAL": { "yamahaPreset": "Solo Vocal1 #32", "threshold": -20, "outGain": 2.0, "thresholdFactor": 0.26, "gainFactor": 0.16, "ratio": 2.5, "attack": 31, "release": 342, "knee": 1 },
+          "GLUE": { "yamahaPreset": "Total Comp1 #39", "threshold": -18, "outGain": 2.5, "thresholdFactor": 0.18, "gainFactor": 0.07, "ratio": 3.5, "attack": 94, "release": 447, "knee": "hard" }
+        }
+      },
+      "yamahaTranslation": {
+        "kind": "notMappedYet"
+      }
+    },
+    "ChannelBusSends": {
+      "id": "ChannelBusSends",
+      "displayName": "Channel Bus Sends",
+      "type": "sendBank",
+      "uiRole": "channel.busSends",
+      "controls": {
+        "aux1": { "type": "stepValue", "range": [-70, 0], "unit": "dB" },
+        "aux2": { "type": "stepValue", "range": [-70, 0], "unit": "dB" },
+        "aux3": { "type": "stepValue", "range": [-70, 0], "unit": "dB" },
+        "aux4": { "type": "stepValue", "range": [-70, 0], "unit": "dB" },
+        "eff1": { "type": "stepValue", "range": [-70, 0], "unit": "dB" },
+        "eff2": { "type": "stepValue", "range": [-70, 0], "unit": "dB" }
+      },
+      "engineBehavior": {
+        "kind": "passThrough",
+        "authoritative": false
+      },
+      "yamahaTranslation": {
+        "kind": "midiParameter",
+        "mappingLayer": "yamaha01v.mapping_v3.json"
+      }
+    },
+    "AuxMonitorEQ": {
+      "id": "AuxMonitorEQ",
+      "displayName": "AUX Monitor EQ",
+      "type": "eq",
+      "uiRole": "auxMaster.tone",
+      "controls": {
+        "hpf": { "type": "radioStyleHPF", "values": [75, 100, 175, 250], "secondTap": "off", "default": 100 },
+        "lowNotchGain": { "type": "swipeSelector", "values": ["INIT", 0, -3, -6, -9, -12, -15, -18], "unit": "dB" },
+        "lowNotchFreq": { "type": "knob", "range": [100, 1000], "scale": "log", "unit": "Hz" },
+        "highNotchGain": { "type": "swipeSelector", "values": ["INIT", 0, -3, -6, -9, -12, -15, -18], "unit": "dB" },
+        "highNotchFreq": { "type": "knob", "range": [800, 6000], "scale": "log", "unit": "Hz" },
+        "presence": { "type": "knob", "range": [-6, 9], "default": 0, "unit": "dB" }
+      },
+      "engineBehavior": {
+        "kind": "auxMonitorEq",
+        "authoritative": true,
+        "hpf": { "style": "radioStyleHPF", "values": [75, 100, 175, 250], "default": 100 },
+        "lowNotch": { "band": "LO_MID", "frequencyRange": [100, 1000], "scale": "log", "fixedQ": 9, "initGain": 12, "gainRange": [-18, 0] },
+        "highNotch": { "band": "HI_MID", "frequencyRange": [800, 6000], "scale": "log", "fixedQ": 9, "initGain": 12, "gainRange": [-18, 0] },
+        "presence": { "band": "HIGH", "fixedFrequency": 5000, "fixedQ": 0.8, "gainRange": [-6, 9] }
+      },
+      "yamahaTranslation": {
+        "kind": "abstractIntent",
+        "intentTypes": ["eq.writeParameter"],
+        "mappingLayer": "yamaha01v.mapping_v3.json"
+      }
+    },
+    "EffectReturnEQ": {
+      "id": "EffectReturnEQ",
+      "displayName": "Effect Return EQ",
+      "type": "eq",
+      "uiRole": "effectMaster.tone",
+      "controls": {
+        "hpf": { "type": "radioStyleHPF", "values": [100, 175, 250, 500], "secondTap": "off", "default": 100 },
+        "low": { "type": "knob", "range": [-12, 12], "fixedFrequency": 125, "fixedQ": 1.0, "unit": "dB" },
+        "mid": { "type": "knob", "range": [-12, 12], "fixedFrequency": 2500, "fixedQ": 1.0, "unit": "dB" },
+        "air": { "type": "knob", "range": [-12, 12], "fixedFrequency": 10000, "fixedQ": 1.0, "unit": "dB" }
+      },
+      "engineBehavior": {
+        "kind": "effectReturnEq",
+        "authoritative": true,
+        "notes": "Fast effect return shaper. Frequencies and Q are fixed internally; UI only exposes HPF and three musical gain controls."
+      },
+      "yamahaTranslation": {
+        "kind": "abstractIntent",
+        "intentTypes": ["eq.writeParameter"],
+        "mappingLayer": "yamaha01v.mapping_v3.json"
+      }
+    },
+    "EffectSelector": {
+      "id": "EffectSelector",
+      "displayName": "Effect Selector",
+      "type": "effectSelector",
+      "uiRole": "effectMaster.selector",
+      "controls": {
+        "preset": { "type": "buttonGrid", "values": ["HALL", "ROOM", "STAGE", "PLATE", "ECHO", "DELAY", "CHORUS", "SYMPHONIC"] },
+        "param1": { "type": "knob", "range": [0, 127] },
+        "param2": { "type": "knob", "range": [0, 127] }
+      },
+      "engineBehavior": {
+        "kind": "effectSelector",
+        "authoritative": true
+      },
+      "yamahaTranslation": {
+        "kind": "command",
+        "mappingPath": "commands.effect.preset.*"
+      }
+    },
+    "MasterToneEQ": {
+      "id": "MasterToneEQ",
+      "displayName": "Master Tone EQ",
+      "type": "eq",
+      "uiRole": "mixMaster.tone",
+      "controls": {
+        "lowFrequency": { "type": "swipeSelector", "values": [60, 80, 100, 120], "unit": "Hz" },
+        "lowGain": { "type": "knob", "range": [-18, 18], "unit": "dB" },
+        "lowMidFrequency": { "type": "swipeSelector", "values": [250, 400, 630, 1000], "unit": "Hz" },
+        "lowMidGain": { "type": "knob", "range": [-18, 18], "unit": "dB" },
+        "highMidFrequency": { "type": "swipeSelector", "values": [1000, 2000, 4000, 6000], "unit": "Hz" },
+        "highMidGain": { "type": "knob", "range": [-18, 18], "unit": "dB" },
+        "highFrequency": { "type": "swipeSelector", "values": [8000, 10000, 12000], "unit": "Hz" },
+        "highGain": { "type": "knob", "range": [-18, 18], "unit": "dB" }
+      },
+      "engineBehavior": {
+        "kind": "masterToneEq",
+        "authoritative": true,
+        "fixedQ": 1.0,
+        "bands": {
+          "LOW": { "type": "shelf", "fixedQ": 1.0 },
+          "LO_MID": { "type": "bell", "fixedQ": 1.0 },
+          "HI_MID": { "type": "bell", "fixedQ": 1.0 },
+          "HIGH": { "type": "shelf", "fixedQ": 1.0 }
+        },
+        "notes": "Fast musical live EQ for broad PA/system tonal shaping. Q is intentionally fixed and never exposed in the UI."
+      },
+      "yamahaTranslation": {
+        "kind": "abstractIntent",
+        "intentTypes": ["eq.writeParameter"],
+        "mappingLayer": "yamaha01v.mapping_v3.json"
+      }
+    },
+    "GlueMasterComp": {
+      "id": "GlueMasterComp",
+      "displayName": "Glue Master Compressor",
+      "type": "compressor",
+      "uiRole": "master.compressor",
+      "controls": {
+        "style": { "type": "radioToggle", "values": ["GLUE", "PUNCH", "LIMIT"] },
+        "threshold": { "type": "knob", "range": [-60, 0], "unit": "dB" },
+        "ratio": { "type": "swipeSelector", "values": ["1:1", "1.5:1", "2:1", "3:1", "4:1", "6:1", "10:1", "INF"] },
+        "outGain": { "type": "knob", "range": [0, 18], "unit": "dB" }
+      },
+      "engineBehavior": {
+        "kind": "glueMasterComp",
+        "authoritative": true,
+        "styleDefaults": {
+          "GLUE": { "ratio": "3.5:1", "attack": 94, "release": 447, "knee": "hard" },
+          "PUNCH": { "ratio": "4:1", "attack": 12, "release": 180, "knee": 2 },
+          "LIMIT": { "ratio": "INF", "attack": 1, "release": 350, "knee": "hard" }
+        }
+      },
+      "yamahaTranslation": {
+        "kind": "dynamicsBundle",
+        "mappingPath": "dynamics.parameters"
+      }
+    }
+  },
+  "userAssignments": {}
+}

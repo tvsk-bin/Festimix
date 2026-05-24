@@ -1,0 +1,383 @@
+Implement a simplified EFFECT ENGINE for the Yamaha 01V.
+
+IMPORTANT:
+Do NOT build a full Yamaha effect parameter editor.
+
+The goal is:
+- fast live workflow
+- broadcast-friendly operation
+- touch-first usability
+- musical intent control
+
+The effect system should behave like:
+- a modern vocal/live FX environment
+- not a DSP programming interface
+
+Architecture:
+
+UI layer
+→ effect engine layer
+→ Yamaha mapping layer
+→ Yamaha SysEx transport
+
+--------------------------------------------------
+GENERAL EFFECT STRUCTURE
+--------------------------------------------------
+
+EFF1:
+REVERB BUS
+
+EFF2:
+DELAY / ECHO BUS
+
+This routing philosophy must remain fixed.
+
+Reason:
+- live vocal workflow
+- broadcast workflow
+- simple mental model
+- fast operation
+
+--------------------------------------------------
+EFF1 — REVERB BUS
+--------------------------------------------------
+
+The Yamaha effect families used for EFF1 must ONLY come from:
+
+- REVERB HALL
+- REVERB ROOM
+- REVERB STAGE
+- REVERB PLATE
+- EARLY REF
+- GATE REVERB
+
+Do NOT use:
+- modulation effects
+- delays
+- flangers
+- pitch effects
+- distortion
+
+The effect engine should expose these user-facing modes:
+
+[ ROOM ]
+[ STAGE ]
+[ PLATE ]
+[ EARLY ]
+[ GATE ]
+
+These are NOT direct Yamaha preset recalls.
+They are:
+behavior families.
+
+--------------------------------------------------
+EFF1 CONTROLS
+--------------------------------------------------
+
+Expose ONLY these macro controls:
+
+1. SIZE
+2. PREDELAY
+3. TONE
+4. DENSITY
+
+Do NOT expose raw Yamaha parameters directly.
+
+--------------------------------------------------
+EFF1 — SIZE MACRO
+--------------------------------------------------
+
+Purpose:
+overall room size perception.
+
+This macro controls multiple Yamaha parameters simultaneously.
+
+Primary parameters:
+- REV.TIME
+- ROOMSIZE
+
+Secondary influence:
+- slight DENSITY increase at larger sizes
+
+Behavior:
+
+0%:
+- short room
+- tight
+- dry-ish
+
+100%:
+- large hall
+- long decay
+- wide
+
+Parameter weighting:
+
+REV.TIME:
+strong influence
+
+ROOMSIZE:
+medium influence
+
+DENSITY:
+small influence
+
+IMPORTANT:
+Do NOT scale all parameters linearly or equally.
+
+--------------------------------------------------
+EFF1 — PREDELAY MACRO
+--------------------------------------------------
+
+Purpose:
+distance and vocal clarity.
+
+Controls:
+- INI.DLY only
+
+Behavior:
+
+0%:
+tight reverb
+
+100%:
+large vocal separation
+
+Suggested range:
+0–120 ms
+
+--------------------------------------------------
+EFF1 — TONE MACRO
+--------------------------------------------------
+
+Purpose:
+dark ↔ bright reverb character.
+
+Controls simultaneously:
+- HI.RATIO
+- HPF
+- LPF
+
+Behavior:
+
+0% = DARK:
+- lower LPF
+- reduced HI.RATIO
+- slightly higher HPF
+
+100% = BRIGHT:
+- higher LPF
+- higher HI.RATIO
+- more open top end
+
+IMPORTANT:
+The parameters must move at DIFFERENT rates.
+
+Example:
+LPF should move more aggressively than HI.RATIO.
+
+--------------------------------------------------
+EFF1 — DENSITY MACRO
+--------------------------------------------------
+
+Purpose:
+smoothness and diffusion.
+
+Controls:
+- DENSITY
+- DIFFUSION
+
+Behavior:
+
+0%:
+- sparse reflections
+- more distinct echoes
+
+100%:
+- smooth wash
+- dense tail
+
+IMPORTANT:
+DIFFUSION should increase faster than DENSITY.
+
+--------------------------------------------------
+EFF2 — DELAY BUS
+--------------------------------------------------
+
+The Yamaha effect families used for EFF2 must ONLY come from:
+
+- MONO DELAY
+- STEREO DELAY
+- MOD.DELAY
+- ECHO
+- DELAY+ER
+
+Do NOT use:
+- reverbs
+- distortion
+- rotary
+- modulation-only effects
+
+The effect engine should expose these user-facing modes:
+
+[ SLAP ]
+[ VOCAL ]
+[ STEREO ]
+[ ECHO ]
+[ MOD ]
+
+These are:
+behavior families,
+NOT raw Yamaha program names.
+
+--------------------------------------------------
+EFF2 CONTROLS
+--------------------------------------------------
+
+Expose ONLY these macro controls:
+
+1. TIME
+2. FEEDBACK
+3. TONE
+4. WIDTH / MOD
+
+--------------------------------------------------
+EFF2 — TIME MACRO
+--------------------------------------------------
+
+Controls:
+- DELAY time
+
+Behavior:
+
+0%:
+short slap
+
+100%:
+long echo
+
+IMPORTANT:
+Different modes use different delay ranges.
+
+Example:
+
+SLAP:
+very short range
+
+VOCAL:
+medium range
+
+ECHO:
+long range
+
+--------------------------------------------------
+EFF2 — FEEDBACK MACRO
+--------------------------------------------------
+
+Controls:
+- FB.GAIN
+
+Behavior:
+
+0%:
+single repeat
+
+100%:
+near self-oscillation
+
+IMPORTANT:
+Apply safety limiting.
+Never allow unstable runaway feedback.
+
+--------------------------------------------------
+EFF2 — TONE MACRO
+--------------------------------------------------
+
+Purpose:
+dark ↔ bright repeats.
+
+Controls:
+- HPF
+- LPF
+- HI.RATIO
+
+Behavior:
+
+0%:
+dark analog-style repeats
+
+100%:
+bright digital repeats
+
+IMPORTANT:
+LPF should move more strongly than HPF.
+
+--------------------------------------------------
+EFF2 — WIDTH / MOD MACRO
+--------------------------------------------------
+
+Behavior depends on effect mode.
+
+STEREO:
+- stereo width
+- left/right spread
+
+MOD:
+- modulation depth
+- modulation delay
+
+ECHO:
+- stereo feedback spread
+
+SLAP:
+- minimal effect
+
+IMPORTANT:
+Different Yamaha parameters are weighted differently per mode.
+
+--------------------------------------------------
+VERY IMPORTANT ENGINE RULE
+--------------------------------------------------
+
+The macros MUST NOT move all Yamaha parameters equally.
+
+Each macro needs:
+- weighted parameter movement
+- nonlinear scaling
+- mode-specific behavior
+
+The engine should feel:
+musical,
+not mathematical.
+
+--------------------------------------------------
+AUTHORITATIVE WRITE REQUIREMENT
+--------------------------------------------------
+
+Whenever a macro changes:
+- resend the full required Yamaha parameter bundle
+
+Do NOT assume Yamaha state is already correct.
+
+Always resend:
+- effect type
+- related parameters
+- mode settings
+- tone settings
+- timing values
+
+The physical console may have been modified manually.
+
+--------------------------------------------------
+UX GOAL
+--------------------------------------------------
+
+The operator should feel like they are using:
+
+- a modern vocal FX environment
+- a live broadcast processor
+- a fast touch mixer
+
+NOT:
+- a Yamaha DSP editor
+- a technical parameter matrix

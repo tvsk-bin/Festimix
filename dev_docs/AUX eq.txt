@@ -1,0 +1,42 @@
+Implement a separate AUX / MONITOR EQ concept.
+
+Do NOT reuse the Master EQ logic.
+Do NOT reuse the Channel EQ logic directly.
+
+Monitor EQ goal:
+feedback control and stage-monitor cleanup.
+
+AUX EQ layout:
+
+1. HPF
+- adjustable frequency
+- suggested stepped values: 80, 100, 125, 160, 200 Hz
+- used to remove low-end rumble from monitor sends
+
+2. NOTCH 1
+- frequency range: 160 Hz – 1 kHz
+- gain: cut only, 0 to -12 dB
+- fixed narrow Q, approx Q=8
+- purpose: low/mid feedback removal
+
+3. NOTCH 2
+- frequency range: 1 kHz – 8 kHz
+- gain: cut only, 0 to -12 dB
+- fixed narrow Q, approx Q=8
+- purpose: upper-mid/high feedback removal
+
+4. PRESENCE / HIGH
+- gentle high/presence band
+- suggested frequency: 4 kHz or high shelf
+- gain limited, e.g. -6 to +3 dB
+- purpose: intelligibility, not aggressive boosting
+
+Important:
+Monitor EQ should prioritize safety and feedback control.
+It should not be a tone-shaping EQ like the channel EQ.
+It should not be a master shaping EQ.
+
+The UI should show:
+HPF / NOTCH 1 / NOTCH 2 / PRESENCE
+
+Use clear musical/monitor labels, not Yamaha internal band names.

@@ -1,0 +1,121 @@
+{
+  "mixer": "Yamaha 01V",
+  "deviceChannel": 1,
+  "notes": {
+    "addressEncoding": "address = (aaH << 7) + aaL",
+    "eqWriteFormat": "F0 43 10 3E 04 10 aaH aaL value F7",
+    "keyRemoteFormat": "F0 43 10 3E 04 43 00 keyNo data F7",
+    "validatedEqChannels": "CH1-CH8 sniffed",
+    "validatedButtonChannels": "CH1-CH16 plus master sniffed"
+  },
+  "sysexFamilies": {
+    "keyRemote": {
+      "prefix": ["F0", "43", "10", "3E", "04", "43", "00"],
+      "suffix": ["F7"]
+    },
+    "editBuffer7bitWrite": {
+      "prefix": ["F0", "43", "10", "3E", "04", "10"],
+      "suffix": ["F7"],
+      "addressBytes": "aaH aaL",
+      "valueBytes": "value"
+    },
+    "sceneFunctionCall": {
+      "prefix": ["F0", "43", "10", "3E", "04", "02"],
+      "suffix": ["F7"]
+    }
+  },
+  "commands": {
+    "scene.recall.00.safeReset": {
+      "type": "sysexRaw",
+      "bytes": ["F0", "43", "10", "3E", "04", "02", "00", "00", "7F", "F7"],
+      "description": "Confirmed working: recalls/init/reset style scene state"
+    },
+    "page.eq": { "type": "keyRemote", "keyNo": "08", "data": "08" },
+    "page.dynamics": { "type": "keyRemote", "keyNo": "0A", "data": "08" },
+    "eq.select.lowQ": { "type": "keyRemote", "keyNo": "08", "data": "0C" },
+    "eq.select.loMidQ": { "type": "keyRemote", "keyNo": "08", "data": "0D" },
+    "eq.select.hiMidQ": { "type": "keyRemote", "keyNo": "08", "data": "0E" },
+    "eq.select.highQ": { "type": "keyRemote", "keyNo": "08", "data": "0F" },
+    "nav.inc": { "type": "keyRemote", "keyNo": "09", "data": "0D" },
+    "nav.dec": { "type": "keyRemote", "keyNo": "09", "data": "0E" }
+  },
+  "buttonFormulas": {
+    "on": { "type": "keyRemoteFormula", "keyNoBase": 0, "keyNoBankSize": 8, "dataBase": 8, "description": "CH1-8 keyNo 00, CH9-16 keyNo 01, data 08-0F" },
+    "solo": { "type": "keyRemoteFormula", "keyNoBase": 2, "keyNoBankSize": 8, "dataBase": 8, "description": "CH1-8 keyNo 02, CH9-16 keyNo 03, data 08-0F" },
+    "select": { "type": "keyRemoteFormula", "keyNoBase": 4, "keyNoBankSize": 8, "dataBase": 8, "description": "CH1-8 keyNo 04, CH9-16 keyNo 05, data 08-0F" }
+  },
+  "ccDefault01v": {
+    "channelFader": { "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "11": 11, "12": 12, "13_14": 13, "15_16": 14, "return1": 15, "return2": 16 },
+    "masterFader": { "aux1": 17, "aux2": 18, "aux3": 19, "aux4": 20, "effect1": 25, "effect2": 26, "stereo": 27 },
+    "pan": { "1": 56, "2": 57, "3": 58, "4": 59, "5": 60, "6": 61, "7": 62, "8": 63, "9": 64, "10": 65, "11": 66, "12": 67, "13": 68, "14": 69, "15": 70, "16": 71, "stereoBalance": 76 },
+    "fx1Send": { "1": 77, "2": 78, "3": 79, "4": 80, "5": 81, "6": 82, "7": 83, "8": 84, "9": 85, "10": 86, "11": 87, "12": 88, "13_14": 89, "15_16": 90 },
+    "fx2Send": { "1": 91, "2": 92, "3": 93, "4": 94, "5": 95, "6": 102, "7": 103, "8": 104, "9": 105, "10": 106, "11": 107, "12": 108, "13_14": 109, "15_16": 110 }
+  },
+  "masterOn": {
+    "stereo": { "type": "unmapped", "description": "Add sniffed master ON command here" },
+    "aux1": { "type": "unmapped", "description": "Add sniffed AUX1 master ON command here" },
+    "aux2": { "type": "unmapped", "description": "Add sniffed AUX2 master ON command here" },
+    "aux3": { "type": "unmapped", "description": "Add sniffed AUX3 master ON command here" },
+    "aux4": { "type": "unmapped", "description": "Add sniffed AUX4 master ON command here" },
+    "effect1": { "type": "unmapped", "description": "Add sniffed EFFECT1 return ON command here" },
+    "effect2": { "type": "unmapped", "description": "Add sniffed EFFECT2 return ON command here" }
+  },
+  "eqAddressFormula": {
+    "validatedForChannels": [1, 2, 3, 4, 5, 6, 7, 8],
+    "baseLowGainCh1": "0x0153",
+    "channelStride": "0x26",
+    "bandStride": "0x16",
+    "freqOffsetFromGain": "-0x58",
+    "qOffsetFromGain": "+0x58",
+    "bands": { "LOW": 0, "LO_MID": 1, "HI_MID": 2, "HIGH": 3 },
+    "parameters": ["GAIN", "FREQ", "Q"],
+    "formula": "gainAddress = baseLowGainCh1 + ((channel - 1) * channelStride) + (bandIndex * bandStride); freqAddress = gainAddress - 0x58; qAddress = gainAddress + 0x58"
+  },
+  "eqExpandedCh1toCh8": {
+    "1": { "LOW": { "GAIN": "0x0153", "FREQ": "0x00FB", "Q": "0x01AB" }, "LO_MID": { "GAIN": "0x0169", "FREQ": "0x0111", "Q": "0x01C1" }, "HI_MID": { "GAIN": "0x017F", "FREQ": "0x0127", "Q": "0x01D7" }, "HIGH": { "GAIN": "0x0195", "FREQ": "0x013D", "Q": "0x01ED" } },
+    "2": { "LOW": { "GAIN": "0x0179", "FREQ": "0x0121", "Q": "0x01D1" }, "LO_MID": { "GAIN": "0x018F", "FREQ": "0x0137", "Q": "0x01E7" }, "HI_MID": { "GAIN": "0x01A5", "FREQ": "0x014D", "Q": "0x01FD" }, "HIGH": { "GAIN": "0x01BB", "FREQ": "0x0163", "Q": "0x0213" } },
+    "3": { "LOW": { "GAIN": "0x019F", "FREQ": "0x0147", "Q": "0x01F7" }, "LO_MID": { "GAIN": "0x01B5", "FREQ": "0x015D", "Q": "0x020D" }, "HI_MID": { "GAIN": "0x01CB", "FREQ": "0x0173", "Q": "0x0223" }, "HIGH": { "GAIN": "0x01E1", "FREQ": "0x0189", "Q": "0x0239" } },
+    "4": { "LOW": { "GAIN": "0x01C5", "FREQ": "0x016D", "Q": "0x021D" }, "LO_MID": { "GAIN": "0x01DB", "FREQ": "0x0183", "Q": "0x0233" }, "HI_MID": { "GAIN": "0x01F1", "FREQ": "0x0199", "Q": "0x0249" }, "HIGH": { "GAIN": "0x0207", "FREQ": "0x01AF", "Q": "0x025F" } },
+    "5": { "LOW": { "GAIN": "0x01EB", "FREQ": "0x0193", "Q": "0x0243" }, "LO_MID": { "GAIN": "0x0201", "FREQ": "0x01A9", "Q": "0x0259" }, "HI_MID": { "GAIN": "0x0217", "FREQ": "0x01BF", "Q": "0x026F" }, "HIGH": { "GAIN": "0x022D", "FREQ": "0x01D5", "Q": "0x0285" } },
+    "6": { "LOW": { "GAIN": "0x0211", "FREQ": "0x01B9", "Q": "0x0269" }, "LO_MID": { "GAIN": "0x0227", "FREQ": "0x01CF", "Q": "0x027F" }, "HI_MID": { "GAIN": "0x023D", "FREQ": "0x01E5", "Q": "0x0295" }, "HIGH": { "GAIN": "0x0253", "FREQ": "0x01FB", "Q": "0x02AB" } },
+    "7": { "LOW": { "GAIN": "0x0237", "FREQ": "0x01DF", "Q": "0x028F" }, "LO_MID": { "GAIN": "0x024D", "FREQ": "0x01F5", "Q": "0x02A5" }, "HI_MID": { "GAIN": "0x0263", "FREQ": "0x020B", "Q": "0x02BB" }, "HIGH": { "GAIN": "0x0279", "FREQ": "0x0221", "Q": "0x02D1" } },
+    "8": { "LOW": { "GAIN": "0x025D", "FREQ": "0x0205", "Q": "0x02B5" }, "LO_MID": { "GAIN": "0x0273", "FREQ": "0x021B", "Q": "0x02CB" }, "HI_MID": { "GAIN": "0x0289", "FREQ": "0x0231", "Q": "0x02E1" }, "HIGH": { "GAIN": "0x029F", "FREQ": "0x0247", "Q": "0x02F7" } }
+  },
+  "simplifiedEqModel": {
+    "userControls": {
+      "bassGain": { "yamahaBand": "LOW", "parameter": "GAIN", "widget": "knob" },
+      "midGain": { "yamahaBand": "HI_MID", "parameter": "GAIN", "widget": "knob" },
+      "midFrequency": { "yamahaBand": "HI_MID", "parameter": "FREQ", "widget": "selector" },
+      "highGain": { "yamahaBand": "HIGH", "parameter": "GAIN", "widget": "knob" }
+    },
+    "forceOnEveryEqInteraction": true,
+    "forcedDefaults": {
+      "LOW": { "mode": "L_SHELF", "Q": "0x00", "FREQ": "0x00", "TYPE": "0x00" },
+      "LO_MID": { "Q": "0x00", "FREQ": "0x00" },
+      "HI_MID": { "Q": "0x00", "FREQ": "state.midFrequency" },
+      "HIGH": { "mode": "H_SHELF", "Q": "0x00", "FREQ": "0x00", "TYPE": "0x00" }
+    },
+    "controlBundles": {
+      "bassGain": [
+        { "band": "LOW", "parameter": "Q", "value": "defaults.LOW.Q" },
+        { "band": "LOW", "parameter": "FREQ", "value": "defaults.LOW.FREQ" },
+        { "band": "LOW", "parameter": "GAIN", "value": "input" }
+      ],
+      "midGain": [
+        { "band": "HI_MID", "parameter": "Q", "value": "defaults.HI_MID.Q" },
+        { "band": "HI_MID", "parameter": "FREQ", "value": "state.midFrequency" },
+        { "band": "HI_MID", "parameter": "GAIN", "value": "input" }
+      ],
+      "midFrequency": [
+        { "band": "HI_MID", "parameter": "Q", "value": "defaults.HI_MID.Q" },
+        { "band": "HI_MID", "parameter": "FREQ", "value": "input" },
+        { "band": "HI_MID", "parameter": "GAIN", "value": "state.midGain" }
+      ],
+      "highGain": [
+        { "band": "HIGH", "parameter": "Q", "value": "defaults.HIGH.Q" },
+        { "band": "HIGH", "parameter": "FREQ", "value": "defaults.HIGH.FREQ" },
+        { "band": "HIGH", "parameter": "GAIN", "value": "input" }
+      ]
+    }
+  }
+}

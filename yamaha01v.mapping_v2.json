@@ -1,0 +1,295 @@
+{
+  "device": {
+    "manufacturer": "Yamaha",
+    "model": "01V",
+    "protocol": "MIDI + SysEx",
+    "mappingVersion": "2.0-preliminary",
+    "status": "reverse-engineered"
+  },
+
+  "midi": {
+    "defaultChannel": 1,
+    "localControlRecommendedForRuntime": true,
+    "localControlRecommendedForSniffing": false
+  },
+
+  "ignorePatterns": [
+    "F043303E042502F7"
+  ],
+
+  "sysex": {
+    "yamahaHeader": [
+      "F0",
+      "43",
+      "1n",
+      "3E"
+    ],
+
+    "universalIdentityRequest": "F0 7E 7F 06 01 F7",
+
+    "sceneSafeReset": "F0 43 10 3E 12 01 00 00 00 00 F7"
+  },
+
+  "ccMappings": {
+    "validated": true,
+
+    "faders": {
+      "CH1": 0,
+      "CH2": 1,
+      "CH3": 2,
+      "CH4": 3,
+      "CH5": 4,
+      "CH6": 5,
+      "CH7": 6,
+      "CH8": 7,
+      "CH9": 8,
+      "CH10": 9,
+      "CH11": 10,
+      "CH12": 11,
+      "CH13_14": 12,
+      "CH15_16": 13,
+      "STEREO": 14
+    },
+
+    "pan": {
+      "CH1": 16,
+      "CH2": 17,
+      "CH3": 18,
+      "CH4": 19,
+      "CH5": 20,
+      "CH6": 21,
+      "CH7": 22,
+      "CH8": 23,
+      "CH9": 24,
+      "CH10": 25,
+      "CH11": 26,
+      "CH12": 27,
+      "CH13_14": 28,
+      "CH15_16": 29
+    },
+
+    "masterEffects": {
+      "FX1": 50,
+      "FX2": 51
+    }
+  },
+
+  "eqEngine": {
+    "type": "address-based",
+
+    "formula": {
+      "validatedChannels": [1, 9],
+
+      "baseLowFreqCh1": "0x0220",
+
+      "channelStride": "0x16",
+      "bandStride": "0x16",
+
+      "parameterOffsets": {
+        "FREQ": "0x000",
+        "GAIN": "0x058",
+        "Q": "0x130"
+      },
+
+      "bands": {
+        "LOW": 0,
+        "LO_MID": 1,
+        "HI_MID": 2,
+        "HIGH": 3
+      },
+
+      "equation": "address = baseLowFreqCh1 + ((channel - 1) * channelStride) + (bandIndex * bandStride) + parameterOffset"
+    }
+  },
+
+  "validatedEqAddresses": {
+    "CH1": {
+      "LOW": {
+        "FREQ": "0x0220",
+        "GAIN": "0x0278",
+        "Q_OR_TYPE": "0x0350"
+      },
+
+      "LO_MID": {
+        "FREQ": "0x0236",
+        "GAIN": "0x028E",
+        "Q": "0x0366"
+      },
+
+      "HI_MID": {
+        "FREQ": "0x024C",
+        "GAIN": "0x02A4",
+        "Q": "0x037C"
+      },
+
+      "HIGH": {
+        "FREQ": "0x0262",
+        "GAIN": "0x02BA",
+        "Q_OR_TYPE": "0x0412"
+      }
+    },
+
+    "CH9": {
+      "LOW": {
+        "FREQ": "0x02D4",
+        "GAIN": "0x032C",
+        "Q_OR_TYPE": "0x0404"
+      },
+
+      "LO_MID": {
+        "FREQ": "0x02EA",
+        "GAIN": "0x0342",
+        "Q": "0x041A"
+      },
+
+      "HI_MID": {
+        "FREQ": "0x0300",
+        "GAIN": "0x0358",
+        "Q": "0x0430"
+      },
+
+      "HIGH": {
+        "FREQ": "0x0316",
+        "GAIN": "0x036E",
+        "Q_OR_TYPE": "0x04C6"
+      }
+    }
+  },
+
+  "eqBandModes": {
+    "LOW": {
+      "confirmed": {
+        "HPF": "0x00",
+        "L_SHELF": "0x2C"
+      },
+
+      "notes": [
+        "In HPF mode gain becomes binary ON/OFF behavior."
+      ]
+    },
+
+    "HIGH": {
+      "confirmed": {
+        "LPF": "0x00"
+      },
+
+      "suspected": {
+        "H_SHELF": "0x2C"
+      },
+
+      "notes": [
+        "In LPF mode gain becomes binary ON/OFF behavior."
+      ]
+    }
+  },
+
+  "uiDefaults": {
+    "eqPageEntry": {
+      "LOW": {
+        "mode": "L_SHELF"
+      },
+
+      "LO_MID": {
+        "Q": 1.0
+      },
+
+      "HI_MID": {
+        "Q": 1.0
+      },
+
+      "HIGH": {
+        "mode": "H_SHELF"
+      }
+    }
+  },
+
+  "navigation": {
+    "confirmed": true,
+
+    "knownPages": [
+      "HOME",
+      "EQ",
+      "DYNAMICS",
+      "VIEW",
+      "OPTION"
+    ]
+  },
+
+  "stereoBehavior": {
+    "CH13_14": {
+      "linked": true
+    },
+
+    "CH15_16": {
+      "linked": true
+    },
+
+    "notes": [
+      "Stereo channels behave differently from mono channels.",
+      "SELECT cannot self-toggle on Yamaha 01V."
+    ]
+  },
+
+  "returns": {
+    "RTN1": {
+      "exists": true,
+      "validated": false
+    },
+
+    "RTN2": {
+      "exists": true,
+      "validated": false
+    }
+  },
+
+  "masterSection": {
+    "AUX": {
+      "AUX1": true,
+      "AUX2": true,
+      "AUX3": true,
+      "AUX4": true
+    },
+
+    "FX": {
+      "FX1": true,
+      "FX2": true
+    },
+
+    "STEREO": {
+      "validated": false
+    }
+  },
+
+  "logicEngineConcept": {
+    "enabled": true,
+
+    "notes": [
+      "UI controls should not directly represent Yamaha parameters.",
+      "A higher-level logic engine should translate UI intent into parameter bundles.",
+      "One-knob compressor should use model-specific parameter bundles.",
+      "Future devices may reuse UI while using different logic engines."
+    ]
+  },
+
+  "smartEqConcept": {
+    "enabled": true,
+
+    "ideas": [
+      "Adaptive Q based on boost/cut direction",
+      "Automatic shelf behavior",
+      "Program-dependent EQ response"
+    ]
+  },
+
+  "needsValidation": [
+    "Exact Q=1 encoded value",
+    "Exact H.SHELF value",
+    "Exact LPF mode value",
+    "Stereo master addresses",
+    "Dynamics parameter addresses",
+    "ON/OFF state values",
+    "RTN select logic",
+    "Master EQ addresses",
+    "Exact frequency encoding table"
+  ]
+}

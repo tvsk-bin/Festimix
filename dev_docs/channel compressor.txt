@@ -1,0 +1,361 @@
+Implement a new “Magic Compressor” system.
+
+This is NOT a traditional compressor editor.
+
+Do NOT expose raw Yamaha compressor parameters as the primary UX.
+
+Instead:
+implement a musical macro-compressor workflow optimized for touch interaction.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+The user should control compression using:
+- one main rotary control
+- a few optional musical character buttons
+
+The system should feel:
+- immediate
+- musical
+- modern
+- touch-friendly
+
+NOT:
+- technical
+- engineering-heavy
+- parameter-centric
+
+--------------------------------------------------
+ARCHITECTURE
+--------------------------------------------------
+
+Use the existing architecture:
+
+UI layer
+→ logical engine
+→ Yamaha mapping layer
+→ SysEx transport
+
+The Magic Compressor belongs to:
+- the logical engine layer
+
+NOT directly to Yamaha transport.
+
+--------------------------------------------------
+CORE CONCEPT
+--------------------------------------------------
+
+The compressor knob should NOT recall Yamaha presets directly.
+
+Instead:
+the Yamaha preset dynamics programs serve as:
+- reference behaviors
+- interpolation anchor points
+
+The engine should:
+- interpolate between parameter sets
+- morph smoothly between behaviors
+- resend full authoritative parameter bundles
+
+--------------------------------------------------
+MAIN CONTROL
+--------------------------------------------------
+
+Main rotary control:
+
+MAGIC COMP
+
+Range:
+0 → 7
+
+Labels:
+
+0 = OFF
+1 = OPEN
+2 = SMOOTH
+3 = VOCAL
+4 = GLUE
+5 = DENSE
+6 = LIMIT
+7 = HARD
+
+The label should update dynamically as the knob moves.
+
+--------------------------------------------------
+PRESET REFERENCE CHAIN
+--------------------------------------------------
+
+Use these Yamaha preset programs as interpolation anchors:
+
+OPEN:
+inspired by Chorus
+
+SMOOTH:
+inspired by Strings2 / Chorus
+
+VOCAL:
+inspired by Solo Vocal2 + Solo Vocal1
+
+GLUE:
+inspired by Total Comp1
+
+DENSE:
+inspired by Total Comp2
+
+LIMIT:
+inspired by Limiter1
+
+HARD:
+inspired by Limiter2
+
+Use the Yamaha manual values as starting reference data.
+
+Do NOT implement hard preset switching.
+
+Implement:
+smooth interpolation between parameter sets.
+
+--------------------------------------------------
+PARAMETERS TO CONTROL
+--------------------------------------------------
+
+The engine should internally control:
+- threshold
+- ratio
+- attack
+- release
+- knee
+- makeup gain
+
+Optionally later:
+- soft/hard knee mode
+- adaptive release behavior
+
+--------------------------------------------------
+AUTHORITATIVE WRITE LOGIC
+--------------------------------------------------
+
+VERY IMPORTANT:
+
+Whenever the user changes the compressor macro,
+the engine must resend ALL related compressor parameters.
+
+Never send only a single changed parameter.
+
+Reason:
+the physical Yamaha console may have been modified manually.
+
+The engine must guarantee deterministic state.
+
+--------------------------------------------------
+OPTIONAL CHARACTER BUTTONS
+--------------------------------------------------
+
+Add optional compressor character buttons.
+
+These should modify interpolation behavior,
+NOT directly map to Yamaha parameters.
+
+Suggested buttons:
+
+SOFT
+FAST
+PUNCH
+VOCAL
+LIMIT
+
+Examples:
+
+SOFT:
+- softer knee
+- slower attack
+- smoother release
+
+FAST:
+- faster attack
+- tighter release
+
+PUNCH:
+- preserve transient attack
+- stronger ratio later
+
+VOCAL:
+- smoother release curve
+- moderate ratio
+- stable level
+
+LIMIT:
+- hard knee
+- aggressive ratio
+- fast attack
+
+These buttons should influence:
+the interpolation curves.
+
+--------------------------------------------------
+UI REQUIREMENTS
+--------------------------------------------------
+
+The compressor section must:
+- remain visually simple
+- remain touch friendly
+- avoid engineering overload
+
+Do NOT display:
+- raw Yamaha values everywhere
+- technical compressor jargon as primary UI
+
+The UI should express:
+musical intent.
+
+--------------------------------------------------
+FUTURE SUPPORT
+--------------------------------------------------
+
+Design the engine to support:
+- future Yamaha models
+- different device profiles
+- alternate compressor implementations
+
+The UI should remain reusable.
+
+Only the mapping/engine layer should change per device.
+
+--------------------------------------------------
+DO NOT
+--------------------------------------------------
+
+Do NOT:
+- redesign the full mixer
+- rewrite transport layer
+- hardcode Yamaha preset recalls
+- tightly couple UI to Yamaha SysEx
+- expose a full compressor editor yet
+
+Focus only on:
+- Magic Compressor engine
+- interpolation logic
+- musical UX
+- clean touch workflow
+
+
+
+
+Implement Magic Compressor with explicit preset anchor values.
+
+Do NOT read the PDF. Use the values below.
+
+The Magic Compressor is a macro control with 8 positions:
+
+0 OFF
+1 OPEN
+2 SMOOTH
+3 VOCAL
+4 GLUE
+5 DENSE
+6 LIMIT
+7 HARD
+
+Use these anchor parameter sets:
+
+0 OFF:
+- bypass compressor or set ratio 1:1 if bypass is not available
+- threshold: 0 dB
+- ratio: 1.0
+- attack: 60 ms
+- release: 250 ms
+- knee: 2
+- outGain: 0.0 dB
+
+1 OPEN:
+Based on Chorus / light vocal behavior
+- threshold: -9 dB
+- ratio: 1.7
+- attack: 39 ms
+- release: 226 ms
+- knee: 2
+- outGain: +2.5 dB
+
+2 SMOOTH:
+Based on Solo Vocal2
+- threshold: -8 dB
+- ratio: 2.5
+- attack: 26 ms
+- release: 331 ms
+- knee: 3
+- outGain: +1.5 dB
+
+3 VOCAL:
+Based on Solo Vocal1
+- threshold: -20 dB
+- ratio: 2.5
+- attack: 31 ms
+- release: 342 ms
+- knee: 1
+- outGain: +2.0 dB
+
+4 GLUE:
+Based on Total Comp1
+- threshold: -18 dB
+- ratio: 3.5
+- attack: 94 ms
+- release: 447 ms
+- knee: hard
+- outGain: +2.5 dB
+
+5 DENSE:
+Based on Total Comp2
+- threshold: -16 dB
+- ratio: 6.0
+- attack: 11 ms
+- release: 180 ms
+- knee: 1
+- outGain: +6.0 dB
+
+6 LIMIT:
+Based on Limiter1
+- threshold: -9 dB
+- ratio: 3.0
+- attack: 20 ms
+- release: 3900 ms
+- knee: soft / Compander-S style
+- outGain: -3.0 dB
+
+7 HARD:
+Based on Limiter2
+- threshold: 0 dB
+- ratio: infinity
+- attack: 0 ms
+- release: 319 ms
+- knee: hard
+- outGain: 0.0 dB
+
+Important behavior:
+Do NOT hard-switch instantly between these states.
+
+Implement smooth morphing:
+- interpolate numeric parameters between anchor points
+- apply slew/ramp limiting before sending Yamaha values
+- send updates at a controlled rate, e.g. 20–30 Hz maximum
+- ramp time: 250 ms default
+- for large threshold/outGain changes use 400–500 ms ramp
+- never send hundreds of MIDI packets instantly
+
+When the user turns the knob:
+1. calculate target compressor parameters
+2. interpolate between anchors
+3. smooth the transition
+4. send full authoritative compressor bundle:
+   threshold, ratio, attack, release, knee, outGain
+
+Avoid audible jumps:
+- threshold and output gain must be smoothed especially carefully
+- ratio may update slightly faster
+- attack/release can update at lower priority
+- if bypass/off is used, fade/morph into OFF rather than instant hard bypass when possible
+
+The UI should show only the macro label:
+OFF / OPEN / SMOOTH / VOCAL / GLUE / DENSE / LIMIT / HARD
+
+Do not expose raw compressor parameters in the main UI yet.

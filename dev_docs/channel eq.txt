@@ -1,0 +1,251 @@
+IMPORTANT:
+Do NOT implement the Yamaha 01V EQ as a generic 4-band parametric EQ.
+
+The goal is NOT to expose the original Yamaha EQ architecture directly.
+
+Instead:
+implement a simplified musical channel EQ layout built ON TOP OF the Yamaha EQ engine.
+
+The Yamaha bands must be repurposed into fixed musical roles.
+
+--------------------------------------------------
+TARGET CHANNEL EQ DESIGN
+--------------------------------------------------
+
+The channel EQ should behave as:
+
+1. HPF
+2. BASS
+3. MID
+4. HIGH
+
+NOT:
+LOW / LO-MID / HI-MID / HIGH engineering bands.
+
+--------------------------------------------------
+BAND MAPPING
+--------------------------------------------------
+
+Yamaha LOW band:
+→ behaves as HPF only
+
+Yamaha LO-MID band:
+→ behaves as fixed-frequency BASS EQ
+
+Yamaha HI-MID band:
+→ behaves as semi-parametric MID EQ
+
+Yamaha HIGH band:
+→ behaves as HIGH shelf EQ
+
+--------------------------------------------------
+1. HPF SECTION
+--------------------------------------------------
+
+Use Yamaha LOW band in HPF mode.
+
+Behavior:
+- gain acts as ON/OFF state
+- frequency selectable only:
+  - 75 Hz
+  - 120 Hz
+
+No continuous frequency control.
+
+UI:
+- HPF button
+- 75 Hz button
+- 120 Hz button
+
+No visible gain knob for HPF.
+
+IMPORTANT:
+Entering the EQ page must force Yamaha LOW band into HPF mode authoritatively.
+
+Always resend:
+- HPF mode
+- HPF frequency
+- related band state
+
+Reason:
+the physical Yamaha console may have been changed manually.
+
+--------------------------------------------------
+2. BASS SECTION
+--------------------------------------------------
+
+Use Yamaha LO-MID band as musical BASS EQ.
+
+Behavior:
+- fixed frequency
+- fixed Q
+- only gain is user-adjustable
+
+Target:
+musical low shelving / broad bass tone shaping
+
+Recommended settings:
+- frequency fixed around 100 Hz
+- Q fixed around 1.0
+- broad musical response
+
+Do NOT expose:
+- Yamaha frequency parameter
+- Yamaha Q parameter
+
+Only expose:
+- gain control
+
+IMPORTANT:
+Whenever bass gain changes,
+the engine must also resend:
+- fixed frequency
+- fixed Q
+- mode state
+
+authoritatively.
+
+--------------------------------------------------
+3. MID SECTION
+--------------------------------------------------
+
+Use Yamaha HI-MID band as semi-parametric MID EQ.
+
+Behavior:
+- gain adjustable
+- frequency selectable
+- Q fixed
+
+Available frequencies:
+- 250 Hz
+- 500 Hz
+- 1 kHz
+- 2 kHz
+- 4 kHz
+
+Recommended Q:
+- fixed around Q = 1.0
+- or 3 values with Buttons under the frequ selection: wide, normal, narrow: 5, 1, 0.5
+- broad musical response
+- not surgical
+
+The MID section should feel:
+- fast
+- musical
+- touch-friendly
+
+Do NOT expose:
+- raw Yamaha Q editing
+
+IMPORTANT:
+Whenever MID gain changes,
+the engine must also resend:
+- selected frequency
+- fixed Q
+- mode state
+
+authoritatively.
+
+--------------------------------------------------
+4. HIGH SECTION
+--------------------------------------------------
+
+Use Yamaha HIGH band in shelving mode.
+
+Behavior:
+- fixed frequency
+- gain adjustable normally
+
+Recommended settings:
+- frequency fixed at 8 kHz
+- shelving mode forced
+
+Do NOT expose:
+- Yamaha frequency editing
+- Yamaha Q editing
+
+Only expose:
+- gain control
+
+IMPORTANT:
+Whenever HIGH gain changes,
+the engine must also resend:
+- shelf mode
+- fixed frequency
+- related band state
+
+authoritatively.
+
+--------------------------------------------------
+VERY IMPORTANT DESIGN GOAL
+--------------------------------------------------
+
+The user must feel like they are using:
+
+- a fast musical live mixer EQ
+- NOT a Yamaha engineering editor
+- NOT a technical DSP interface
+
+The EQ should feel:
+- immediate
+- broad
+- musical
+- forgiving
+- fast to operate on touch devices
+
+--------------------------------------------------
+Q VALUES
+--------------------------------------------------
+
+Do NOT use narrow/surgical Q values.
+
+Recommended:
+Q ≈ 1.0
+
+Reason:
+This application targets:
+- live mixing
+- broadcast
+- fast operation
+- touch workflow
+
+NOT precision mastering EQ work.
+
+--------------------------------------------------
+ENGINE REQUIREMENT
+--------------------------------------------------
+
+The EQ engine must always behave authoritatively.
+
+Whenever a user changes ANY EQ parameter,
+the engine must resend:
+- mode
+- frequency
+- Q
+- gain
+- filter state
+
+for the affected band.
+
+Never assume the Yamaha console state is already correct.
+
+The physical console may have been modified manually.
+
+--------------------------------------------------
+UI REQUIREMENTS
+--------------------------------------------------
+
+The UI should present:
+
+HPF
+BASS
+MID
+HIGH
+
+NOT:
+LOW
+LO-MID
+HI-MID
+HIGH
+
+The Yamaha internal structure should remain hidden from the user.

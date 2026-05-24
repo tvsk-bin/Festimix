@@ -1,0 +1,249 @@
+The application is now functionally strong enough that the focus must shift away from adding random new features.
+
+Priority has changed.
+
+From now on, prioritize:
+
+- ergonomics
+- workflow
+- visual consistency
+- touch usability
+- state feedback
+- layout clarity
+- responsiveness
+- interaction quality
+
+Do NOT redesign the mixer into a generic DAW.
+Keep the Yamaha / broadcast mixer feeling.
+
+However:
+this is now a touch-first tablet mixer surface,
+not a desktop utility app.
+
+Main UI goals:
+
+--------------------------------------------------
+1. Reduce visual clutter
+--------------------------------------------------
+
+Current UI has:
+- too many borders
+- too many frames
+- too many nested panels
+- too much boxed segmentation
+
+Result:
+- visually heavy
+- cramped
+- old plugin / Windows app feeling
+
+Reduce:
+- border thickness
+- nested frames
+- excessive outlines
+
+Increase:
+- spacing
+- hierarchy
+- breathing room
+- alignment consistency
+
+The interface should feel:
+- modern
+- clean
+- touch-friendly
+- professional broadcast surface
+
+--------------------------------------------------
+2. Improve navigation ergonomics
+--------------------------------------------------
+
+The current NEXT/PREV buttons at the top are ergonomically inefficient on tablets.
+
+The user naturally operates near the bottom channel strip area.
+
+New navigation concept:
+
+- move channel navigation to the bottom area
+- integrate PREV / NEXT into the channel footer/navigation strip
+- allow longer channel names there
+
+Example:
+
+< PREV | CH4 — LEAD VOCAL | NEXT >
+
+This:
+- reduces hand travel
+- improves thumb usability
+- keeps navigation close to channel selection
+
+The top area should become cleaner.
+
+Keep:
+- MIX / AUX / FX tabs at the top
+- channel bank selector on the left
+
+But simplify overall navigation chrome.
+
+--------------------------------------------------
+3. Channel workflow improvements
+--------------------------------------------------
+
+Support:
+- horizontal swipe between channels
+- automatic bank following
+- smoother channel transitions
+
+Example:
+
+CH8
+swipe left
+CH9
+
+The bottom channel strip should update automatically.
+
+Navigation should feel content-driven,
+not button-driven.
+
+--------------------------------------------------
+4. Improve state feedback
+--------------------------------------------------
+
+ON/OFF and SOLO buttons currently lack strong visual feedback.
+
+Implement clear active/inactive states.
+
+ON:
+- dark when OFF
+- green glow when ON
+
+SOLO:
+- amber/yellow glow when active
+
+The mixer must always clearly communicate:
+- what is active
+- what is selected
+- what is muted/soloed
+
+--------------------------------------------------
+5. Improve master strip usability
+--------------------------------------------------
+
+The right-side master strip is currently too cramped.
+
+Improve:
+- width
+- spacing
+- readability
+- touch interaction size
+
+Future-ready:
+- reserve space for meters
+- reserve space for future level indication
+
+--------------------------------------------------
+6. Keep rotary workflow
+--------------------------------------------------
+
+The rotary EQ workflow is much better than sliders.
+
+Do NOT return to linear sliders for EQ gain.
+
+Rotary controls feel:
+- musical
+- mixer-like
+- tactile
+- appropriate for touch surfaces
+
+However:
+simplify the surrounding UI chrome around knobs.
+
+--------------------------------------------------
+7. Keep stepped selectors for musical parameters
+--------------------------------------------------
+
+Discrete selector buttons for:
+- frequencies
+- modes
+- compressor presets
+
+are preferred over raw endless controls.
+
+This is especially important for:
+- EQ frequency
+- compressor styles
+- smart EQ modes
+
+The UI should express:
+musical intent,
+not raw engineering values.
+
+--------------------------------------------------
+8. Dynamics section direction
+--------------------------------------------------
+
+The current dynamics section is too technical.
+
+Do not focus future UX around:
+- attack
+- release
+- ratio
+- raw threshold
+
+Instead move toward:
+- macro controls
+- styles
+- one-knob compressor logic
+- preset interpolation
+
+Examples:
+- Vocal
+- Punch
+- Glue
+- Tight
+- Limiter
+
+The engine layer will later translate those into Yamaha parameters.
+
+--------------------------------------------------
+9. Preserve architectural separation
+--------------------------------------------------
+
+Maintain architecture:
+
+UI layer
+→ logical engine
+→ hardware mapping layer
+→ Yamaha transport layer
+
+Do NOT tightly couple UI directly to Yamaha parameters.
+
+The UI represents:
+musical behavior.
+
+The mapping layer represents:
+hardware capability.
+
+--------------------------------------------------
+10. Make the application feel like:
+--------------------------------------------------
+
+NOT:
+- a Windows utility
+- a Yamaha config editor
+- a MIDI debug tool
+
+BUT:
+- a modern broadcast touch mixer
+- an iPad-style control surface
+- a responsive live mixing environment
+
+Focus on:
+- smoothness
+- visual consistency
+- touch ergonomics
+- workflow speed
+- reduced friction
+
+Do not add large new feature sets yet.
+Stabilize and refine the experience first.

@@ -1,0 +1,79 @@
+Implement a dedicated MASTER EQ concept.
+
+Do NOT reuse the Channel EQ logic.
+Do NOT reuse the AUX / Monitor EQ logic.
+
+MASTER EQ goal:
+broad tonal correction and room/system adaptation.
+
+It is NOT:
+- channel preparation EQ
+- monitor feedback EQ
+- mastering plugin
+- surgical parametric EQ
+
+MASTER EQ layout:
+
+1. LOW
+- low shelf
+- fixed frequency: 100 Hz
+- gain only
+
+2. LO-MID
+- semi-parametric style, but simplified
+- gain control
+- frequency selector only
+- fixed Q around 1.0
+- frequency options:
+  - 160 Hz
+  - 250 Hz
+  - 400 Hz
+  - 630 Hz
+
+3. HI-MID
+- semi-parametric style, but simplified
+- gain control
+- frequency selector only
+- fixed Q around 1.0
+- frequency options:
+  - 1 kHz
+  - 2 kHz
+  - 3.15 kHz
+  - 5 kHz
+
+4. HIGH
+- high shelf
+- fixed frequency: 10 kHz
+- gain only
+
+Important:
+- no HPF on Master EQ
+- no notch filters on Master EQ
+- no exposed Q control
+- no full parametric UI
+
+The UI should show:
+LOW / LO-MID / HI-MID / HIGH
+
+Purpose:
+- LOW = overall bass balance
+- LO-MID = boxiness / warmth correction
+- HI-MID = presence / harshness correction
+- HIGH = air / brightness
+
+The Master EQ should feel:
+- broad
+- musical
+- stable
+- safe
+- fast to operate
+- not surgical
+
+Whenever the user changes any Master EQ value, the engine must resend the full required Yamaha parameter bundle for that band:
+- mode
+- frequency
+- fixed Q
+- gain
+
+Do not trust the current Yamaha state.
+The physical console may have been changed manually.
