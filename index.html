@@ -1094,6 +1094,12 @@
         var modeIds = ["MIX", "AUX1", "AUX2", "AUX3", "AUX4", "EFF1", "EFF2", "MIX"];
         var banks = [
             {
+                id: "meter",
+                label: "METER",
+                page: "meter",
+                channels: []
+            },
+            {
                 id: "1-8",
                 label: "CH1-8",
                 channels: [
@@ -1125,18 +1131,14 @@
                 id: "17-24",
                 label: "CH17-24",
                 disabled: true,
+                hidden: true,
+                optionalInput: true,
                 channels: []
             },
             {
                 id: "scenes",
                 label: "SCENES",
                 page: "scenes",
-                channels: []
-            },
-            {
-                id: "meter",
-                label: "METER",
-                page: "meter",
                 channels: []
             },
             {
@@ -1192,6 +1194,7 @@
                 channelRightIndex: 1,
                 channelLabel: "1-2",
                 deviceName: "",
+                optionalInputBankEnabled: false,
                 spectrumSmoothed: [],
                 leftPpm: null,
                 rightPpm: null,
@@ -1741,8 +1744,9 @@
         }
 
         function activeBank() {
-            var bank = banks.find(function(bank) { return bank.id === state.bankId; }) || banks[0];
-            if (bank.disabled || bank.page) return banks[0];
+            var fallback = banks.find(function(bank) { return !bank.disabled && !bank.hidden && !bank.page; });
+            var bank = banks.find(function(bank) { return bank.id === state.bankId; }) || fallback;
+            if (!bank || bank.disabled || bank.hidden || bank.page) return fallback;
             return bank;
         }
 
@@ -1753,7 +1757,7 @@
         function allChannels() {
             var all = [];
             banks.forEach(function(bank) {
-                if (!bank.disabled && !bank.page) all = all.concat(bank.channels);
+                if (!bank.disabled && !bank.hidden && !bank.page) all = all.concat(bank.channels);
             });
             return all;
         }
@@ -2001,6 +2005,14 @@
             state.audioMeter.channelRightIndex = Math.max(0, parseInt(audioChannels.right, 10) || state.audioMeter.channelLeftIndex);
             state.audioMeter.channelLabel = audioChannels.label || ((state.audioMeter.channelLeftIndex + 1) + "-" + (state.audioMeter.channelRightIndex + 1));
             state.audioMeter.deviceName = config.audioDeviceName || "";
+            state.audioMeter.optionalInputBankEnabled = !!config.optionalInputBankEnabled;
+            banks.forEach(function(bank) {
+                if (!bank.optionalInput) return;
+                bank.hidden = !state.audioMeter.optionalInputBankEnabled;
+                bank.disabled = !state.audioMeter.optionalInputBankEnabled;
+            });
+            if (activeBank().optionalInput && !state.audioMeter.optionalInputBankEnabled) state.bankId = "1-8";
+            render();
         }
 
         function updateAudioMeterDom() {
@@ -2182,12 +2194,19 @@
         function syncSoloRouting() {
             if (hasChannelSolo()) {
                 clearMasterSoloState(null);
+                clearActiveEffectMasterReturnIfNeeded();
                 setMasterSoloRoute(null);
             } else {
                 clearMasterSoloState(activeManualMasterSoloTarget());
                 setMasterSoloRoute(activeManualMasterSoloTarget() || "stereo");
             }
             syncAudioMeterService();
+        }
+
+        function clearActiveEffectMasterReturnIfNeeded() {
+            var returnId = state.activeMasterSoloTarget === "effect1" ? "RTN1" :
+                state.activeMasterSoloTarget === "effect2" ? "RTN2" : null;
+            if (returnId && !state.solo[returnId]) setChannelSolo(returnId, false);
         }
 
         function hasAnySoloSelection() {
@@ -3189,7 +3208,7 @@
 
         function setBank(bankId) {
             var bank = banks.find(function(item) { return item.id === bankId; });
-            if (!bank || bank.disabled) return;
+            if (!bank || bank.disabled || bank.hidden) return;
             if (isMeterDelegationMode() && !bank.page) {
                 if (isMeterDoubleTap("bank:" + bankId)) {
                     exitMeterMode();
@@ -3248,7 +3267,7 @@
         }
 
         function selectChannelByOffset(delta) {
-            var liveBanks = banks.filter(function(bank) { return !bank.disabled && !bank.page; });
+            var liveBanks = banks.filter(function(bank) { return !bank.disabled && !bank.hidden && !bank.page; });
             var channels = currentChannels();
             var index = channels.findIndex(function(channel) { return channel.id === state.selectedId; });
             if (index < 0) index = 0;
@@ -4189,6 +4208,7 @@
             mark.textContent = "© TVSK 2026";
             root.appendChild(mark);
             banks.forEach(function(bank) {
+                if (bank.hidden) return;
                 var button = document.createElement("button");
                 var active = bank.page ? state.view === bank.page : state.bankId === bank.id && state.view !== "scenes" && state.view !== "meter";
                 if (state.view === "meter" && !bank.page) active = state.bankId === bank.id;

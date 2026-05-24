@@ -211,6 +211,7 @@ function summarizeLastRunSettings(settings) {
     console.log("  midi input:", settings.midiInput || "default");
     console.log("  midi output:", settings.midiOutput || "default");
     console.log("  meter audio:", settings.meterAudioDeviceName || "default", "channels", (settings.meterAudioChannels && settings.meterAudioChannels.label) || "1-2");
+    console.log("  optional input bank:", settings.optionalInputBankEnabled ? "YES" : "NO");
     console.log("  aux pre/post:", JSON.stringify(settings.auxPrePost || defaultAuxPrePostModes()));
     console.log("  safe reset:", settings.safeReset ? "YES" : "NO");
 }
@@ -255,6 +256,14 @@ function parsePrePostAnswer(answer) {
     if (text === "p" || text === "pre") return "pre";
     if (text === "post" || text === "po") return "post";
     return "pre";
+}
+
+function parseYesNoAnswer(answer, defaultValue) {
+    var text = String(answer || "").trim().toLowerCase();
+    if (!text) return !!defaultValue;
+    if (text === "y" || text === "yes" || text === "i" || text === "igen") return true;
+    if (text === "n" || text === "no" || text === "nem") return false;
+    return !!defaultValue;
 }
 
 async function askAuxPrePostModes(rl, mixerProfile) {
@@ -320,6 +329,7 @@ async function main() {
     var safeReset = false;
     var meterAudioChannels = parseMeterAudioChannels(process.env.O1V_METER_AUDIO_CHANNELS || "");
     var meterAudioDeviceName = process.env.O1V_METER_AUDIO_DEVICE || "";
+    var optionalInputBankEnabled = parseYesNoAnswer(process.env.O1V_OPTIONAL_INPUT_BANK || "", false);
     var auxPrePost = defaultAuxPrePostModes();
     var mixerProfile = MIXER_PROFILES[0];
 
@@ -332,6 +342,7 @@ async function main() {
             safeReset = !!lastRunSettings.safeReset;
             meterAudioChannels = lastRunSettings.meterAudioChannels || meterAudioChannels;
             meterAudioDeviceName = lastRunSettings.meterAudioDeviceName || "";
+            optionalInputBankEnabled = !!lastRunSettings.optionalInputBankEnabled;
             auxPrePost = lastRunSettings.auxPrePost || auxPrePost;
         } else {
             mixerProfile = await pickMixerProfile(rl);
@@ -360,6 +371,8 @@ async function main() {
                 meterAudioDeviceName = pickAudioInputName(audioInputs, deviceAnswer);
                 var meterAnswer = await question(rl, "Meter audio input csatorna/par [1-2]: ");
                 meterAudioChannels = parseMeterAudioChannels(meterAnswer);
+                var optionalAnswer = await question(rl, "Van opcionális input bank / harmadik channel bank? [n]: ");
+                optionalInputBankEnabled = parseYesNoAnswer(optionalAnswer, false);
                 auxPrePost = await askAuxPrePostModes(rl, mixerProfile);
             }
         }
@@ -400,6 +413,7 @@ async function main() {
     console.log("Selected MIDI channel:", channel);
     console.log("Selected meter audio device:", meterAudioDeviceName || "default");
     console.log("Selected meter audio channels:", meterAudioChannels.label);
+    console.log("Optional input bank:", optionalInputBankEnabled ? "YES" : "NO");
     if (mixerProfile.id === "yamaha01vDefault") {
         console.log("Selected AUX pre/post startup:", JSON.stringify(auxPrePost));
     }
@@ -411,13 +425,14 @@ async function main() {
         midiOutput: output,
         meterAudioDeviceName: meterAudioDeviceName,
         meterAudioChannels: meterAudioChannels,
+        optionalInputBankEnabled: optionalInputBankEnabled,
         auxPrePost: auxPrePost,
         safeReset: safeReset,
         midiProfile: profile,
         midiChannel: channel
     });
 
-    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, safeReset: safeReset, meterAudioChannels: meterAudioChannels, meterAudioDeviceName: meterAudioDeviceName, auxPrePost: auxPrePost });
+    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, safeReset: safeReset, meterAudioChannels: meterAudioChannels, meterAudioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled, auxPrePost: auxPrePost });
     if (result === 1) {
         console.error("Unable to open selected MIDI device.");
         process.exitCode = 1;
