@@ -30,6 +30,41 @@
     "sceneSafeReset": "F0 43 10 3E 04 02 00 00 7F F7",
     "sceneSafeResetStatus": "confirmed_working_scene_00_function_call"
   },
+  "masterSoloMonitorOutAssign": {
+    "source": "D:\\Yamaha 01v sysex\\master, aux1-4 monitor out assign.log",
+    "notes": [
+      "Monitor-out delegation used as Yamaha-specific master solo source selection.",
+      "Captured order is consistent: master on/off, aux1 on/off, aux2 on/off, aux3 on/off, aux4 on/off.",
+      "F0 43 30 3E 04 25 02 F7 appears in the log as an ignored non-state/request marker."
+    ],
+    "order": ["STEREO", "AUX1", "AUX2", "AUX3", "AUX4"],
+    "targets": {
+      "STEREO": {
+        "on": "F0 43 10 3E 04 61 00 0D 08 F7",
+        "off": "F0 43 10 3E 04 61 00 0D 00 F7"
+      },
+      "AUX1": {
+        "on": "F0 43 10 3E 04 61 00 0E 08 F7",
+        "off": "F0 43 10 3E 04 61 00 0E 00 F7"
+      },
+      "AUX2": {
+        "on": "F0 43 10 3E 04 61 00 0E 09 F7",
+        "off": "F0 43 10 3E 04 61 00 0E 01 F7"
+      },
+      "AUX3": {
+        "on": "F0 43 10 3E 04 61 00 0E 0A F7",
+        "off": "F0 43 10 3E 04 61 00 0E 02 F7"
+      },
+      "AUX4": {
+        "on": "F0 43 10 3E 04 61 00 0E 0B F7",
+        "off": "F0 43 10 3E 04 61 00 0E 03 F7"
+      }
+    },
+    "effectReturns": {
+      "EFFECT1": "RTN1",
+      "EFFECT2": "RTN2"
+    }
+  },
   "commands": {
     "effect.preset.hall": { "type": "sysexRaw", "rawHex": "F043007E00684C4D20203842333465715265766572622048616C6C200000010D00010608000000020000000D0000000800000604000001040000020C000000000000000400000A0C0000000C0000000000000505000000000000000000000000000000000000000000000000000048F7", "description": "Effect preset 1: Reverb Hall" },
     "effect.preset.room": { "type": "sysexRaw", "rawHex": "F043007E00684C4D202038423334657152657665726220526F6F6D200000000700000906000000030000000B00000008000006020000030C0000030200000000000000040000090E000000000000010900000508000000000000000000000000000000000000000000000000000132F7", "description": "Effect preset 2: Reverb Room" },

@@ -1155,6 +1155,7 @@
             master: {},
             masterOn: {},
             masterSolo: {},
+            activeMasterSoloTarget: null,
             masterEq: {},
             effectPreset: {},
             stripControls: {},
@@ -1276,6 +1277,7 @@
             EFF1: { id: "effect1", label: "EFF1 MASTER", parameter: "masterFader.effect2" },
             EFF2: { id: "effect2", label: "EFF2 MASTER", parameter: "masterFader.effect1" }
         };
+        var masterSoloTargetIds = ["stereo", "aux1", "aux2", "aux3", "aux4", "effect1", "effect2"];
 
         var faderGroupByMode = {
             MIX: "channelFader",
@@ -1326,6 +1328,13 @@
 
         function setMasterSolo(master, enabled) {
             sendAction({ type: "setMasterSolo", master: master, enabled: enabled });
+        }
+
+        function setMasterSoloRoute(target) {
+            var normalized = target || null;
+            if (state.activeMasterSoloTarget === normalized) return;
+            state.activeMasterSoloTarget = normalized;
+            setMasterSolo(normalized || "__all__", !!normalized);
         }
 
         function eqGainDbToByte(value) {
@@ -1841,6 +1850,39 @@
             return Object.keys(state.masterSolo).some(function(key) {
                 return !!state.masterSolo[key];
             });
+        }
+
+        function activeManualMasterSoloTarget() {
+            for (var i = 0; i < masterSoloTargetIds.length; i++) {
+                if (state.masterSolo[masterSoloTargetIds[i]]) return masterSoloTargetIds[i];
+            }
+            return null;
+        }
+
+        function clearMasterSoloState(exceptId) {
+            masterSoloTargetIds.forEach(function(id) {
+                if (id !== exceptId) state.masterSolo[id] = false;
+            });
+        }
+
+        function clearChannelSolos() {
+            allChannels().forEach(function(channel) {
+                if (state.solo[channel.id]) {
+                    state.solo[channel.id] = false;
+                    setChannelSolo(channel.soloKey, false);
+                }
+            });
+        }
+
+        function syncSoloRouting() {
+            if (hasChannelSolo()) {
+                clearMasterSoloState(null);
+                setMasterSoloRoute(null);
+            } else {
+                clearMasterSoloState(activeManualMasterSoloTarget());
+                setMasterSoloRoute(activeManualMasterSoloTarget() || "stereo");
+            }
+            syncAudioMeterService();
         }
 
         function hasAnySoloSelection() {
@@ -2932,9 +2974,10 @@
         function toggleSolo(channel) {
             if (suppressStripClick) return;
             var next = !state.solo[channel.id];
+            if (next) clearMasterSoloState(null);
             state.solo[channel.id] = next;
             setChannelSolo(channel.soloKey, next);
-            syncAudioMeterService();
+            syncSoloRouting();
             renderButtonsOnly();
         }
 
@@ -2946,9 +2989,10 @@
 
         function applySoloState(channel, enabled) {
             if (!!state.solo[channel.id] === enabled) return;
+            if (enabled) clearMasterSoloState(null);
             state.solo[channel.id] = enabled;
             setChannelSolo(channel.soloKey, enabled);
-            syncAudioMeterService();
+            syncSoloRouting();
         }
 
         function knobLabel(knob, value) {
@@ -3596,9 +3640,11 @@
                     setChannelOn(channel.midiKey, state.on[channel.id]);
                 }
                 if (drag.action === "solo") {
-                    state.solo[channel.id] = !state.solo[channel.id];
-                    setChannelSolo(channel.soloKey, state.solo[channel.id]);
-                    syncAudioMeterService();
+                    var nextSolo = !state.solo[channel.id];
+                    if (nextSolo) clearMasterSoloState(null);
+                    state.solo[channel.id] = nextSolo;
+                    setChannelSolo(channel.soloKey, nextSolo);
+                    syncSoloRouting();
                 }
                 refreshTouchedButton(button, channel);
             }
@@ -4109,10 +4155,13 @@
             solo.onclick = function() {
                 if (autoMixMasterSolo) return;
                 var next = !state.masterSolo[master.id];
+                if (next) {
+                    clearChannelSolos();
+                    clearMasterSoloState(master.id);
+                }
                 state.masterSolo[master.id] = next;
-                setMasterSolo(master.onId || master.id, next);
-                syncAudioMeterService();
-                renderMaster();
+                syncSoloRouting();
+                render();
             };
 
             var title = document.createElement("div");
@@ -4187,7 +4236,7 @@
             renderChannelRow();
             renderMaster();
             if (state.view === "mixer") renderMixer();
-            syncAudioMeterService();
+            syncSoloRouting();
         }
 
         function render() {
@@ -4200,7 +4249,7 @@
             else if (state.view === "scenes") renderScenesPage();
             else if (state.view === "meter") renderMeterPage();
             else renderMixer();
-            syncAudioMeterService();
+            syncSoloRouting();
         }
 
         loadScenes();
