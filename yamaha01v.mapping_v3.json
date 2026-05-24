@@ -658,6 +658,19 @@
       "SELECT cannot self-toggle on Yamaha 01V."
     ]
   },
+  "channelSelectRemote": {
+    "source": "D:\\Yamaha 01v sysex\\channel on, solo, sel ch1-16.log",
+    "status": "key_remote_press_release",
+    "notes": [
+      "Use 0x43 key-remote press/release for normal channel SEL buttons.",
+      "Do not use the 0x23 navigation/selectObserved family for normal CH1-16 select; field test showed that path can affect the wrong Yamaha control.",
+      "Mono CH1-8 use key 0x64, CH9-16 use key 0x65, press values 0x08-0x0F and release values 0x00-0x07."
+    ],
+    "targets": {
+      "CH13_14": { "keyNo": "0x65", "press": "0x0C", "release": "0x04" },
+      "CH15_16": { "keyNo": "0x65", "press": "0x0E", "release": "0x06" }
+    }
+  },
   "returns": {
     "RTN1": {
       "exists": true,

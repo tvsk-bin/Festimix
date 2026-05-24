@@ -964,6 +964,13 @@
         .meter-label {
             font-size: clamp(16px, 2.2vw, 26px);
             font-weight: 900;
+            min-width: 0;
+            overflow-wrap: anywhere;
+            line-height: 1.08;
+        }
+
+        .meter-label.sum-label {
+            font-size: clamp(10px, 1.35vw, 16px);
         }
 
         .meter-numbers {
@@ -1110,8 +1117,8 @@
                     { id: "12", midiKey: "12", label: "CH12", selectKey: 12, soloKey: 12 },
                     { id: "13_14", midiKey: "13_14", label: "CH13/14", selectKey: "CH13_14", soloKey: "CH13_14" },
                     { id: "15_16", midiKey: "15_16", label: "CH15/16", selectKey: "CH15_16", soloKey: "CH15_16" },
-                    { id: "RTN1", midiKey: "RTN1", label: "RTN1", selectKey: "RTN1", soloKey: "RTN1" },
-                    { id: "RTN2", midiKey: "RTN2", label: "RTN2", selectKey: "RTN2", soloKey: "RTN2" }
+                    { id: "RTN1", midiKey: "RTN1", label: "RTN1", selectKey: null, soloKey: "RTN1" },
+                    { id: "RTN2", midiKey: "RTN2", label: "RTN2", selectKey: null, soloKey: "RTN2" }
                 ]
             },
             {
@@ -1325,6 +1332,11 @@
             sendAction({ type: "setChannelPhase", channel: channel, enabled: enabled });
         }
 
+        function selectMixerChannel(channel) {
+            if (!channel || !channel.selectKey) return;
+            sendAction({ type: "selectChannel", channel: channel.selectKey });
+        }
+
         function setMasterOn(master, enabled) {
             sendAction({ type: "setMasterOn", master: master, enabled: enabled });
         }
@@ -1358,6 +1370,23 @@
         function exitMeterMode() {
             state.view = "mixer";
             state.previousViewBeforeMeter = null;
+        }
+
+        function clearAllSoloSelections() {
+            clearChannelSolos();
+            clearMasterSoloState(null);
+            syncSoloRouting();
+        }
+
+        function exitMeterModeToMaster(mode) {
+            var master = masterByMode[mode] || masterByMode.MIX;
+            clearAllSoloSelections();
+            state.mode = mode;
+            state.view = "masterStrip";
+            state.previousViewBeforeMeter = null;
+            state.selectedId = "master:" + mode;
+            state.selectedLabel = master.label;
+            render();
         }
 
         function isAudioMeterSourceClient() {
@@ -1968,7 +1997,10 @@
             };
             Object.keys(pairs).forEach(function(id) {
                 var node = document.getElementById(id);
-                if (node) node.textContent = pairs[id];
+                if (node) {
+                    node.textContent = pairs[id];
+                    if (node.classList) node.classList.toggle("sum-label", /^SUM OF:/.test(String(pairs[id] || "")));
+                }
             });
             var leftBar = document.getElementById("leftBar");
             var rightBar = document.getElementById("rightBar");
@@ -3082,8 +3114,7 @@
         function topModeTap(mode) {
             if (isMeterDelegationMode()) {
                 if (isMeterDoubleTap("mode:" + mode)) {
-                    exitMeterMode();
-                    setMode(mode);
+                    exitMeterModeToMaster(mode);
                     return;
                 }
                 meterSelectMasterMode(mode);
@@ -3214,6 +3245,7 @@
             state.view = "strip";
             state.selectedId = next.id;
             state.selectedLabel = next.label;
+            selectMixerChannel(next);
             render();
         }
 
@@ -3225,6 +3257,7 @@
                     state.view = "strip";
                     state.selectedId = channel.id;
                     state.selectedLabel = channel.label;
+                    selectMixerChannel(channel);
                     sendChannelEqBundle(channel);
                     render();
                     return;
@@ -3246,6 +3279,7 @@
                 state.view = "strip";
                 state.selectedId = channel.id;
                 state.selectedLabel = channel.label;
+                selectMixerChannel(channel);
                 sendChannelEqBundle(channel);
             }
             render();
@@ -3306,6 +3340,19 @@
             var master = masterByMode[mode];
             if (!master) return;
             state.mode = mode;
+            if (mode === "EFF1" || mode === "EFF2") {
+                var returnId = mode === "EFF1" ? "RTN1" : "RTN2";
+                var returnChannel = allChannels().find(function(channel) { return channel.id === returnId; });
+                clearChannelSolos();
+                clearMasterSoloState(null);
+                if (returnChannel) {
+                    state.solo[returnChannel.id] = true;
+                    setChannelSolo(returnChannel.soloKey, true);
+                }
+                syncSoloRouting();
+                render();
+                return;
+            }
             clearChannelSolos();
             clearMasterSoloState(master.id);
             state.masterSolo[master.id] = true;
@@ -4653,11 +4700,7 @@
             select.onclick = function() {
                 if (isMeterDelegationMode()) {
                     if (isMeterDoubleTap("master-select:" + state.mode)) {
-                        exitMeterMode();
-                        state.view = "masterStrip";
-                        state.selectedId = "master:" + state.mode;
-                        state.selectedLabel = master.label;
-                        render();
+                        exitMeterModeToMaster(state.mode);
                         return;
                     }
                     meterSelectCurrentMaster();
