@@ -33,6 +33,11 @@ var RME_BABYFACE_CONFIG = {
     effects: {
         effect1: ["SMALL", "MED", "LARGE", "WALLS"],
         effect2: ["STEREO", "CROSS", "PONG"]
+    },
+    osc: {
+        host: process.env.RME_OSC_HOST || "127.0.0.1",
+        port: parseInt(process.env.RME_OSC_PORT || "7001", 10),
+        targetName: "TotalMix FX"
     }
 };
 
@@ -480,7 +485,7 @@ async function main() {
             if (mixerProfile.integration === "osc") {
                 startupConfig = await askRmeStartupConfig(rl, mixerProfile);
             }
-            if (process.stdin.isTTY) {
+            if (process.stdin.isTTY && mixerProfile.integration === "midi") {
                 if (mixerProfile.integration === "midi") {
                     var resetAnswer = await question(rl, "Nullazzam a Yamaha 01V-t safe reset SysEx-szel indulaskor? [y/N]: ");
                     safeReset = resetAnswer.trim().toLowerCase() === "y" || resetAnswer.trim().toLowerCase() === "yes";
@@ -495,6 +500,9 @@ async function main() {
                 var optionalAnswer = await question(rl, "Van opcionális input bank / harmadik channel bank? [n]: ");
                 optionalInputBankEnabled = parseYesNoAnswer(optionalAnswer, false);
                 auxPrePost = await askAuxPrePostModes(rl, mixerProfile);
+            } else if (process.stdin.isTTY && mixerProfile.integration === "osc") {
+                console.log("\nOSC mod: nincs kulon solo hangkartya valasztas.");
+                console.log("A solo a TotalMix belso routingon megy a Phones 3/4 kimenetre.");
             }
         }
         if (mixerProfile.integration === "midi" && (!inputSelection || !inputSelection.port || !outputSelection || !outputSelection.port)) {
@@ -533,13 +541,15 @@ async function main() {
     }
     console.log("Selected MIDI profile:", profile);
     console.log("Selected MIDI channel:", channel);
-    console.log("Selected meter audio device:", meterAudioDeviceName || "default");
-    console.log("Selected meter audio channels:", meterAudioChannels.label);
     console.log("Optional input bank:", optionalInputBankEnabled ? "YES" : "NO");
     if (mixerProfile.integration === "osc") {
         console.log("Selected workspace:", startupConfig.workspacePath || "none", startupConfig.workspaceExists ? "[OK]" : "[NEM TALALHATO]");
         console.log("Selected startup mode:", startupConfig.startupMode);
+        console.log("Selected OSC target:", RME_BABYFACE_CONFIG.osc.targetName, RME_BABYFACE_CONFIG.osc.host + ":" + RME_BABYFACE_CONFIG.osc.port);
         if (startupConfig.snapshotPath) console.log("Selected snapshot:", startupConfig.snapshotPath);
+    } else {
+        console.log("Selected meter audio device:", meterAudioDeviceName || "default");
+        console.log("Selected meter audio channels:", meterAudioChannels.label);
     }
     if (mixerProfile.id === "yamaha01vDefault") {
         console.log("Selected AUX pre/post startup:", JSON.stringify(auxPrePost));
@@ -567,7 +577,7 @@ async function main() {
     });
 
     var mixerConfig = mixerProfile.id === "rmeBabyfaceOsc" ? RME_BABYFACE_CONFIG : null;
-    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, integration: mixerProfile.integration, engineProfile: mixerProfile.engineProfile, mixerProfileId: mixerProfile.id, mixerProfileLabel: mixerProfile.label, mixerConfig: mixerConfig, startupConfig: startupConfig, safeReset: safeReset, meterAudioChannels: meterAudioChannels, meterAudioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled, auxPrePost: auxPrePost });
+    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, integration: mixerProfile.integration, engineProfile: mixerProfile.engineProfile, mixerProfileId: mixerProfile.id, mixerProfileLabel: mixerProfile.label, mixerConfig: mixerConfig, startupConfig: startupConfig, oscHost: mixerConfig && mixerConfig.osc && mixerConfig.osc.host, oscPort: mixerConfig && mixerConfig.osc && mixerConfig.osc.port, safeReset: safeReset, meterAudioChannels: meterAudioChannels, meterAudioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled, auxPrePost: auxPrePost });
     if (result === 1) {
         console.error("Unable to open selected MIDI device.");
         process.exitCode = 1;

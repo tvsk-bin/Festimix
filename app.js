@@ -8,6 +8,7 @@ var path = require("path");
 var MidiService = require("./lib/midi/service").MidiService;
 var LogicalEngine = require("./lib/engine/logicalEngine").LogicalEngine;
 var formatSysExBytes = require("./lib/midi/yamaha01vSysex").formatBytes;
+var RmeTotalMixService = require("./lib/osc/rmeTotalMixService").RmeTotalMixService;
 
 app.get("/", (req, res) => {
     res.sendFile(__dirname + "/index.html");
@@ -17,56 +18,7 @@ app.use("/assets", express.static(__dirname + '/assets'));
 
 var sceneStorePath = path.join(__dirname, "data", "mix-setups.json");
 var latestAudioMeterFrame = null;
-
-function createPlaceholderMixerService(options) {
-    options = options || {};
-    var profile = {
-        id: options.profile || options.mixerProfileId || "rmeBabyfaceOsc",
-        name: options.mixerProfileLabel || "RME Babyface OSC"
-    };
-    function ack(action, extra) {
-        return Object.assign({
-            sent: true,
-            transport: "rme-osc-placeholder",
-            action: action,
-            note: "OSC write mapping is not implemented yet; UI intent was accepted only."
-        }, extra || {});
-    }
-    return {
-        profile: profile,
-        channel: 1,
-        sendCommand: function(commandId) { return ack("sendCommand", { commandId: commandId }); },
-        sendParameter: function(parameterId, value) { return ack("sendParameter", { parameterId: parameterId, value: value }); },
-        sendParameterCc: function(parameterId, value) { return ack("sendParameterCc", { parameterId: parameterId, value: value }); },
-        setChannelOn: function(channel, enabled) { return ack("setChannelOn", { channel: channel, enabled: !!enabled }); },
-        setChannelSolo: function(channel, enabled) { return ack("setChannelSolo", { channel: channel, enabled: !!enabled }); },
-        setChannelPhase: function(channel, enabled) { return ack("setChannelPhase", { channel: channel, enabled: !!enabled }); },
-        setMasterOn: function(master, enabled) { return ack("setMasterOn", { master: master, enabled: !!enabled }); },
-        setMasterOnCc: function(master, enabled) { return ack("setMasterOnCc", { master: master, enabled: !!enabled }); },
-        setMasterSolo: function(master, enabled) { return ack("setMasterSolo", { master: master, enabled: !!enabled }); },
-        selectChannel: function(channel) { return ack("selectChannel", { channel: channel }); },
-        setAuxPrePostStartup: function(auxId, mode) { return ack("setAuxPrePostStartup", { aux: auxId, mode: mode }); },
-        writeEqParameter: function(channel, band, parameter, value) { return ack("writeEqParameter", { channel: channel, band: band, parameter: parameter, value: value }); },
-        writeDynamicsBundle: function(target, values) { return ack("writeDynamicsBundle", { target: target, values: values || {} }); },
-        writeSimplifiedEqControl: function(channel, controlId, value) { return ack("writeSimplifiedEqControl", { channel: channel, controlId: controlId, value: value }); },
-        sendLegacyUiControl: function(legacyId, value) { return ack("sendLegacyUiControl", { legacyId: legacyId, value: value }); },
-        sendControl: function(control, value) { return ack("sendControl", { control: control, value: value }); },
-        setProfile: function(profileId) {
-            profile.id = profileId;
-            profile.name = profileId;
-            return profile;
-        },
-        setChannel: function(channel) {
-            this.channel = parseInt(channel, 10) || 1;
-            return this.channel;
-        },
-        mapIncomingToLegacyUi: function() { return null; },
-        sendIdentityRequest: function() { return ack("sendIdentityRequest"); },
-        sendCh1HiMidGain: function(gainDb) { return ack("sendCh1HiMidGain", { gainDb: gainDb }); },
-        sendCh2HiMidGainFixed: function() { return ack("sendCh2HiMidGainFixed"); },
-        sendCh1PrototypeEqBand: function(band, gainDb) { return ack("sendCh1PrototypeEqBand", { band: band, gainDb: gainDb }); }
-    };
-}
+var latestOscLog = [];
 
 function emptySceneStore() {
     return {
@@ -106,8 +58,13 @@ function connectOutport(input, output, port, options) {
     var inPort = null;
     var midi;
     if (isOscMode) {
-        console.log("Mixer transport: RME OSC placeholder (no Yamaha MIDI ports opened).");
-        midi = createPlaceholderMixerService(options);
+        console.log("Mixer transport: RME TotalMix OSC at", (options.oscHost || process.env.RME_OSC_HOST || "127.0.0.1") + ":" + (options.oscPort || process.env.RME_OSC_PORT || "7001"));
+        midi = new RmeTotalMixService(options);
+        midi.onLog(function(entry) {
+            latestOscLog.push(entry);
+            if (latestOscLog.length > 80) latestOscLog.shift();
+            io.emit("osc log", entry);
+        });
     } else {
         outPort = JZZ()
             .or("Cannot start MIDI engine!")
@@ -207,6 +164,9 @@ function connectOutport(input, output, port, options) {
             mixer: options.mixerConfig || null,
             startup: options.startupConfig || null
         });
+        if (isOscMode) {
+            socket.emit("osc status", { host: midi.host, port: midi.port, target: midi.host + ":" + midi.port, log: latestOscLog });
+        }
         socket.emit("meter config", { audioChannels: meterAudioChannels, audioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled });
         if (latestAudioMeterFrame) socket.emit("audio meter frame", latestAudioMeterFrame);
         socket.on("scene store save", (store) => {
@@ -278,11 +238,15 @@ function connectOutport(input, output, port, options) {
                 } else if (action.type === "writeDynamicsBundle") {
                     result = midi.writeDynamicsBundle(action.target, action.values);
                 } else if (action.type === "engineEqIntent") {
-                    result = {
-                        sent: true,
-                        action: "engineEqIntent",
-                        messages: executeEngineCommands(engine.setEqIntent(action.channel, action.control, action.value, action.state))
-                    };
+                    if (isOscMode) {
+                        result = midi.writeSimplifiedEqControl(action.channel, action.control, action.value, action.state);
+                    } else {
+                        result = {
+                            sent: true,
+                            action: "engineEqIntent",
+                            messages: executeEngineCommands(engine.setEqIntent(action.channel, action.control, action.value, action.state))
+                        };
+                    }
                 } else if (action.type === "engineCompressorIntent") {
                     result = {
                         sent: true,

@@ -454,6 +454,21 @@
             font-size: clamp(15px, 2vw, 22px);
         }
 
+        .osc-debug {
+            margin: 0 0 10px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            background: #12171b;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.35;
+        }
+
+        .osc-debug strong {
+            color: var(--text);
+            font-weight: 700;
+        }
+
         .strip-body {
             flex: 1 1 auto;
             min-height: 0;
@@ -1229,6 +1244,10 @@
                 integration: "midi",
                 config: null,
                 startup: null
+            },
+            osc: {
+                target: "",
+                log: []
             },
             copy: {
                 phase: "idle",
@@ -2072,6 +2091,30 @@
                 }
             }
             render();
+        }
+
+        function applyOscStatus(status) {
+            if (!status) return;
+            state.osc.target = status.target || "";
+            state.osc.log = status.log || [];
+            render();
+        }
+
+        function applyOscLog(entry) {
+            if (!entry) return;
+            state.osc.target = entry.target || state.osc.target;
+            state.osc.log.push(entry);
+            if (state.osc.log.length > 6) state.osc.log.shift();
+            render();
+        }
+
+        function renderOscDebug() {
+            if (!isRmeMixer()) return "";
+            var lines = state.osc.log.slice(-4).map(function(entry) {
+                return "<div><strong>" + escapeHtml(entry.address || "") + "</strong> " + escapeHtml(JSON.stringify(entry.args || [])) + "</div>";
+            }).join("");
+            if (!lines) lines = "<div>OSC target armed, no commands sent yet.</div>";
+            return "<div class='osc-debug'><div><strong>OSC</strong> " + escapeHtml(state.osc.target || "127.0.0.1:7001") + "</div>" + lines + "</div>";
         }
 
         function applyMeterConfig(config) {
@@ -4303,7 +4346,7 @@
 
         function renderMixer() {
             var root = document.getElementById("workArea");
-            root.innerHTML = "";
+            root.innerHTML = renderOscDebug();
             var grid = document.createElement("div");
             grid.className = "strip-grid";
             currentChannels().forEach(function(channel) {
@@ -4896,6 +4939,8 @@
         loadScenes();
         socket.on("scene store", applySceneStore);
         socket.on("mixer config", applyMixerConfig);
+        socket.on("osc status", applyOscStatus);
+        socket.on("osc log", applyOscLog);
         socket.on("meter config", applyMeterConfig);
         socket.on("audio meter frame", applyAudioMeterFrame);
         socket.on("audio meter request", handleAudioMeterRequest);
