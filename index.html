@@ -1278,6 +1278,7 @@
         var compressorPresets = ["OFF", "COMP", "KICK", "SNARE", "BASS", "FUNKY", "GUITAR", "VOCAL", "GLUE"];
         var suppressStripClick = false;
         var lastTopModeTap = { mode: null, time: 0 };
+        var lastNormalChannelTap = { id: null, time: 0 };
         var lastSceneButtonTap = { scene: null, time: 0 };
         var lastMeterButtonTap = { key: null, time: 0 };
         var copyTimer = null;
@@ -1367,6 +1368,14 @@
             return isDouble;
         }
 
+        function isNormalChannelDoubleTap(channel) {
+            var now = Date.now();
+            var id = channel && channel.id;
+            var isDouble = id && lastNormalChannelTap.id === id && now - lastNormalChannelTap.time < 430;
+            lastNormalChannelTap = isDouble ? { id: null, time: 0 } : { id: id, time: now };
+            return isDouble;
+        }
+
         function exitMeterMode() {
             state.view = "mixer";
             state.previousViewBeforeMeter = null;
@@ -1376,6 +1385,24 @@
             clearChannelSolos();
             clearMasterSoloState(null);
             syncSoloRouting();
+        }
+
+        function enterMeterModeWithSingleChannelSolo(channel) {
+            if (!channel || !channel.soloKey) return;
+            state.previousViewBeforeMeter = {
+                view: state.view,
+                selectedId: state.selectedId,
+                selectedLabel: state.selectedLabel
+            };
+            clearChannelSolos();
+            clearMasterSoloState(null);
+            state.solo[channel.id] = true;
+            setChannelSolo(channel.soloKey, true);
+            state.view = "meter";
+            state.selectedId = channel.id;
+            state.selectedLabel = channel.label;
+            syncSoloRouting();
+            render();
         }
 
         function exitMeterModeToMaster(mode) {
@@ -3271,6 +3298,10 @@
             }
             if (state.copy.phase === "targets" && state.copy.source && state.copy.source.type === "channel") {
                 cycleChannelCopyTarget(channel);
+                return;
+            }
+            if (isNormalChannelDoubleTap(channel)) {
+                enterMeterModeWithSingleChannelSolo(channel);
                 return;
             }
             if (state.view === "strip" && state.selectedId === channel.id) {
