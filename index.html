@@ -973,6 +973,11 @@
             font-size: clamp(10px, 1.35vw, 16px);
         }
 
+        .meter-label.compact-label {
+            font-size: clamp(9px, 1.1vw, 13px);
+            line-height: 1;
+        }
+
         .meter-numbers {
             justify-content: flex-end;
             flex-wrap: wrap;
@@ -2057,7 +2062,11 @@
                 var node = document.getElementById(id);
                 if (node) {
                     node.textContent = pairs[id];
-                    if (node.classList) node.classList.toggle("sum-label", /^SUM OF:/.test(String(pairs[id] || "")));
+                    if (node.classList) {
+                        var labelText = String(pairs[id] || "");
+                        node.classList.toggle("sum-label", /sum of:/i.test(labelText));
+                        node.classList.toggle("compact-label", labelText.length > 100);
+                    }
                 }
             });
             var leftBar = document.getElementById("leftBar");
@@ -3457,16 +3466,16 @@
             var channels = allChannels().filter(function(channel) { return !!state.solo[channel.id]; });
             if (channels.length) {
                 var labels = channels.map(channelMeterLabel);
-                var title = channels.length > 1 ? "sum of " + labels.join(", ") : labels[0];
+                var title = channels.length > 1 ? "sum of: " + labels.join(", ") : labels[0];
                 var stereo = channels.some(isStereoWidthSource);
-                return { leftLabel: stereo ? "L - " + title : title, rightLabel: stereo ? "R - " + title : "", stereo: stereo };
+                return { leftLabel: stereo ? "L\\ " + title : title, rightLabel: stereo ? "R\\ " + title : "", stereo: stereo };
             }
 
             var masterId = state.activeMasterSoloTarget || activeManualMasterSoloTarget() || "stereo";
             var master = masterById(masterId) || masterByMode.MIX;
             var label = master.label;
             var masterStereo = !isMonoMasterMeterSource(master);
-            return { leftLabel: masterStereo ? "L - " + label : label, rightLabel: masterStereo ? "R - " + label : "", stereo: masterStereo };
+            return { leftLabel: masterStereo ? "L\\ " + label : label, rightLabel: masterStereo ? "R\\ " + label : "", stereo: masterStereo };
         }
 
         function knobLabel(knob, value) {
