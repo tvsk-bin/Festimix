@@ -70,8 +70,8 @@
     "status": "momentary_button_pairs_derived_from_log",
     "notes": [
       "Captured packets are toggle actions, not absolute writes.",
-      "Field test showed sending the captured sequence from the current startup condition switches channels to POST.",
-      "Startup PRE therefore sends no toggle; startup POST sends the captured sequence.",
+      "Yamaha safe reset is sent before startup AUX pre setup so the console starts from its default POST state.",
+      "Startup PRE sends the captured sequence after reset; startup POST sends no toggle.",
       "The first shorter capture showed family 0x40, but the detailed capture with audio engine disabled shows the correct operational family 0x46 plus navigation family 0x23.",
       "The log contains known duplicate/accidental captures; this mapping uses the regular 1-16 pattern only.",
       "A future absolute state write should replace this when confirmed."

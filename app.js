@@ -80,28 +80,44 @@ function connectOutport(input, output, port, options) {
 
     console.log("MIDI profile:", midi.profile.name);
     console.log("MIDI channel:", midi.channel);
-    if (options.safeReset) {
+    var auxPrePost = options.auxPrePost || {};
+    var auxPreStartupNeeded = Object.keys(auxPrePost).some(function(auxId) {
+        return String(auxPrePost[auxId] || "").toLowerCase() === "pre";
+    });
+    var sentStartupReset = false;
+    if (options.safeReset || auxPreStartupNeeded) {
         try {
-            console.log("Sending Yamaha 01V safe reset SysEx on startup.");
+            console.log(auxPreStartupNeeded && !options.safeReset ?
+                "Sending Yamaha 01V safe reset before AUX pre startup setup." :
+                "Sending Yamaha 01V safe reset SysEx on startup.");
             midi.sendCommand("scene.safeReset");
+            sentStartupReset = true;
         } catch (error) {
             console.warn("Startup safe reset failed:", error.message);
         }
     }
-    if (options.auxPrePost) {
-        Object.keys(options.auxPrePost).forEach(function(auxId) {
-            var mode = options.auxPrePost[auxId];
-            if (mode !== "post") {
-                console.log("Startup AUX", auxId, "left in PRE startup mode.");
+
+    function applyStartupAuxPrePost() {
+        Object.keys(auxPrePost).forEach(function(auxId) {
+            var mode = String(auxPrePost[auxId] || "").toLowerCase();
+            if (mode !== "pre") {
+                console.log("Startup AUX", auxId, "left at Yamaha reset/default POST.");
                 return;
             }
             try {
-                console.log("Setting startup AUX", auxId, "sends to POST for input channels 1-16.");
+                console.log("Setting startup AUX", auxId, "sends to PRE for input channels 1-16.");
                 midi.setAuxPrePostStartup(auxId, mode);
             } catch (error) {
                 console.warn("Startup AUX pre/post setup failed for " + auxId + ":", error.message);
             }
         });
+    }
+    if (auxPrePost) {
+        if (sentStartupReset && auxPreStartupNeeded) {
+            setTimeout(applyStartupAuxPrePost, 1000);
+        } else {
+            applyStartupAuxPrePost();
+        }
     }
 
     io.on("connection", (socket) => {
