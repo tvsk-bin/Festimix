@@ -357,15 +357,13 @@
         }
 
         input[type="range"].v-fader.meter-fader::-webkit-slider-thumb {
-            width: 0;
-            height: 0;
+            width: clamp(24px, 2.8vw, 34px);
+            height: clamp(24px, 2.8vw, 34px);
             margin-left: 18px;
-            border-top: clamp(12px, 1.5vw, 18px) solid transparent;
-            border-bottom: clamp(12px, 1.5vw, 18px) solid transparent;
-            border-right: clamp(20px, 2.4vw, 30px) solid #d8d8d8;
-            border-left: 0 solid transparent;
-            background: transparent;
+            border: 0;
+            background: #d8d8d8;
             border-radius: 0;
+            clip-path: polygon(0 50%, 100% 0, 100% 100%);
             box-shadow: -2px 0 8px rgba(0,0,0,0.45);
         }
 
@@ -391,14 +389,12 @@
         }
 
         input[type="range"].v-fader.meter-fader::-moz-range-thumb {
-            width: 0;
-            height: 0;
-            border-top: clamp(12px, 1.5vw, 18px) solid transparent;
-            border-bottom: clamp(12px, 1.5vw, 18px) solid transparent;
-            border-right: clamp(20px, 2.4vw, 30px) solid #d8d8d8;
-            border-left: 0 solid transparent;
-            background: transparent;
+            width: clamp(24px, 2.8vw, 34px);
+            height: clamp(24px, 2.8vw, 34px);
+            border: 0;
+            background: #d8d8d8;
             border-radius: 0;
+            clip-path: polygon(0 50%, 100% 0, 100% 100%);
             box-shadow: -2px 0 8px rgba(0,0,0,0.45);
         }
 
