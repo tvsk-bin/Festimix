@@ -13,6 +13,10 @@ var MIXER_PROFILES = [
     { id: "yamaha01vDefault", label: "Yamaha 01V", integration: "midi" }
 ];
 
+function defaultAuxPrePostModes() {
+    return { AUX1: "pre", AUX2: "pre", AUX3: "pre", AUX4: "pre" };
+}
+
 function moduleVersion(name) {
     try {
         var packagePath = require.resolve(name + "/package.json");
@@ -199,6 +203,29 @@ function pickAudioInputName(inputs, answer) {
     return inputs.find(function(name) { return name.toLowerCase().indexOf(lower) !== -1; }) || text;
 }
 
+function parsePrePostAnswer(answer) {
+    var text = String(answer || "").trim().toLowerCase();
+    if (!text) return "pre";
+    if (text === "p" || text === "pre") return "pre";
+    if (text === "post" || text === "po") return "post";
+    return "pre";
+}
+
+async function askAuxPrePostModes(rl, mixerProfile) {
+    var result = defaultAuxPrePostModes();
+    if (!process.stdin.isTTY || !mixerProfile || mixerProfile.id !== "yamaha01vDefault") {
+        return result;
+    }
+    console.log("\nYamaha 01V AUX send pre/post startup beallitas:");
+    console.log("  Gyari alap: POST. Monitor hasznalathoz ajanlott: PRE.");
+    console.log("  PRE valasztasnal az adott AUX osszes input csatornajat 1-16 atkapcsolom.");
+    for (var aux = 1; aux <= 4; aux++) {
+        var answer = await question(rl, "AUX" + aux + " legyen pre vagy post? [pre]: ");
+        result["AUX" + aux] = parsePrePostAnswer(answer);
+    }
+    return result;
+}
+
 async function pickMixerProfile(rl) {
     console.log("\nMixer tipus:");
     MIXER_PROFILES.forEach(function(profile, index) {
@@ -247,6 +274,7 @@ async function main() {
     var safeReset = false;
     var meterAudioChannels = parseMeterAudioChannels(process.env.O1V_METER_AUDIO_CHANNELS || "");
     var meterAudioDeviceName = process.env.O1V_METER_AUDIO_DEVICE || "";
+    var auxPrePost = defaultAuxPrePostModes();
     var mixerProfile = MIXER_PROFILES[0];
 
     try {
@@ -276,6 +304,7 @@ async function main() {
             meterAudioDeviceName = pickAudioInputName(audioInputs, deviceAnswer);
             var meterAnswer = await question(rl, "Meter audio input csatorna/par [1-2]: ");
             meterAudioChannels = parseMeterAudioChannels(meterAnswer);
+            auxPrePost = await askAuxPrePostModes(rl, mixerProfile);
         }
     } finally {
         rl.close();
@@ -299,9 +328,12 @@ async function main() {
     console.log("Selected MIDI channel:", channel);
     console.log("Selected meter audio device:", meterAudioDeviceName || "default");
     console.log("Selected meter audio channels:", meterAudioChannels.label);
+    if (mixerProfile.id === "yamaha01vDefault") {
+        console.log("Selected AUX pre/post startup:", JSON.stringify(auxPrePost));
+    }
     console.log("Startup safe reset:", safeReset ? "YES" : "NO");
 
-    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, safeReset: safeReset, meterAudioChannels: meterAudioChannels, meterAudioDeviceName: meterAudioDeviceName });
+    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, safeReset: safeReset, meterAudioChannels: meterAudioChannels, meterAudioDeviceName: meterAudioDeviceName, auxPrePost: auxPrePost });
     if (result === 1) {
         console.error("Unable to open selected MIDI device.");
         process.exitCode = 1;

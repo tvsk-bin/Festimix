@@ -65,6 +65,24 @@
       "EFFECT2": "RTN2"
     }
   },
+  "auxPrePostAssign": {
+    "source": "D:\\Yamaha 01v sysex\\AUX channels 1, 2, 3, 4 pre-post per all channels.log",
+    "status": "momentary_button_pairs_derived_from_log",
+    "notes": [
+      "Yamaha 01V factory default is POST. Startup PRE selection sends these press/release pairs once per input channel.",
+      "The log contains known duplicate/accidental captures; this mapping uses the regular 1-16 pattern only.",
+      "Packets are button actions, not confirmed absolute state writes. POST startup selection intentionally sends no toggle from factory default."
+    ],
+    "channelCount": 16,
+    "pressBit": "0x08",
+    "releaseBase": "0x00",
+    "addressPairs": {
+      "AUX1": ["0x0138", "0x0139"],
+      "AUX2": ["0x013A", "0x013B"],
+      "AUX3": ["0x013C", "0x013D"],
+      "AUX4": ["0x013E", "0x013F"]
+    }
+  },
   "commands": {
     "effect.preset.hall": { "type": "sysexRaw", "rawHex": "F043007E00684C4D20203842333465715265766572622048616C6C200000010D00010608000000020000000D0000000800000604000001040000020C000000000000000400000A0C0000000C0000000000000505000000000000000000000000000000000000000000000000000048F7", "description": "Effect preset 1: Reverb Hall" },
     "effect.preset.room": { "type": "sysexRaw", "rawHex": "F043007E00684C4D202038423334657152657665726220526F6F6D200000000700000906000000030000000B00000008000006020000030C0000030200000000000000040000090E000000000000010900000508000000000000000000000000000000000000000000000000000132F7", "description": "Effect preset 2: Reverb Room" },

@@ -88,6 +88,21 @@ function connectOutport(input, output, port, options) {
             console.warn("Startup safe reset failed:", error.message);
         }
     }
+    if (options.auxPrePost) {
+        Object.keys(options.auxPrePost).forEach(function(auxId) {
+            var mode = options.auxPrePost[auxId];
+            if (mode !== "pre") {
+                console.log("Startup AUX", auxId, "left at Yamaha default POST.");
+                return;
+            }
+            try {
+                console.log("Setting startup AUX", auxId, "sends to PRE for input channels 1-16.");
+                midi.setAuxPrePostStartup(auxId, mode);
+            } catch (error) {
+                console.warn("Startup AUX pre/post setup failed for " + auxId + ":", error.message);
+            }
+        });
+    }
 
     io.on("connection", (socket) => {
         socket.emit("scene store", readSceneStore());
