@@ -897,7 +897,7 @@
             height: 100%;
             min-height: 0;
             display: grid;
-            grid-template-rows: auto minmax(0, 1fr) auto;
+            grid-template-rows: minmax(0, 1fr) minmax(128px, 32%);
             gap: 10px;
             padding: 6px 4px 8px;
         }
@@ -1021,13 +1021,9 @@
             background: #687078;
         }
 
-        .meter-lufs {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .meter-lufs-card {
+        .spectrum-panel {
+            min-height: 0;
+            position: relative;
             min-width: 0;
             padding: 10px;
             background: #1d2227;
@@ -1035,18 +1031,14 @@
             border-radius: 7px;
         }
 
-        .meter-lufs-card span {
+        .spectrum-canvas {
             display: block;
-            color: var(--muted);
-            font-size: clamp(10px, 1.15vw, 13px);
-            font-weight: 800;
-        }
-
-        .meter-lufs-card strong {
-            display: block;
-            margin-top: 4px;
-            font-size: clamp(22px, 3vw, 34px);
-            font-weight: 800;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            border: 1px solid #3b4249;
+            border-radius: 6px;
+            background: #0b0d0f;
         }
 
         @media (max-height: 560px) {
@@ -1181,6 +1173,9 @@
                 context: null,
                 source: null,
                 processor: null,
+                fftSize: 2048,
+                sampleRate: 44100,
+                spectrumSmoothed: [],
                 leftPpm: null,
                 rightPpm: null,
                 leftPeakHold: -60,
@@ -1199,7 +1194,8 @@
                     left_peak_hold: -60,
                     right_peak_hold: -60,
                     momentary_lufs: -70,
-                    integrated_lufs: -70
+                    integrated_lufs: -70,
+                    spectrum: []
                 }
             },
             copy: {
@@ -1720,6 +1716,7 @@
             meter.rightPeakTime = 0;
             meter.integratedPower = 0;
             meter.lufsBlocks = 0;
+            meter.spectrumSmoothed = [];
             meter.data = {
                 left_rms: -60,
                 right_rms: -60,
@@ -1730,12 +1727,81 @@
                 left_peak_hold: -60,
                 right_peak_hold: -60,
                 momentary_lufs: -70,
-                integrated_lufs: -70
+                integrated_lufs: -70,
+                spectrum: []
             };
         }
 
         function roundDb(value) {
             return Math.round(value * 10) / 10;
+        }
+
+        function fftRadix2(real, imag) {
+            var n = real.length;
+            var j = 0;
+            for (var i = 1; i < n; i++) {
+                var bit = n >> 1;
+                while (j & bit) {
+                    j ^= bit;
+                    bit >>= 1;
+                }
+                j ^= bit;
+                if (i < j) {
+                    var realTemp = real[i];
+                    var imagTemp = imag[i];
+                    real[i] = real[j];
+                    imag[i] = imag[j];
+                    real[j] = realTemp;
+                    imag[j] = imagTemp;
+                }
+            }
+
+            for (var len = 2; len <= n; len <<= 1) {
+                var angle = -2 * Math.PI / len;
+                var wLenReal = Math.cos(angle);
+                var wLenImag = Math.sin(angle);
+                for (var offset = 0; offset < n; offset += len) {
+                    var wReal = 1;
+                    var wImag = 0;
+                    for (var k = 0; k < len / 2; k++) {
+                        var evenIndex = offset + k;
+                        var oddIndex = evenIndex + len / 2;
+                        var oddReal = (real[oddIndex] * wReal) - (imag[oddIndex] * wImag);
+                        var oddImag = (real[oddIndex] * wImag) + (imag[oddIndex] * wReal);
+                        real[oddIndex] = real[evenIndex] - oddReal;
+                        imag[oddIndex] = imag[evenIndex] - oddImag;
+                        real[evenIndex] += oddReal;
+                        imag[evenIndex] += oddImag;
+                        var nextWReal = (wReal * wLenReal) - (wImag * wLenImag);
+                        wImag = (wReal * wLenImag) + (wImag * wLenReal);
+                        wReal = nextWReal;
+                    }
+                }
+            }
+        }
+
+        function computeSpectrum(monoSamples, sampleRate) {
+            var meter = state.audioMeter;
+            var fftSize = meter.fftSize || 2048;
+            var real = new Float32Array(fftSize);
+            var imag = new Float32Array(fftSize);
+            for (var i = 0; i < fftSize; i++) {
+                var sample = i < monoSamples.length ? monoSamples[i] : 0;
+                var windowValue = 0.5 - (0.5 * Math.cos((2 * Math.PI * i) / (fftSize - 1)));
+                real[i] = sample * windowValue;
+            }
+
+            fftRadix2(real, imag);
+
+            var bins = fftSize / 2;
+            var spectrum = new Array(bins);
+            for (var bin = 0; bin < bins; bin++) {
+                var magnitude = Math.sqrt((real[bin] * real[bin]) + (imag[bin] * imag[bin])) / (fftSize / 2);
+                var db = 20 * Math.log10(Math.max(magnitude, 1e-12));
+                spectrum[bin] = roundDb(clamp(db, -90, 0));
+            }
+            meter.sampleRate = sampleRate || meter.sampleRate || 44100;
+            return spectrum;
         }
 
         function updatePeakHold(peakDb, channel) {
@@ -1758,9 +1824,11 @@
             var rightPeak = 0;
             var right = input.length > 1 ? input[1] : input[0];
             var length = input[0].length;
+            var mono = new Float32Array(length);
             for (var i = 0; i < length; i++) {
                 var l = input[0][i] || 0;
                 var r = right[i] || 0;
+                mono[i] = (l + r) * 0.5;
                 leftSum += l * l;
                 rightSum += r * r;
                 leftPeak = Math.max(leftPeak, Math.abs(l));
@@ -1784,7 +1852,8 @@
                 left_peak_hold: roundDb(updatePeakHold(leftPeakDb, "left")),
                 right_peak_hold: roundDb(updatePeakHold(rightPeakDb, "right")),
                 momentary_lufs: roundDb(lufsFromPower(stereoPower)),
-                integrated_lufs: roundDb(lufsFromPower(meter.integratedPower / meter.lufsBlocks))
+                integrated_lufs: roundDb(lufsFromPower(meter.integratedPower / meter.lufsBlocks)),
+                spectrum: computeSpectrum(mono, meter.context ? meter.context.sampleRate : meter.sampleRate)
             };
             updateAudioMeterDom();
         }
@@ -1799,10 +1868,7 @@
                 leftPeak: data.left_peak,
                 rightPeak: data.right_peak,
                 leftHold: data.left_peak_hold,
-                rightHold: data.right_peak_hold,
-                momentaryLufs: data.momentary_lufs,
-                integratedLufs: data.integrated_lufs,
-                meterStatus: state.audioMeter.status
+                rightHold: data.right_peak_hold
             };
             Object.keys(pairs).forEach(function(id) {
                 var node = document.getElementById(id);
@@ -1816,7 +1882,89 @@
             if (rightBar) rightBar.style.width = dbToPercent(data.right_ppm, -60, 0) + "%";
             if (leftHoldLine) leftHoldLine.style.left = dbToPercent(data.left_peak_hold, -60, 0) + "%";
             if (rightHoldLine) rightHoldLine.style.left = dbToPercent(data.right_peak_hold, -60, 0) + "%";
+            drawSpectrum();
             updateInlineMeterDom();
+        }
+
+        function drawSpectrum() {
+            var canvas = document.getElementById("spectrumCanvas");
+            if (!canvas) return;
+            var data = state.audioMeter.data.spectrum || [];
+            var meter = state.audioMeter;
+            var rect = canvas.getBoundingClientRect();
+            var width = Math.max(1, Math.floor(rect.width));
+            var height = Math.max(1, Math.floor(rect.height));
+            var ratio = window.devicePixelRatio || 1;
+            if (canvas.width !== Math.floor(width * ratio) || canvas.height !== Math.floor(height * ratio)) {
+                canvas.width = Math.floor(width * ratio);
+                canvas.height = Math.floor(height * ratio);
+            }
+
+            var ctx = canvas.getContext("2d");
+            ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = "#0b0d0f";
+            ctx.fillRect(0, 0, width, height);
+
+            var minDb = -90;
+            var maxDb = 0;
+            var minFreq = 30;
+            var maxFreq = Math.min(meter.sampleRate / 2 || 20000, 20000);
+            var logRange = Math.log(maxFreq / minFreq);
+            var plotHeight = Math.max(20, height - 20);
+            ctx.strokeStyle = "rgba(104, 112, 120, 0.32)";
+            ctx.lineWidth = 1;
+            [-90, -72, -54, -36, -18].forEach(function(db) {
+                var y = plotHeight - (dbToPercent(db, minDb, maxDb) / 100 * plotHeight);
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            });
+
+            [50, 100, 1000, 5000, 10000].forEach(function(freq) {
+                if (freq < minFreq || freq > maxFreq) return;
+                var x = Math.log(freq / minFreq) / logRange * width;
+                ctx.strokeStyle = "rgba(242, 242, 242, 0.18)";
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, plotHeight);
+                ctx.stroke();
+                ctx.fillStyle = "#aeb6bf";
+                ctx.font = "700 10px Arial, sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "bottom";
+                var label = freq >= 1000 ? (freq / 1000) + " kHz" : freq + " Hz";
+                ctx.fillText(label, clamp(x, 24, width - 24), height - 3);
+            });
+
+            if (!data.length) return;
+            var smoothed = meter.spectrumSmoothed || [];
+            for (var i = 0; i < data.length; i++) {
+                var target = clamp(data[i], minDb, maxDb);
+                var previous = typeof smoothed[i] === "number" ? smoothed[i] : minDb;
+                smoothed[i] = target > previous ? (previous * 0.45) + (target * 0.55) : Math.max(target, previous - 1.8);
+            }
+            meter.spectrumSmoothed = smoothed;
+
+            var barCount = clamp(Math.floor(width / 4), 56, 180);
+            var barWidth = Math.max(2, width / barCount - 1);
+            var gradient = ctx.createLinearGradient(0, plotHeight, 0, 0);
+            gradient.addColorStop(0, "#145c2d");
+            gradient.addColorStop(0.58, "#1fb96b");
+            gradient.addColorStop(0.78, "#d6aa21");
+            gradient.addColorStop(1, "#d93030");
+            ctx.fillStyle = gradient;
+            for (var bar = 0; bar < barCount; bar++) {
+                var xNorm = barCount === 1 ? 0 : bar / (barCount - 1);
+                var freq = minFreq * Math.pow(maxFreq / minFreq, xNorm);
+                var bin = clamp(Math.round(freq / (meter.sampleRate / 2) * (data.length - 1)), 0, data.length - 1);
+                var value = clamp(smoothed[bin], minDb, maxDb);
+                var valuePercent = dbToPercent(value, minDb, maxDb) / 100;
+                var barHeight = Math.max(1, valuePercent * plotHeight);
+                var x = xNorm * (width - barWidth);
+                ctx.fillRect(x, plotHeight - barHeight, barWidth, barHeight);
+            }
         }
 
         function channelMeterLevel() {
@@ -1952,7 +2100,7 @@
                 var AudioContextClass = window.AudioContext || window.webkitAudioContext;
                 var context = new AudioContextClass();
                 var source = context.createMediaStreamSource(stream);
-                var processor = context.createScriptProcessor(1024, 2, 2);
+                var processor = context.createScriptProcessor(state.audioMeter.fftSize, 2, 2);
                 if (state.audioMeter.requestToken !== requestToken || !shouldAudioMeterRun()) {
                     stream.getTracks().forEach(function(track) { track.stop(); });
                     context.close();
@@ -4098,16 +4246,12 @@
             var page = document.createElement("div");
             page.className = "meter-page";
             page.innerHTML = [
-                "<div class='meter-header'>",
-                "<div class='meter-title'><strong>STEREO AUDIO METER</strong><span id='meterStatus'>" + escapeHtml(state.audioMeter.status) + "</span></div>",
-                "</div>",
                 "<div class='meter-grid'>",
                 meterChannelHtml("Left", "LEFT"),
                 meterChannelHtml("Right", "RIGHT"),
                 "</div>",
-                "<div class='meter-lufs'>",
-                "<div class='meter-lufs-card'><span>MOMENTARY LUFS APPROX</span><strong><span id='momentaryLufs'>-70</span> LUFS</strong></div>",
-                "<div class='meter-lufs-card'><span>INTEGRATED LUFS APPROX</span><strong><span id='integratedLufs'>-70</span> LUFS</strong></div>",
+                "<div class='spectrum-panel'>",
+                "<canvas id='spectrumCanvas' class='spectrum-canvas'></canvas>",
                 "</div>"
             ].join("");
             root.appendChild(page);
