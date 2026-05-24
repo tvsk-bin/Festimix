@@ -97,6 +97,17 @@ function connectOutport(input, output, port, options) {
         }
     }
 
+    function resetStartupAuxMasterFaders() {
+        ["aux1", "aux2", "aux3", "aux4"].forEach(function(auxId) {
+            try {
+                console.log("Setting startup", auxId.toUpperCase(), "master fader to 0.");
+                midi.sendParameter("masterFader." + auxId, 0);
+            } catch (error) {
+                console.warn("Startup AUX master fader reset failed for " + auxId.toUpperCase() + ":", error.message);
+            }
+        });
+    }
+
     function applyStartupAuxPrePost() {
         Object.keys(auxPrePost).forEach(function(auxId) {
             var mode = String(auxPrePost[auxId] || "").toLowerCase();
@@ -112,9 +123,15 @@ function connectOutport(input, output, port, options) {
             }
         });
     }
-    if (auxPrePost) {
-        if (sentStartupReset && auxPreStartupNeeded) {
-            setTimeout(applyStartupAuxPrePost, 1000);
+
+    function applyStartupAfterReset() {
+        resetStartupAuxMasterFaders();
+        applyStartupAuxPrePost();
+    }
+
+    if (auxPrePost || sentStartupReset) {
+        if (sentStartupReset) {
+            setTimeout(applyStartupAfterReset, 1000);
         } else {
             applyStartupAuxPrePost();
         }
