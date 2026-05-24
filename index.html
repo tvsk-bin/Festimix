@@ -1282,6 +1282,7 @@
         var suppressStripClick = false;
         var lastTopModeTap = { mode: null, time: 0 };
         var lastNormalChannelTap = { id: null, time: 0 };
+        var lastNormalMasterTap = { mode: null, time: 0 };
         var lastSceneButtonTap = { scene: null, time: 0 };
         var lastMeterButtonTap = { key: null, time: 0 };
         var copyTimer = null;
@@ -1379,6 +1380,13 @@
             return isDouble;
         }
 
+        function isNormalMasterDoubleTap(mode) {
+            var now = Date.now();
+            var isDouble = mode && lastNormalMasterTap.mode === mode && now - lastNormalMasterTap.time < 430;
+            lastNormalMasterTap = isDouble ? { mode: null, time: 0 } : { mode: mode, time: now };
+            return isDouble;
+        }
+
         function exitMeterMode() {
             state.view = "mixer";
             state.previousViewBeforeMeter = null;
@@ -1408,9 +1416,20 @@
             render();
         }
 
+        function enterMeterModeWithSingleMasterSolo(mode) {
+            var master = masterByMode[mode];
+            if (!master) return;
+            state.previousViewBeforeMeter = {
+                view: state.view,
+                selectedId: state.selectedId,
+                selectedLabel: state.selectedLabel
+            };
+            state.view = "meter";
+            meterSelectMasterMode(mode);
+        }
+
         function exitMeterModeToMaster(mode) {
             var master = masterByMode[mode] || masterByMode.MIX;
-            clearAllSoloSelections();
             state.mode = mode;
             state.view = "masterStrip";
             state.previousViewBeforeMeter = null;
@@ -3440,16 +3459,16 @@
             var channels = allChannels().filter(function(channel) { return !!state.solo[channel.id]; });
             if (channels.length) {
                 var labels = channels.map(channelMeterLabel);
-                var title = channels.length > 1 ? "SUM OF: " + labels.join(", ") : labels[0];
+                var title = channels.length > 1 ? "sum of " + labels.join(", ") : labels[0];
                 var stereo = channels.some(isStereoWidthSource);
-                return { leftLabel: stereo ? "L: " + title : title, rightLabel: stereo ? "R: " + title : "", stereo: stereo };
+                return { leftLabel: stereo ? "L - " + title : title, rightLabel: stereo ? "R - " + title : "", stereo: stereo };
             }
 
             var masterId = state.activeMasterSoloTarget || activeManualMasterSoloTarget() || "stereo";
             var master = masterById(masterId) || masterByMode.MIX;
             var label = master.label;
             var masterStereo = !isMonoMasterMeterSource(master);
-            return { leftLabel: masterStereo ? "L: " + label : label, rightLabel: masterStereo ? "R: " + label : "", stereo: masterStereo };
+            return { leftLabel: masterStereo ? "L - " + label : label, rightLabel: masterStereo ? "R - " + label : "", stereo: masterStereo };
         }
 
         function knobLabel(knob, value) {
@@ -4763,6 +4782,10 @@
                 }
                 if (state.copy.phase === "targets" && state.copy.source && state.copy.source.type === "masterSettings" && state.mode !== "MIX") {
                     addCopyTarget({ type: "masterSettings", mode: state.mode });
+                    return;
+                }
+                if (isNormalMasterDoubleTap(state.mode)) {
+                    enterMeterModeWithSingleMasterSolo(state.mode);
                     return;
                 }
                 state.view = state.view === "masterStrip" ? "mixer" : "masterStrip";
