@@ -815,10 +815,7 @@
         }
 
         .meter-header {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) repeat(2, minmax(96px, 150px));
-            gap: 8px;
-            align-items: stretch;
+            display: block;
         }
 
         .meter-title {
@@ -1088,6 +1085,7 @@
             previousViewBeforeMeter: null,
             audioMeter: {
                 running: false,
+                requesting: false,
                 status: "READY",
                 stream: null,
                 context: null,
@@ -1736,18 +1734,20 @@
             meter.stream = null;
             meter.context = null;
             meter.running = false;
+            meter.requesting = false;
             meter.status = "STOPPED";
             updateAudioMeterDom();
         }
 
         function startAudioMeter() {
-            if (state.audioMeter.running) return;
+            if (state.audioMeter.running || state.audioMeter.requesting) return;
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 state.audioMeter.status = "NO AUDIO API";
                 updateAudioMeterDom();
                 return;
             }
             resetAudioMeterData();
+            state.audioMeter.requesting = true;
             state.audioMeter.status = "REQUESTING INPUT";
             updateAudioMeterDom();
             navigator.mediaDevices.getUserMedia({
@@ -1775,6 +1775,7 @@
                 state.audioMeter.source = source;
                 state.audioMeter.processor = processor;
                 state.audioMeter.running = true;
+                state.audioMeter.requesting = false;
                 state.audioMeter.status = "RUNNING";
                 updateAudioMeterDom();
             }).catch(function(error) {
@@ -2672,6 +2673,7 @@
         function setBank(bankId) {
             var bank = banks.find(function(item) { return item.id === bankId; });
             if (!bank || bank.disabled) return;
+            if (state.view === "meter" && bank.page !== "meter") stopAudioMeter();
             if (bank.page === "copy") {
                 copyButtonPress();
                 return;
@@ -2695,6 +2697,7 @@
             }
             if (bank.page === "meter") {
                 if (state.view === "meter" && state.previousViewBeforeMeter) {
+                    stopAudioMeter();
                     state.view = state.previousViewBeforeMeter.view || "mixer";
                     state.selectedId = state.previousViewBeforeMeter.selectedId || state.selectedId;
                     state.selectedLabel = state.previousViewBeforeMeter.selectedLabel || state.selectedLabel;
@@ -3879,8 +3882,6 @@
             page.innerHTML = [
                 "<div class='meter-header'>",
                 "<div class='meter-title'><strong>STEREO AUDIO METER</strong><span id='meterStatus'>" + escapeHtml(state.audioMeter.status) + "</span></div>",
-                "<button class='btn-hw on-btn" + (state.audioMeter.running ? " on" : "") + "' id='meterStart'>START</button>",
-                "<button class='btn-hw on-btn off' id='meterStop'>STOP</button>",
                 "</div>",
                 "<div class='meter-grid'>",
                 meterChannelHtml("Left", "LEFT"),
@@ -3892,8 +3893,7 @@
                 "</div>"
             ].join("");
             root.appendChild(page);
-            document.getElementById("meterStart").onclick = startAudioMeter;
-            document.getElementById("meterStop").onclick = stopAudioMeter;
+            startAudioMeter();
             updateAudioMeterDom();
         }
 
