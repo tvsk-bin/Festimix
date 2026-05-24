@@ -1167,6 +1167,7 @@
             audioMeter: {
                 running: false,
                 requesting: false,
+                remoteRequesting: false,
                 requestToken: 0,
                 status: "READY",
                 stream: null,
@@ -1331,6 +1332,14 @@
             if (state.activeMasterSoloTarget === normalized) return;
             state.activeMasterSoloTarget = normalized;
             setMasterSolo(normalized || "__all__", !!normalized);
+        }
+
+        function isAudioMeterSourceClient() {
+            var params = new URLSearchParams(window.location.search || "");
+            if (params.get("meterSource") === "1") return true;
+            if (params.get("meterSource") === "0") return false;
+            var host = window.location.hostname;
+            return host === "localhost" || host === "127.0.0.1" || host === "::1";
         }
 
         function eqGainDbToByte(value) {
@@ -1855,7 +1864,26 @@
                 integrated_lufs: roundDb(lufsFromPower(meter.integratedPower / meter.lufsBlocks)),
                 spectrum: computeSpectrum(mono, meter.context ? meter.context.sampleRate : meter.sampleRate)
             };
+            socket.emit("audio meter frame", {
+                data: meter.data,
+                sampleRate: meter.sampleRate,
+                status: meter.status
+            });
             updateAudioMeterDom();
+        }
+
+        function applyAudioMeterFrame(payload) {
+            if (!payload || !payload.data || isAudioMeterSourceClient()) return;
+            var meter = state.audioMeter;
+            meter.sampleRate = payload.sampleRate || meter.sampleRate || 44100;
+            meter.status = payload.status || "RECEIVING HOST METER";
+            meter.data = Object.assign({}, meter.data, payload.data);
+            updateAudioMeterDom();
+        }
+
+        function handleAudioMeterRequest(payload) {
+            if (!isAudioMeterSourceClient()) return;
+            if (!payload || payload.active !== false) startAudioMeter();
         }
 
         function updateAudioMeterDom() {
@@ -2072,12 +2100,22 @@
             meter.context = null;
             meter.running = false;
             meter.requesting = false;
+            meter.remoteRequesting = false;
             meter.status = "STOPPED";
             updateAudioMeterDom();
         }
 
         function startAudioMeter() {
             if (state.audioMeter.running || state.audioMeter.requesting) return;
+            if (!isAudioMeterSourceClient()) {
+                state.audioMeter.status = "RECEIVING HOST METER";
+                if (!state.audioMeter.remoteRequesting) {
+                    state.audioMeter.remoteRequesting = true;
+                    socket.emit("audio meter request", { active: true });
+                }
+                updateAudioMeterDom();
+                return;
+            }
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 state.audioMeter.status = "NO AUDIO API";
                 updateAudioMeterDom();
@@ -4398,6 +4436,8 @@
 
         loadScenes();
         socket.on("scene store", applySceneStore);
+        socket.on("audio meter frame", applyAudioMeterFrame);
+        socket.on("audio meter request", handleAudioMeterRequest);
         render();
     </script>
 </body>

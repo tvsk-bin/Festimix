@@ -16,6 +16,7 @@ var outPort;
 app.use("/assets", express.static(__dirname + '/assets'));
 
 var sceneStorePath = path.join(__dirname, "data", "mix-setups.json");
+var latestAudioMeterFrame = null;
 
 function emptySceneStore() {
     return {
@@ -89,6 +90,7 @@ function connectOutport(input, output, port, options) {
     io.on("connection", (socket) => {
         socket.emit("scene store", readSceneStore());
         socket.emit("engine modules", engine.describeModules());
+        if (latestAudioMeterFrame) socket.emit("audio meter frame", latestAudioMeterFrame);
         socket.on("scene store save", (store) => {
             try {
                 writeSceneStore(store);
@@ -107,6 +109,19 @@ function connectOutport(input, output, port, options) {
                 console.warn("Unsupported MIDI control", result);
                 socket.emit("midi warning", result);
             }
+        });
+        socket.on("audio meter frame", (payload) => {
+            if (!payload || !payload.data) return;
+            latestAudioMeterFrame = {
+                data: payload.data,
+                sampleRate: payload.sampleRate,
+                status: payload.status || "RUNNING",
+                timestamp: Date.now()
+            };
+            socket.broadcast.emit("audio meter frame", latestAudioMeterFrame);
+        });
+        socket.on("audio meter request", (payload) => {
+            socket.broadcast.emit("audio meter request", payload || { active: true });
         });
         socket.on("midi command", (command) => {
             if (!command || !command.control) return;
