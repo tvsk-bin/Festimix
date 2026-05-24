@@ -3261,10 +3261,8 @@
                 return;
             }
             if (bank.page === "meter") {
-                if (state.view === "meter" && state.previousViewBeforeMeter) {
-                    state.view = state.previousViewBeforeMeter.view || "mixer";
-                    state.selectedId = state.previousViewBeforeMeter.selectedId || state.selectedId;
-                    state.selectedLabel = state.previousViewBeforeMeter.selectedLabel || state.selectedLabel;
+                if (state.view === "meter") {
+                    state.view = "mixer";
                     state.previousViewBeforeMeter = null;
                 } else {
                     state.previousViewBeforeMeter = {

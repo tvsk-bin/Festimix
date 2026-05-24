@@ -6,9 +6,9 @@ var fs = require("fs");
 var path = require("path");
 var readline = require("readline");
 var midiApp = require("./app");
-var packageJson = require("./package.json");
 
 var DEFAULT_MIDI_PORT = "Babyface Midi Port 1";
+var SERVER_VERSION = "2.1.0";
 var lastRunSettingsPath = path.join(__dirname, "data", "last-run-settings.json");
 var MIXER_PROFILES = [
     { id: "yamaha01vDefault", label: "Yamaha 01V", integration: "midi" }
@@ -29,7 +29,7 @@ function moduleVersion(name) {
 
 function logServiceVersions() {
     console.log("\nFestimix service versions:");
-    console.log("  app:", packageJson.name + " " + packageJson.version);
+    console.log("  server:", "Festimix " + SERVER_VERSION + " (TVSK 2026)");
     console.log("  node:", process.version);
     console.log("  socket.io:", moduleVersion("socket.io"));
     console.log("  express:", moduleVersion("express"));
