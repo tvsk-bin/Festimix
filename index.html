@@ -4089,6 +4089,7 @@
                     button.dataset.startY = event.clientY;
                 };
                 button.onpointerup = function(event) {
+                    if (isMeterDelegationMode()) return;
                     var startX = parseFloat(button.dataset.startX || event.clientX);
                     var startY = parseFloat(button.dataset.startY || event.clientY);
                     if (Math.abs(event.clientX - startX) < 34 || Math.abs(event.clientX - startX) < Math.abs(event.clientY - startY) * 1.4) return;
@@ -4562,6 +4563,10 @@
                     setTimeout(function() { suppressStripClick = false; }, 120);
                     renderButtonsOnly();
                     updateAudioMeterDom();
+                } else if (drag) {
+                    suppressStripClick = false;
+                    var channel = channelFromButton(drag.startButton);
+                    if (channel) channelButton(channel);
                 } else {
                     suppressStripClick = false;
                 }
