@@ -69,13 +69,22 @@
     "source": "D:\\Yamaha 01v sysex\\AUX channels 1, 2, 3, 4 pre-post per all channels.log",
     "status": "momentary_button_pairs_derived_from_log",
     "notes": [
-      "Yamaha 01V factory default is POST. Startup PRE selection sends these press/release pairs once per input channel.",
+      "Yamaha 01V factory default is POST. Startup PRE selection sends navigation plus press/release pairs once per input channel.",
+      "The first shorter capture showed family 0x40, but the detailed capture with audio engine disabled shows the correct operational family 0x46 plus navigation family 0x23.",
       "The log contains known duplicate/accidental captures; this mapping uses the regular 1-16 pattern only.",
       "Packets are button actions, not confirmed absolute state writes. POST startup selection intentionally sends no toggle from factory default."
     ],
     "channelCount": 16,
+    "navigationFamily": "0x23",
+    "buttonFamily": "0x46",
     "pressBit": "0x08",
     "releaseBase": "0x00",
+    "navigationPage": {
+      "AUX1": "0x0C",
+      "AUX2": "0x0D",
+      "AUX3": "0x0E",
+      "AUX4": "0x0F"
+    },
     "addressPairs": {
       "AUX1": ["0x0138", "0x0139"],
       "AUX2": ["0x013A", "0x013B"],
