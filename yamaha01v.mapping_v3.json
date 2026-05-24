@@ -67,20 +67,20 @@
   },
   "auxPrePostAssign": {
     "source": "D:\\Yamaha 01v sysex\\AUX channels 1, 2, 3, 4 pre-post per all channels.log",
-    "status": "momentary_button_pairs_derived_from_log",
+    "status": "direct_pre_value_writes_derived_from_log",
     "notes": [
-      "Captured packets are toggle actions, not absolute writes.",
+      "The 0x46 packets are UI button actions and should not be used for startup state setup.",
+      "The 0x40 packets set the actual pre/post value family observed in the original capture.",
       "Yamaha safe reset is sent before startup AUX pre setup so the console starts from its default POST state.",
-      "Startup PRE sends the captured sequence after reset; startup POST sends no toggle.",
-      "The first shorter capture showed family 0x40, but the detailed capture with audio engine disabled shows the correct operational family 0x46 plus navigation family 0x23.",
+      "Startup PRE sends one 0x40 packet per input channel with values 0x08-0x0F.",
+      "Startup POST sends no packet and leaves the Yamaha reset/default POST state.",
+      "Values 0x00-0x07 are the matching POST values and are not sent during PRE startup.",
       "The log contains known duplicate/accidental captures; this mapping uses the regular 1-16 pattern only.",
       "A future absolute state write should replace this when confirmed."
     ],
     "channelCount": 16,
-    "navigationFamily": "0x23",
-    "buttonFamily": "0x46",
-    "pressBit": "0x08",
-    "releaseBase": "0x00",
+    "settingFamily": "0x40",
+    "preValueBase": "0x08",
     "navigationPage": {
       "AUX1": "0x0C",
       "AUX2": "0x0D",
