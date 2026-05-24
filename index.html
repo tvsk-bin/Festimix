@@ -1325,6 +1325,11 @@
             sendAction({ type: "setChannelPhase", channel: channel, enabled: enabled });
         }
 
+        function selectMixerChannel(channel) {
+            if (!channel || !channel.selectKey) return;
+            sendAction({ type: "selectChannel", channel: channel.selectKey });
+        }
+
         function setMasterOn(master, enabled) {
             sendAction({ type: "setMasterOn", master: master, enabled: enabled });
         }
@@ -3214,6 +3219,7 @@
             state.view = "strip";
             state.selectedId = next.id;
             state.selectedLabel = next.label;
+            selectMixerChannel(next);
             render();
         }
 
@@ -3225,6 +3231,7 @@
                     state.view = "strip";
                     state.selectedId = channel.id;
                     state.selectedLabel = channel.label;
+                    selectMixerChannel(channel);
                     sendChannelEqBundle(channel);
                     render();
                     return;
@@ -3246,6 +3253,7 @@
                 state.view = "strip";
                 state.selectedId = channel.id;
                 state.selectedLabel = channel.label;
+                selectMixerChannel(channel);
                 sendChannelEqBundle(channel);
             }
             render();
