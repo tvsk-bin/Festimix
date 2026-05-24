@@ -1117,8 +1117,8 @@
                     { id: "12", midiKey: "12", label: "CH12", selectKey: 12, soloKey: 12 },
                     { id: "13_14", midiKey: "13_14", label: "CH13/14", selectKey: "CH13_14", soloKey: "CH13_14" },
                     { id: "15_16", midiKey: "15_16", label: "CH15/16", selectKey: "CH15_16", soloKey: "CH15_16" },
-                    { id: "RTN1", midiKey: "RTN1", label: "RTN1", selectKey: null, soloKey: "RTN1" },
-                    { id: "RTN2", midiKey: "RTN2", label: "RTN2", selectKey: null, soloKey: "RTN2" }
+                    { id: "RTN1", midiKey: "RTN1", label: "RTN1", selectKey: "RTN1", soloKey: "RTN1" },
+                    { id: "RTN2", midiKey: "RTN2", label: "RTN2", selectKey: "RTN2", soloKey: "RTN2" }
                 ]
             },
             {
@@ -3392,14 +3392,14 @@
                 var labels = channels.map(channelMeterLabel);
                 var title = channels.length > 1 ? "SUM OF: " + labels.join(", ") : labels[0];
                 var stereo = channels.some(isStereoWidthSource);
-                return { leftLabel: title, rightLabel: stereo ? title : "", stereo: stereo };
+                return { leftLabel: stereo ? "L: " + title : title, rightLabel: stereo ? "R: " + title : "", stereo: stereo };
             }
 
             var masterId = state.activeMasterSoloTarget || activeManualMasterSoloTarget() || "stereo";
             var master = masterById(masterId) || masterByMode.MIX;
             var label = master.label;
             var masterStereo = !isMonoMasterMeterSource(master);
-            return { leftLabel: label, rightLabel: masterStereo ? label : "", stereo: masterStereo };
+            return { leftLabel: masterStereo ? "L: " + label : label, rightLabel: masterStereo ? "R: " + label : "", stereo: masterStereo };
         }
 
         function knobLabel(knob, value) {

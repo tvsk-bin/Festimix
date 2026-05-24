@@ -659,16 +659,32 @@
     ]
   },
   "channelSelectRemote": {
-    "source": "D:\\Yamaha 01v sysex\\channel on, solo, sel ch1-16.log",
-    "status": "key_remote_press_release",
+    "source": "D:\\Yamaha 01v sysex\\select buttons 1 to 15-16 and then master and eff1 eff2 RTN.log",
+    "status": "observed_select_sysex",
+    "family": "F0 43 10 3E 04 23 01 channelCode 01 04 F7",
     "notes": [
-      "Use 0x43 key-remote press/release for normal channel SEL buttons.",
-      "Do not use the 0x23 navigation/selectObserved family for normal CH1-16 select; field test showed that path can affect the wrong Yamaha control.",
-      "Mono CH1-8 use key 0x64, CH9-16 use key 0x65, press values 0x08-0x0F and release values 0x00-0x07."
+      "Use the direct select SysEx captured from the Yamaha 01V select buttons.",
+      "Capture order is CH1 through CH15/16, then master, EFF RTN1, EFF RTN2.",
+      "This replaces the earlier key-remote press/release experiment, which did not reliably select the channel on the console."
     ],
     "targets": {
-      "CH13_14": { "keyNo": "0x65", "press": "0x0C", "release": "0x04" },
-      "CH15_16": { "keyNo": "0x65", "press": "0x0E", "release": "0x06" }
+      "CH1": { "channelCode": "0x00" },
+      "CH2": { "channelCode": "0x01" },
+      "CH3": { "channelCode": "0x02" },
+      "CH4": { "channelCode": "0x03" },
+      "CH5": { "channelCode": "0x04" },
+      "CH6": { "channelCode": "0x05" },
+      "CH7": { "channelCode": "0x06" },
+      "CH8": { "channelCode": "0x07" },
+      "CH9": { "channelCode": "0x08" },
+      "CH10": { "channelCode": "0x09" },
+      "CH11": { "channelCode": "0x0A" },
+      "CH12": { "channelCode": "0x0B" },
+      "CH13_14": { "channelCode": "0x0C" },
+      "CH15_16": { "channelCode": "0x0D" },
+      "RTN1": { "channelCode": "0x0E" },
+      "RTN2": { "channelCode": "0x0F" },
+      "STEREO": { "channelCode": "0x16" }
     }
   },
   "returns": {
@@ -1127,7 +1143,88 @@
     "status": "partially_confirmed",
     "onOffObserved": {
       "family": "F0 43 10 3E 04 60 01 31 data F7",
-      "notes": "Two values state-pair. Logs begin with OFF for these captures, so first value is treated as OFF and second as ON.",
+      "source": "D:\\Yamaha 01v sysex\\on-off buttons 1 to 15-16 and then master and eff1 eff2 RTN - default off, then on.log",
+      "notes": "Two values state-pair. Default-off capture shows high values 0x08-0x0F turn ON and low values 0x00-0x07 turn OFF. CH1-8 use address 01 30, CH9-16 and returns use address 01 31.",
+      "CH1": {
+        "family": "F0 43 10 3E 04 60 01 30 data F7",
+        "values": [
+          "0x00",
+          "0x08"
+        ]
+      },
+      "CH2": {
+        "family": "F0 43 10 3E 04 60 01 30 data F7",
+        "values": [
+          "0x01",
+          "0x09"
+        ]
+      },
+      "CH3": {
+        "family": "F0 43 10 3E 04 60 01 30 data F7",
+        "values": [
+          "0x02",
+          "0x0A"
+        ]
+      },
+      "CH4": {
+        "family": "F0 43 10 3E 04 60 01 30 data F7",
+        "values": [
+          "0x03",
+          "0x0B"
+        ]
+      },
+      "CH5": {
+        "family": "F0 43 10 3E 04 60 01 30 data F7",
+        "values": [
+          "0x04",
+          "0x0C"
+        ]
+      },
+      "CH6": {
+        "family": "F0 43 10 3E 04 60 01 30 data F7",
+        "values": [
+          "0x05",
+          "0x0D"
+        ]
+      },
+      "CH7": {
+        "family": "F0 43 10 3E 04 60 01 30 data F7",
+        "values": [
+          "0x06",
+          "0x0E"
+        ]
+      },
+      "CH8": {
+        "family": "F0 43 10 3E 04 60 01 30 data F7",
+        "values": [
+          "0x07",
+          "0x0F"
+        ]
+      },
+      "CH9": {
+        "values": [
+          "0x00",
+          "0x08"
+        ]
+      },
+      "CH10": {
+        "values": [
+          "0x01",
+          "0x09"
+        ]
+      },
+      "CH11": {
+        "values": [
+          "0x02",
+          "0x0A"
+        ]
+      },
+      "CH12": {
+        "values": [
+          "0x03",
+          "0x0B"
+        ]
+      },
       "CH13_14": {
         "values": [
           "0x04",
@@ -1155,11 +1252,54 @@
     },
     "masterOnObserved": {
       "family": "F0 43 10 3E 04 60 01 34 data F7",
-      "notes": "Observed from master onoff.log. Log started with OFF, so values are treated as OFF then ON.",
+      "source": "D:\\Yamaha 01v sysex\\on-off buttons aux 1 to aux4 and then eff master 1,2.log",
+      "notes": "Observed Yamaha 01V master-section ON buttons. Low values turn OFF, high values turn ON. Stereo uses address 01 34, AUX1-4 use 01 32, effect masters use 01 33.",
       "STEREO": {
         "values": [
           "0x07",
           "0x0F"
+        ]
+      },
+      "AUX1": {
+        "family": "F0 43 10 3E 04 60 01 32 data F7",
+        "values": [
+          "0x00",
+          "0x08"
+        ]
+      },
+      "AUX2": {
+        "family": "F0 43 10 3E 04 60 01 32 data F7",
+        "values": [
+          "0x01",
+          "0x09"
+        ]
+      },
+      "AUX3": {
+        "family": "F0 43 10 3E 04 60 01 32 data F7",
+        "values": [
+          "0x02",
+          "0x0A"
+        ]
+      },
+      "AUX4": {
+        "family": "F0 43 10 3E 04 60 01 32 data F7",
+        "values": [
+          "0x03",
+          "0x0B"
+        ]
+      },
+      "EFFECT1": {
+        "family": "F0 43 10 3E 04 60 01 33 data F7",
+        "values": [
+          "0x00",
+          "0x08"
+        ]
+      },
+      "EFFECT2": {
+        "family": "F0 43 10 3E 04 60 01 33 data F7",
+        "values": [
+          "0x01",
+          "0x09"
         ]
       }
     },
