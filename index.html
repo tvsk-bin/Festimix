@@ -3326,6 +3326,7 @@
             if (isMeterDelegationMode()) {
                 if (isMeterDoubleTap("channel:" + channel.id)) {
                     exitMeterMode();
+                    keepOnlyMeterExitChannelSolo(channel);
                     state.view = "strip";
                     state.selectedId = channel.id;
                     state.selectedLabel = channel.label;
@@ -3409,6 +3410,18 @@
             if (enabled) clearMasterSoloState(null);
             state.solo[channel.id] = enabled;
             setChannelSolo(channel.soloKey, enabled);
+            syncSoloRouting();
+        }
+
+        function keepOnlyMeterExitChannelSolo(channel) {
+            if (!channel || !channel.soloKey) return;
+            clearMasterSoloState(null);
+            allChannels().forEach(function(candidate) {
+                var enabled = candidate.id === channel.id;
+                if (!!state.solo[candidate.id] === enabled) return;
+                state.solo[candidate.id] = enabled;
+                setChannelSolo(candidate.soloKey, enabled);
+            });
             syncSoloRouting();
         }
 
