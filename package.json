@@ -1,7 +1,7 @@
 {
     "name": "@cdgco/01v-web-controller",
     "version": "1.0.4",
-    "description": "Remote Web Midi Controller for Yamaha 01V",
+    "description": "Festimix remote mixer control surface",
     "keywords": [
         "Yamaha",
         "01V",

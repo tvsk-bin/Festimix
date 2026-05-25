@@ -1,12 +1,12 @@
 {
     
-    "name": "01V Web Controller",
+    "name": "Festimix",
     "start_url": "../.",
     "display": "fullscreen",
     "orientation":  "landscape",
     "background_color": "#333",
     "theme_color": "#60b0f4",
-    "description": "Remote Web Midi Controller for Yamaha 01V",
+    "description": "Remote mixer control surface",
     "icons": [{
         "src": "homescreen192.png",
         "sizes": "192x192",
@@ -19,9 +19,9 @@
       }],
       "shortcuts": [
         {
-          "name": "01V Web Controller",
-          "short_name": "01V Control",
-          "description": "Remote Web Midi Controller for Yamaha 01V",
+          "name": "Festimix",
+          "short_name": "Festimix",
+          "description": "Remote mixer control surface",
           "url": "../.",
           "icons": [{ "src": "homescreen192.png", "sizes": "192x192" }]
         }
