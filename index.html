@@ -1091,9 +1091,51 @@
         </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
-        var socket = io();
+        window.DEMO_MODE = true;
+        var DEMO_MODE = window.DEMO_MODE;
+        var socket = (function createDemoSocket() {
+            var handlers = {};
+
+            function readSceneStore() {
+                return {
+                    sceneSaved: JSON.parse(localStorage.getItem("yamaha01v.sceneSaved") || "{}"),
+                    sceneNames: JSON.parse(localStorage.getItem("yamaha01v.sceneNames") || "{}"),
+                    mixSetups: JSON.parse(localStorage.getItem("yamaha01v.mixSetups") || "{}")
+                };
+            }
+
+            function emitLater(event, payload) {
+                setTimeout(function() {
+                    (handlers[event] || []).forEach(function(handler) {
+                        handler(payload);
+                    });
+                }, 0);
+            }
+
+            return {
+                on: function(event, handler) {
+                    handlers[event] = handlers[event] || [];
+                    handlers[event].push(handler);
+                    if (event === "scene store") emitLater(event, readSceneStore());
+                    if (event === "meter config") {
+                        emitLater(event, {
+                            audioChannels: { left: 0, right: 1, label: "DEMO" },
+                            audioDeviceName: "Demo",
+                            optionalInputBankEnabled: true
+                        });
+                    }
+                },
+                emit: function(event, payload) {
+                    if (event === "scene store save" && payload) {
+                        localStorage.setItem("yamaha01v.sceneSaved", JSON.stringify(payload.sceneSaved || {}));
+                        localStorage.setItem("yamaha01v.sceneNames", JSON.stringify(payload.sceneNames || {}));
+                        localStorage.setItem("yamaha01v.mixSetups", JSON.stringify(payload.mixSetups || {}));
+                    }
+                    if (window.console && console.debug) console.debug("Demo socket:", event, payload || "");
+                }
+            };
+        })();
 
         var modes = ["MIX", "AUX1", "AUX2", "AUX3", "AUX4", "EFF1", "EFF2", "MIX"];
         var modeIds = ["MIX", "AUX1", "AUX2", "AUX3", "AUX4", "EFF1", "EFF2", "MIX"];
@@ -1189,6 +1231,8 @@
                 remoteRequesting: false,
                 requestToken: 0,
                 status: "READY",
+                demoTimer: null,
+                demoPhase: 0,
                 stream: null,
                 context: null,
                 source: null,
@@ -1974,11 +2018,13 @@
                 integrated_lufs: roundDb(lufsFromPower(meter.integratedPower / meter.lufsBlocks)),
                 spectrum: computeSpectrum(mono, meter.context ? meter.context.sampleRate : meter.sampleRate)
             };
-            socket.emit("audio meter frame", {
-                data: meter.data,
-                sampleRate: meter.sampleRate,
-                status: meter.status
-            });
+            if (!DEMO_MODE) {
+                socket.emit("audio meter frame", {
+                    data: meter.data,
+                    sampleRate: meter.sampleRate,
+                    status: meter.status
+                });
+            }
             updateAudioMeterDom();
         }
 
@@ -2261,14 +2307,44 @@
             }
         }
 
+        function generateDemoAudioMeterFrame() {
+            var meter = state.audioMeter;
+            meter.demoPhase += 0.17;
+            var leftPeak = -32 + (Math.sin(meter.demoPhase) + 1) * 13 + Math.random() * 3;
+            var rightPeak = -34 + (Math.sin(meter.demoPhase + 0.9) + 1) * 12 + Math.random() * 3;
+            var spectrum = [];
+            for (var i = 0; i < 32; i += 1) {
+                var tone = Math.sin(meter.demoPhase + i * 0.42);
+                var rolloff = i * 1.35;
+                spectrum.push(roundDb(Math.max(-60, -18 + tone * 10 - rolloff + Math.random() * 4)));
+            }
+            meter.status = "DEMO METER";
+            meter.data = {
+                left_rms: roundDb(leftPeak - 7),
+                right_rms: roundDb(rightPeak - 7),
+                left_ppm: roundDb(leftPeak),
+                right_ppm: roundDb(rightPeak),
+                left_peak: roundDb(leftPeak + 2),
+                right_peak: roundDb(rightPeak + 2),
+                left_peak_hold: roundDb(updatePeakHold(leftPeak + 2, "left")),
+                right_peak_hold: roundDb(updatePeakHold(rightPeak + 2, "right")),
+                momentary_lufs: roundDb(((leftPeak + rightPeak) / 2) - 9),
+                integrated_lufs: roundDb(((leftPeak + rightPeak) / 2) - 12),
+                spectrum: spectrum
+            };
+            updateAudioMeterDom();
+        }
+
         function stopAudioMeter() {
             var meter = state.audioMeter;
             meter.requestToken += 1;
+            if (meter.demoTimer) clearInterval(meter.demoTimer);
             if (meter.processor) meter.processor.disconnect();
             if (meter.source) meter.source.disconnect();
             if (meter.stream) {
                 meter.stream.getTracks().forEach(function(track) { track.stop(); });
             }
+            meter.demoTimer = null;
             if (meter.context && meter.context.state !== "closed") meter.context.close();
             meter.processor = null;
             meter.source = null;
@@ -2283,6 +2359,15 @@
 
         function startAudioMeter() {
             if (state.audioMeter.running || state.audioMeter.requesting) return;
+            if (DEMO_MODE) {
+                resetAudioMeterData();
+                state.audioMeter.running = true;
+                state.audioMeter.requesting = false;
+                state.audioMeter.remoteRequesting = false;
+                generateDemoAudioMeterFrame();
+                state.audioMeter.demoTimer = setInterval(generateDemoAudioMeterFrame, 120);
+                return;
+            }
             if (!isAudioMeterSourceClient()) {
                 state.audioMeter.status = "RECEIVING HOST METER";
                 if (!state.audioMeter.remoteRequesting) {
