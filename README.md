@@ -2,7 +2,7 @@
 
 Fast reaction mixing UI for festivals.
 
-This project started as a heavily modified fork/rewrite of an older MIT-licensed project by Carter Roeser.
-Large parts of the system were rewritten and extended.
+This project started as a user interface add-on to an older MIT-licensed project by Carter Roeser.
+as it evolved large parts of the original system were rewritten and extended.
 
 Copyright (c) 2026 Viktor Tatai
