@@ -4066,11 +4066,19 @@
                     }
                     if (swipe && !swipe.moved && event.type === "pointerup") {
                         var now = Date.now();
-                        if (now - lastTap < 350) {
-                            var initKey = "auxNotch" + valueBox.dataset.auxNotchGain + "Init";
+                        var key = "auxNotch" + valueBox.dataset.auxNotchGain + "GainIndex";
+                        var initKey = "auxNotch" + valueBox.dataset.auxNotchGain + "Init";
+                        var gainControl = valueBox.dataset.auxNotchGain === "1" ? "lowNotchGain" : "highNotchGain";
+                        if (eq[initKey]) {
+                            eq[initKey] = false;
+                            eq[key] = 0;
+                            valueBox.textContent = auxNotchGainPresets[eq[key]] + " dB";
+                            sendAuxEqControl(master, gainControl, auxNotchGainPresets[eq[key]]);
+                            lastTap = 0;
+                        } else if (now - lastTap < 350) {
                             eq[initKey] = true;
                             valueBox.textContent = "INIT";
-                            sendAuxEqControl(master, valueBox.dataset.auxNotchGain === "1" ? "lowNotchGain" : "highNotchGain", 12);
+                            sendAuxEqControl(master, gainControl, 12);
                             lastTap = 0;
                         } else {
                             lastTap = now;
