@@ -3217,7 +3217,12 @@
                 return;
             }
             if (state.mode === mode) {
-                openMasterPage(mode);
+                if (state.view === "masterStrip" && state.selectedId === "master:" + mode) {
+                    state.view = "mixer";
+                    render();
+                } else {
+                    openMasterPage(mode);
+                }
                 return;
             }
             setMode(mode);
