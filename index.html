@@ -3203,17 +3203,17 @@
                 cycleBusCopyTarget(mode);
                 return;
             }
-            if (state.mode === mode && state.view === "masterStrip" && state.selectedId === "master:" + mode) {
-                state.view = "mixer";
-                render();
-                return;
-            }
             if (isNormalMasterDoubleTap(mode)) {
                 enterMeterModeWithSingleMasterSolo(mode);
                 return;
             }
             if (state.mode === mode) {
-                openMasterPage(mode);
+                if (state.view === "masterStrip" && state.selectedId === "master:" + mode) {
+                    state.view = "mixer";
+                    render();
+                } else {
+                    openMasterPage(mode);
+                }
                 return;
             }
             setMode(mode);
