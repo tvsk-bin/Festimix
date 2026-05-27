@@ -2658,9 +2658,7 @@
                 }
                 state.copy.count -= 1;
                 if (state.copy.count <= 0) {
-                    state.copy.phase = "targets";
-                    clearInterval(copyTimer);
-                    copyTimer = null;
+                    resetCopyState();
                 }
                 render();
             }, 1000);
@@ -2678,6 +2676,11 @@
                 return;
             }
             if (state.copy.phase === "targets") {
+                if (!state.copy.targets.length) {
+                    resetCopyState();
+                    render();
+                    return;
+                }
                 startCopyConfirm();
                 return;
             }
