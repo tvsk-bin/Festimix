@@ -4210,22 +4210,24 @@
                 var activeClass = state.copy.phase === "idle" ? (state.mode === mode ? " active" : "") : "";
                 button.className = "btn-hw" + activeClass + copyClass + (isAuxModeLinked(mode) ? " linked" : "");
                 button.textContent = copyText;
-                button.onclick = function() { topModeTap(mode); };
                 button.dataset.mode = mode;
                 button.onpointerdown = function(event) {
                     button.dataset.startX = event.clientX;
                     button.dataset.startY = event.clientY;
                 };
                 button.onpointerup = function(event) {
-                    if (isMeterDelegationMode()) return;
+                    event.preventDefault();
                     var startX = parseFloat(button.dataset.startX || event.clientX);
                     var startY = parseFloat(button.dataset.startY || event.clientY);
-                    if (Math.abs(event.clientX - startX) < 34 || Math.abs(event.clientX - startX) < Math.abs(event.clientY - startY) * 1.4) return;
-                    var target = document.elementFromPoint(event.clientX, event.clientY);
-                    var targetButton = target && target.closest ? target.closest("[data-mode]") : null;
-                    if (targetButton && topModeSwipe(mode, targetButton.dataset.mode)) {
-                        event.preventDefault();
+                    var movedX = Math.abs(event.clientX - startX);
+                    var movedY = Math.abs(event.clientY - startY);
+                    if (!isMeterDelegationMode() && movedX >= 34 && movedX >= movedY * 1.4) {
+                        var target = document.elementFromPoint(event.clientX, event.clientY);
+                        var targetButton = target && target.closest ? target.closest("[data-mode]") : null;
+                        if (targetButton) topModeSwipe(mode, targetButton.dataset.mode);
+                        return;
                     }
+                    topModeTap(mode);
                 };
                 root.appendChild(button);
             });
