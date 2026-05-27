@@ -1285,7 +1285,6 @@
         ];
         var compressorPresets = ["OFF", "COMP", "KICK", "SNARE", "BASS", "FUNKY", "GUITAR", "VOCAL", "GLUE"];
         var suppressStripClick = false;
-        var lastTopModeTap = { mode: null, time: 0 };
         var lastNormalChannelTap = { id: null, time: 0 };
         var lastNormalMasterTap = { mode: null, time: 0 };
         var lastSceneButtonTap = { scene: null, time: 0 };
@@ -3204,13 +3203,14 @@
                 cycleBusCopyTarget(mode);
                 return;
             }
-            var now = Date.now();
-            if (lastTopModeTap.mode === mode && now - lastTopModeTap.time < 420) {
-                lastTopModeTap = { mode: null, time: 0 };
+            if (isNormalMasterDoubleTap(mode)) {
+                enterMeterModeWithSingleMasterSolo(mode);
+                return;
+            }
+            if (state.mode === mode) {
                 openMasterPage(mode);
                 return;
             }
-            lastTopModeTap = { mode: mode, time: now };
             setMode(mode);
         }
 
