@@ -8,6 +8,7 @@
         "channelPage": {
           "slots": {
             "tone": "ChannelToneEQ",
+            "assistEq": "RawYamahaEQ",
             "pan": "ChannelPan",
             "compressor": "MusicalChannelComp",
             "busSends": "ChannelBusSends"
@@ -16,6 +17,7 @@
         "auxMasterPage": {
           "slots": {
             "tone": "AuxMonitorEQ",
+            "assistEq": "RawYamahaEQ",
             "compressor": "GlueMasterComp"
           }
         },
@@ -34,6 +36,7 @@
         "mixMasterPage": {
           "slots": {
             "tone": "MasterToneEQ",
+            "assistEq": "RawYamahaEQ",
             "compressor": "GlueMasterComp"
           }
         }
@@ -41,6 +44,36 @@
     }
   },
   "modules": {
+    "RawYamahaEQ": {
+      "id": "RawYamahaEQ",
+      "displayName": "Raw Yamaha EQ",
+      "type": "eq",
+      "uiRole": "yamaha.rawEq",
+      "controls": {
+        "lowFrequency": { "type": "touchLine", "band": "LOW", "parameter": "FREQ" },
+        "lowGain": { "type": "touchNode", "band": "LOW", "parameter": "GAIN", "range": [-18, 18], "unit": "dB" },
+        "lowQ": { "type": "knob", "band": "LOW", "parameter": "Q_OR_TYPE" },
+        "lowMidFrequency": { "type": "touchLine", "band": "LO_MID", "parameter": "FREQ" },
+        "lowMidGain": { "type": "touchNode", "band": "LO_MID", "parameter": "GAIN", "range": [-18, 18], "unit": "dB" },
+        "lowMidQ": { "type": "knob", "band": "LO_MID", "parameter": "Q" },
+        "highMidFrequency": { "type": "touchLine", "band": "HI_MID", "parameter": "FREQ" },
+        "highMidGain": { "type": "touchNode", "band": "HI_MID", "parameter": "GAIN", "range": [-18, 18], "unit": "dB" },
+        "highMidQ": { "type": "knob", "band": "HI_MID", "parameter": "Q" },
+        "highFrequency": { "type": "touchLine", "band": "HIGH", "parameter": "FREQ" },
+        "highGain": { "type": "touchNode", "band": "HIGH", "parameter": "GAIN", "range": [-18, 18], "unit": "dB" },
+        "highQ": { "type": "knob", "band": "HIGH", "parameter": "Q_OR_TYPE" }
+      },
+      "engineBehavior": {
+        "kind": "rawYamahaEq",
+        "authoritative": true,
+        "notes": "Direct Yamaha 01V EQ module. UI writes native LOW, LO_MID, HI_MID and HIGH frequency, gain and Q/type parameters without musical simplification."
+      },
+      "yamahaTranslation": {
+        "kind": "rawEqParameterBundle",
+        "intentTypes": ["eq.rawYamaha"],
+        "mappingLayer": "yamaha01v.mapping_v3.json"
+      }
+    },
     "ChannelToneEQ": {
       "id": "ChannelToneEQ",
       "displayName": "Channel Tone EQ",
