@@ -20,7 +20,8 @@
             --solo: #f0c33c;
             --on: #1fb96b;
             --off: #5a1e22;
-            --channel-select-height: clamp(54px, 7.2vh, 68px);
+            --bank-bar-width: clamp(42px, 5.4vw, 58px);
+            --channel-select-height: clamp(62px, 9.6vh, 92px);
             --channel-select-button-height: calc(var(--channel-select-height) - 16px);
             --strip-button-height: clamp(42px, 6vh, 52px);
         }
@@ -79,7 +80,7 @@
         }
 
         .bank-bar {
-            flex: 0 0 clamp(42px, 5.4vw, 58px);
+            flex: 0 0 var(--bank-bar-width);
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -152,15 +153,15 @@
 
         .channel-copyright {
             position: absolute;
-            right: 3px;
-            bottom: 12px;
-            writing-mode: vertical-rl;
-            transform: rotate(180deg);
+            left: 5px;
+            right: 5px;
+            bottom: calc(var(--bank-bar-width) + 8px);
             color: rgba(184, 184, 184, 0.58);
-            font-size: 8px;
+            font-size: 9px;
             font-weight: 700;
             letter-spacing: 0;
             line-height: 1;
+            text-align: center;
             pointer-events: none;
         }
 
@@ -875,11 +876,21 @@
             position: absolute;
             left: 5px;
             right: 5px;
-            bottom: 5px;
+            bottom: 8px;
             z-index: 36;
             margin-top: 0;
-            font-size: clamp(10px, 1.1vw, 13px);
-            min-height: 76px;
+            aspect-ratio: 1;
+            height: calc(var(--bank-bar-width) - 10px);
+            min-height: 0;
+            padding: 0;
+            font-size: 0;
+            color: transparent;
+            writing-mode: horizontal-tb;
+            transform: none;
+        }
+
+        .bank-bar .mode-button {
+            min-height: 0;
         }
 
         .mode-button.mode-view {
@@ -1490,10 +1501,18 @@
         };
 
         var permissionModes = {
-            view: { label: "VIEW", className: "mode-view" },
-            mix: { label: "MIX", className: "mode-mix" },
-            all: { label: "ALL", className: "mode-all" }
+            view: { label: "View Mode", className: "mode-view" },
+            mix: { label: "Mix Mode", className: "mode-mix" },
+            all: { label: "Free Mode", className: "mode-all" }
         };
+
+        function isFreeMode() {
+            return state.permissionMode === "all";
+        }
+
+        function isFreeOnlyBank(bank) {
+            return !!bank && (bank.page === "scenes" || bank.page === "copy");
+        }
 
         function isMixParameter(parameterId) {
             return /^(channelFader|masterFader|pan|auxSend|fx1Send|fx2Send|effectReturnSend)\./.test(String(parameterId || ""));
@@ -1513,7 +1532,7 @@
         }
 
         function canSendAction(action) {
-            if (state.permissionMode === "all") return true;
+            if (isFreeMode()) return true;
             if (state.permissionMode === "mix") return isMixAction(action);
             return false;
         }
@@ -1526,12 +1545,15 @@
             if (!target || !target.closest) return false;
             if (target.closest("[data-mode]")) return true;
             var bankButton = target.closest("[data-bank-id]");
-            if (bankButton && bankButton.dataset.bankId !== "copy") return true;
+            if (bankButton) {
+                var bank = banks.find(function(item) { return item.id === bankButton.dataset.bankId; });
+                return !isFreeOnlyBank(bank) || isFreeMode();
+            }
             if (target.closest("[data-meter-channel]")) return true;
             if (target.closest(".master-select")) return true;
             if (target.closest("#stripPrev") || target.closest("#stripNext")) return true;
             if (target.closest("[data-master-page]") || target.closest("[data-effect-page]")) return true;
-            if (target.closest("[data-scene-button]")) return true;
+            if (target.closest("[data-scene-button]")) return isFreeMode();
             return false;
         }
 
@@ -1548,14 +1570,14 @@
         }
 
         function isInteractionAllowed(target) {
-            if (state.permissionMode === "all") return true;
+            if (isFreeMode()) return true;
             if (isModeUiTarget(target) || isNavigationTarget(target)) return true;
             if (state.permissionMode === "mix" && isMixEditableTarget(target)) return true;
             return false;
         }
 
         function guardPermissionEvent(event) {
-            if (state.permissionMode === "all") return;
+            if (isFreeMode()) return;
             if (isInteractionAllowed(event.target)) return;
             event.preventDefault();
             event.stopPropagation();
@@ -1668,6 +1690,49 @@
             });
         }
 
+        function modeTargetFromFader(index, yRatio) {
+            var appRoot = document.querySelector(".app");
+            var strips = document.querySelectorAll(".strip-grid .strip");
+            var strip = strips[index - 1];
+            if (!appRoot || !strip) return null;
+            var fader = strip.querySelector("input.v-fader");
+            var rect = (fader || strip).getBoundingClientRect();
+            var appRect = appRoot.getBoundingClientRect();
+            return {
+                x: rect.left + rect.width / 2 - appRect.left,
+                y: rect.top + rect.height * yRatio - appRect.top
+            };
+        }
+
+        function modeLayoutTargets(origin, appRect) {
+            var viewTarget = modeTargetFromFader(2, 0.25);
+            var mixTarget = modeTargetFromFader(3, 0.48);
+            var mixFarTarget = modeTargetFromFader(4, 0.48);
+            var allLeft = modeTargetFromFader(4, 0.88);
+            var allRight = modeTargetFromFader(5, 0.88);
+            if (viewTarget && mixTarget && allLeft && allRight) {
+                return [
+                    { mode: "view", x: viewTarget.x - 28, y: viewTarget.y },
+                    { mode: "mix", x: mixFarTarget ? (mixTarget.x * 0.58 + mixFarTarget.x * 0.42) : mixTarget.x + 34, y: mixTarget.y },
+                    { mode: "all", x: (allLeft.x + allRight.x) / 2, y: (allLeft.y + allRight.y) / 2 }
+                ];
+            }
+            var radiusX = Math.max(360, Math.min(620, appRect.width * 0.72));
+            var radiusY = Math.max(250, Math.min(420, appRect.height * 0.58));
+            return [
+                { mode: "view", angle: -63, rx: radiusX * 0.74, ry: radiusY * 1.03 },
+                { mode: "mix", angle: -40, rx: radiusX * 0.91, ry: radiusY * 0.92 },
+                { mode: "all", angle: -18, rx: radiusX * 1.02, ry: radiusY * 0.72 }
+            ].map(function(item) {
+                var radians = item.angle * Math.PI / 180;
+                return {
+                    mode: item.mode,
+                    x: origin.x + Math.cos(radians) * item.rx,
+                    y: origin.y + Math.sin(radians) * item.ry
+                };
+            });
+        }
+
         function positionModeOverlay() {
             var overlay = document.getElementById("modeOverlay");
             var button = document.getElementById("modeButton");
@@ -1682,18 +1747,11 @@
                 x: buttonRect.left + buttonRect.width / 2 - appRect.left,
                 y: buttonRect.top + buttonRect.height / 2 - appRect.top
             };
-            var radiusX = Math.max(285, Math.min(430, appRect.width * 0.64));
-            var radiusY = Math.max(210, Math.min(330, appRect.height * 0.48));
-            var layout = [
-                { mode: "view", angle: -70, rx: radiusX * 0.86, ry: radiusY * 1.03 },
-                { mode: "mix", angle: -43, rx: radiusX * 1.02, ry: radiusY * 0.93 },
-                { mode: "all", angle: -17, rx: radiusX * 0.98, ry: radiusY * 0.76 }
-            ];
+            var layout = modeLayoutTargets(origin, appRect);
             modeTargetCenters = {};
             layout.forEach(function(item) {
-                var radians = item.angle * Math.PI / 180;
-                var x = origin.x + Math.cos(radians) * item.rx;
-                var y = origin.y + Math.sin(radians) * item.ry;
+                var x = item.x;
+                var y = item.y;
                 x = Math.max(78, Math.min(appRect.width - 86, x));
                 y = Math.max(78, Math.min(appRect.height - 78, y));
                 modeTargetCenters[item.mode] = { x: x + appRect.left, y: y + appRect.top };
@@ -1760,10 +1818,13 @@
             var overlay = document.getElementById("modeOverlay");
             if (!overlay) return;
             Array.prototype.forEach.call(overlay.querySelectorAll("[data-mode-choice]"), function(choice) {
+                choice.onpointerdown = function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                };
                 choice.onclick = function(event) {
                     event.preventDefault();
                     event.stopPropagation();
-                    selectPermissionMode(choice.dataset.modeChoice);
                 };
             });
             overlay.onpointerdown = function(event) {
@@ -3695,6 +3756,7 @@
         function setBank(bankId) {
             var bank = banks.find(function(item) { return item.id === bankId; });
             if (!bank || bank.disabled || bank.hidden) return;
+            if (isFreeOnlyBank(bank) && !isFreeMode()) return;
             if (isMeterDelegationMode() && !bank.page) {
                 if (isMeterDoubleTap("bank:" + bankId)) {
                     exitMeterMode();
@@ -4712,15 +4774,17 @@
             root.innerHTML = "";
             var mark = document.createElement("span");
             mark.className = "channel-copyright";
-            mark.textContent = "© TVSK 2026";
+            mark.textContent = "\u00a9tvsk";
             root.appendChild(mark);
             banks.forEach(function(bank) {
                 if (bank.hidden) return;
                 var button = document.createElement("button");
+                var freeOnlyLocked = isFreeOnlyBank(bank) && !isFreeMode();
                 var active = bank.page ? state.view === bank.page : state.bankId === bank.id && state.view !== "scenes" && state.view !== "meter";
                 if (state.view === "meter" && !bank.page) active = state.bankId === bank.id;
                 if (bank.page === "copy") active = false;
-                button.className = "btn-hw" + (active ? " active" : "") + (bank.disabled ? " disabled" : "") + (bank.page === "copy" ? copyButtonClass() : "");
+                if (freeOnlyLocked) active = false;
+                button.className = "btn-hw" + (active ? " active" : "") + ((bank.disabled || freeOnlyLocked) ? " disabled" : "") + (bank.page === "copy" && !freeOnlyLocked ? copyButtonClass() : "");
                 button.textContent = bank.page === "copy" ? copyButtonLabel() : bank.label;
                 button.dataset.bankId = bank.id;
                 button.onclick = function() { setBank(bank.id); };
@@ -4729,7 +4793,7 @@
             var modeButton = document.createElement("button");
             modeButton.id = "modeButton";
             modeButton.className = modeButtonClass();
-            modeButton.textContent = "MODE " + modeButtonLabel();
+            modeButton.setAttribute("aria-label", modeButtonLabel());
             bindModeButton(modeButton);
             root.appendChild(modeButton);
             positionModeOverlay();
