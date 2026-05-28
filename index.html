@@ -35,10 +35,15 @@
             color: var(--text);
             font-family: Arial, Helvetica, sans-serif;
             touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
 
         * {
             box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         #orientation {
@@ -63,6 +68,7 @@
             padding: 8px;
             background: var(--panel-dark);
             border-bottom: 1px solid var(--line);
+            touch-action: none;
         }
 
         .top-bar .btn-hw {
@@ -873,24 +879,28 @@
         }
 
         .mode-button {
-            position: absolute;
-            left: 5px;
-            right: 5px;
-            bottom: 8px;
+            position: relative;
             z-index: 36;
-            margin-top: 0;
+            justify-self: center;
+            align-self: center;
+            width: calc(var(--bank-bar-width) - 10px);
             aspect-ratio: 1;
             height: calc(var(--bank-bar-width) - 10px);
+            flex: 0 0 calc(var(--bank-bar-width) - 10px);
             min-height: 0;
             padding: 0;
             font-size: 0;
             color: transparent;
             writing-mode: horizontal-tb;
             transform: none;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
+        .top-bar .mode-button,
         .bank-bar .mode-button {
             min-height: 0;
+            padding: 0;
         }
 
         .mode-button.mode-view {
@@ -1665,6 +1675,7 @@
             if (!permissionModes[mode]) return;
             state.permissionMode = mode;
             closeModeMenu();
+            renderTopBar();
             renderBankBar();
         }
 
@@ -1705,24 +1716,23 @@
         }
 
         function modeLayoutTargets(origin, appRect) {
-            var viewTarget = modeTargetFromFader(2, 0.25);
-            var mixTarget = modeTargetFromFader(3, 0.48);
-            var mixFarTarget = modeTargetFromFader(4, 0.48);
-            var allLeft = modeTargetFromFader(4, 0.88);
-            var allRight = modeTargetFromFader(5, 0.88);
+            var viewTarget = modeTargetFromFader(1, 0.82);
+            var mixTarget = modeTargetFromFader(3, 0.50);
+            var allLeft = modeTargetFromFader(4, 0.20);
+            var allRight = modeTargetFromFader(5, 0.20);
             if (viewTarget && mixTarget && allLeft && allRight) {
                 return [
-                    { mode: "view", x: viewTarget.x - 28, y: viewTarget.y },
-                    { mode: "mix", x: mixFarTarget ? (mixTarget.x * 0.58 + mixFarTarget.x * 0.42) : mixTarget.x + 34, y: mixTarget.y },
+                    { mode: "view", x: viewTarget.x, y: viewTarget.y },
+                    { mode: "mix", x: mixTarget.x, y: mixTarget.y },
                     { mode: "all", x: (allLeft.x + allRight.x) / 2, y: (allLeft.y + allRight.y) / 2 }
                 ];
             }
             var radiusX = Math.max(360, Math.min(620, appRect.width * 0.72));
             var radiusY = Math.max(250, Math.min(420, appRect.height * 0.58));
             return [
-                { mode: "view", angle: -63, rx: radiusX * 0.74, ry: radiusY * 1.03 },
-                { mode: "mix", angle: -40, rx: radiusX * 0.91, ry: radiusY * 0.92 },
-                { mode: "all", angle: -18, rx: radiusX * 1.02, ry: radiusY * 0.72 }
+                { mode: "view", angle: 62, rx: radiusX * 0.18, ry: radiusY * 0.98 },
+                { mode: "mix", angle: 47, rx: radiusX * 0.42, ry: radiusY * 0.72 },
+                { mode: "all", angle: 30, rx: radiusX * 0.64, ry: radiusY * 0.42 }
             ].map(function(item) {
                 var radians = item.angle * Math.PI / 180;
                 return {
@@ -1790,6 +1800,7 @@
                 selectPermissionMode(modeGesture.target);
             } else if (!modeGesture.moved && modeGesture.wasOpen) {
                 closeModeMenu();
+                renderTopBar();
                 renderBankBar();
             }
             highlightModeChoice(null);
@@ -4774,8 +4785,14 @@
             root.innerHTML = "";
             var mark = document.createElement("span");
             mark.className = "channel-copyright";
-            mark.textContent = "\u00a9tvsk";
+            mark.textContent = "@TVSK";
             root.appendChild(mark);
+            var modeButton = document.createElement("button");
+            modeButton.id = "modeButton";
+            modeButton.className = modeButtonClass();
+            modeButton.setAttribute("aria-label", modeButtonLabel());
+            bindModeButton(modeButton);
+            root.appendChild(modeButton);
             banks.forEach(function(bank) {
                 if (bank.hidden) return;
                 var button = document.createElement("button");
@@ -4790,12 +4807,6 @@
                 button.onclick = function() { setBank(bank.id); };
                 root.appendChild(button);
             });
-            var modeButton = document.createElement("button");
-            modeButton.id = "modeButton";
-            modeButton.className = modeButtonClass();
-            modeButton.setAttribute("aria-label", modeButtonLabel());
-            bindModeButton(modeButton);
-            root.appendChild(modeButton);
             positionModeOverlay();
         }
 
