@@ -20,8 +20,8 @@
             --solo: #f0c33c;
             --on: #1fb96b;
             --off: #5a1e22;
-            --channel-select-height: clamp(54px, 8vh, 74px);
-            --channel-select-button-height: calc((var(--channel-select-height) - 16px) * 1.6);
+            --channel-select-height: clamp(54px, 7.2vh, 68px);
+            --channel-select-button-height: calc(var(--channel-select-height) - 16px);
             --strip-button-height: clamp(42px, 6vh, 52px);
         }
 
@@ -51,6 +51,7 @@
             flex-direction: column;
             overflow: hidden;
             background: var(--bg);
+            position: relative;
         }
 
         .top-bar {
@@ -118,7 +119,9 @@
         }
 
         .channel-row .btn-hw {
-            aspect-ratio: 1.25 / 1;
+            width: 100%;
+            height: 100%;
+            aspect-ratio: auto;
             min-height: 0;
             display: flex;
             flex-direction: column;
@@ -130,8 +133,12 @@
         }
 
         .channel-button-main {
+            max-width: 100%;
             font-size: clamp(11px, 1.2vw, 14px);
             font-weight: 900;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .channel-button-name {
@@ -808,6 +815,9 @@
             font-weight: 800;
             text-align: center;
             cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .scene-name-input.active {
@@ -859,6 +869,108 @@
         .btn-hw.linked {
             border-color: #7edcff;
             box-shadow: inset 0 0 0 2px rgba(126, 220, 255, 0.45), 0 0 14px rgba(58, 180, 255, 0.38);
+        }
+
+        .mode-button {
+            position: absolute;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            z-index: 36;
+            margin-top: 0;
+            font-size: clamp(10px, 1.1vw, 13px);
+            min-height: 76px;
+        }
+
+        .mode-button.mode-view {
+            background: #b7272d;
+            color: #fff;
+            border-color: #ff757a;
+            box-shadow: 0 0 16px rgba(183, 39, 45, 0.5);
+        }
+
+        .mode-button.mode-mix {
+            background: #d6aa21;
+            color: #171100;
+            border-color: #ffe06a;
+            box-shadow: 0 0 16px rgba(214, 170, 33, 0.5);
+        }
+
+        .mode-button.mode-all {
+            background: var(--on);
+            color: #06140d;
+            border-color: #80f0b5;
+            box-shadow: 0 0 16px rgba(31, 185, 107, 0.5);
+        }
+
+        .mode-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 32;
+            background: rgba(160, 160, 160, 0.34);
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        .mode-overlay svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            pointer-events: none;
+        }
+
+        .mode-overlay line {
+            stroke: #db1f2f;
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+
+        .mode-overlay line[data-mode-line="mix"] {
+            stroke: #d6aa21;
+        }
+
+        .mode-overlay line[data-mode-line="all"] {
+            stroke: var(--on);
+        }
+
+        .mode-choice {
+            position: absolute;
+            width: clamp(70px, 8.5vw, 94px);
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: 3px solid #db1f2f;
+            background: #db1f2f;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(27px, 3.8vw, 42px);
+            box-shadow: 0 0 18px rgba(219, 31, 47, 0.42), inset 0 0 0 2px rgba(255,255,255,0.05);
+            transform: translate(-50%, -50%);
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        .mode-choice[data-mode-choice="mix"] {
+            background: #d6aa21;
+            border-color: #d6aa21;
+            color: #171100;
+            box-shadow: 0 0 18px rgba(214, 170, 33, 0.48), inset 0 0 0 2px rgba(255,255,255,0.08);
+        }
+
+        .mode-choice[data-mode-choice="all"] {
+            background: var(--on);
+            border-color: var(--on);
+            color: #06140d;
+            box-shadow: 0 0 18px rgba(31, 185, 107, 0.48), inset 0 0 0 2px rgba(255,255,255,0.08);
+        }
+
+        .mode-choice.active,
+        .mode-choice.drag-target {
+            border-color: #fff;
+            box-shadow: 0 0 0 4px rgba(255,255,255,0.42), 0 0 24px rgba(255,255,255,0.36);
         }
 
         .master-select {
@@ -1089,6 +1201,16 @@
             </section>
             <aside class="master" id="masterStrip"></aside>
         </div>
+        <div class="mode-overlay" id="modeOverlay" hidden>
+            <svg id="modeOverlayLines" aria-hidden="true">
+                <line data-mode-line="view" x1="0" y1="0" x2="0" y2="0"></line>
+                <line data-mode-line="mix" x1="0" y1="0" x2="0" y2="0"></line>
+                <line data-mode-line="all" x1="0" y1="0" x2="0" y2="0"></line>
+            </svg>
+            <button class="mode-choice" data-mode-choice="view" aria-label="View only"><i class="fa fa-eye" aria-hidden="true"></i></button>
+            <button class="mode-choice" data-mode-choice="mix" aria-label="Mix"><i class="fa fa-sliders" aria-hidden="true"></i></button>
+            <button class="mode-choice" data-mode-choice="all" aria-label="All"><i class="fa fa-unlock" aria-hidden="true"></i></button>
+        </div>
     </div>
 
     <script>
@@ -1211,6 +1333,8 @@
             view: "mixer",
             selectedId: null,
             selectedLabel: null,
+            permissionMode: "all",
+            modeMenuOpen: false,
             faders: {},
             on: {},
             solo: {},
@@ -1365,7 +1489,81 @@
             EFF2: "fx1Send"
         };
 
+        var permissionModes = {
+            view: { label: "VIEW", className: "mode-view" },
+            mix: { label: "MIX", className: "mode-mix" },
+            all: { label: "ALL", className: "mode-all" }
+        };
+
+        function isMixParameter(parameterId) {
+            return /^(channelFader|masterFader|pan|auxSend|fx1Send|fx2Send|effectReturnSend)\./.test(String(parameterId || ""));
+        }
+
+        function isMixAction(action) {
+            if (!action || !action.type) return false;
+            if (action.type === "sendParameter" || action.type === "sendParameterCc") return isMixParameter(action.parameterId);
+            return [
+                "setChannelOn",
+                "setChannelSolo",
+                "setMasterOn",
+                "setMasterOnCc",
+                "setMasterSolo",
+                "selectChannel"
+            ].indexOf(action.type) !== -1;
+        }
+
+        function canSendAction(action) {
+            if (state.permissionMode === "all") return true;
+            if (state.permissionMode === "mix") return isMixAction(action);
+            return false;
+        }
+
+        function isModeUiTarget(target) {
+            return !!(target && target.closest && (target.closest("#modeButton") || target.closest("#modeOverlay")));
+        }
+
+        function isNavigationTarget(target) {
+            if (!target || !target.closest) return false;
+            if (target.closest("[data-mode]")) return true;
+            var bankButton = target.closest("[data-bank-id]");
+            if (bankButton && bankButton.dataset.bankId !== "copy") return true;
+            if (target.closest("[data-meter-channel]")) return true;
+            if (target.closest(".master-select")) return true;
+            if (target.closest("#stripPrev") || target.closest("#stripNext")) return true;
+            if (target.closest("[data-master-page]") || target.closest("[data-effect-page]")) return true;
+            if (target.closest("[data-scene-button]")) return true;
+            return false;
+        }
+
+        function isMixEditableTarget(target) {
+            if (!target || !target.closest) return false;
+            if (target.closest("input.v-fader")) return true;
+            if (target.closest(".btn-hw.on-btn")) return true;
+            if (target.closest(".btn-hw.solo")) return true;
+            if (target.closest("[data-strip-action='on']") || target.closest("[data-strip-action='solo']")) return true;
+            if (target.closest("[data-send]") || target.closest("[data-swipe-send]")) return true;
+            var knob = target.closest(".knob");
+            if (knob && (knob.dataset.control === "pan" || knob.dataset.control === "stereoPan")) return true;
+            return false;
+        }
+
+        function isInteractionAllowed(target) {
+            if (state.permissionMode === "all") return true;
+            if (isModeUiTarget(target) || isNavigationTarget(target)) return true;
+            if (state.permissionMode === "mix" && isMixEditableTarget(target)) return true;
+            return false;
+        }
+
+        function guardPermissionEvent(event) {
+            if (state.permissionMode === "all") return;
+            if (isInteractionAllowed(event.target)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+        }
+
         function sendAction(action) {
+            if (!canSendAction(action)) return;
             socket.emit("midi action", action);
         }
 
@@ -1416,6 +1614,164 @@
             if (state.activeMasterSoloTarget === normalized) return;
             state.activeMasterSoloTarget = normalized;
             setMasterSolo(normalized || "__all__", !!normalized);
+        }
+
+        var modeTargetCenters = {};
+        var modeGesture = null;
+
+        function modeButtonLabel() {
+            var mode = permissionModes[state.permissionMode] || permissionModes.all;
+            return mode.label;
+        }
+
+        function modeButtonClass() {
+            var mode = permissionModes[state.permissionMode] || permissionModes.all;
+            return "btn-hw mode-button " + mode.className;
+        }
+
+        function openModeMenu() {
+            state.modeMenuOpen = true;
+            positionModeOverlay();
+        }
+
+        function closeModeMenu() {
+            state.modeMenuOpen = false;
+            positionModeOverlay();
+        }
+
+        function selectPermissionMode(mode) {
+            if (!permissionModes[mode]) return;
+            state.permissionMode = mode;
+            closeModeMenu();
+            renderBankBar();
+        }
+
+        function nearestModeChoice(clientX, clientY) {
+            var winner = null;
+            var winnerDistance = Infinity;
+            Object.keys(modeTargetCenters).forEach(function(mode) {
+                var center = modeTargetCenters[mode];
+                var dx = clientX - center.x;
+                var dy = clientY - center.y;
+                var distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < winnerDistance) {
+                    winner = mode;
+                    winnerDistance = distance;
+                }
+            });
+            return winnerDistance <= 66 ? winner : null;
+        }
+
+        function highlightModeChoice(mode) {
+            Array.prototype.forEach.call(document.querySelectorAll("[data-mode-choice]"), function(choice) {
+                choice.classList.toggle("drag-target", choice.dataset.modeChoice === mode);
+            });
+        }
+
+        function positionModeOverlay() {
+            var overlay = document.getElementById("modeOverlay");
+            var button = document.getElementById("modeButton");
+            var appRoot = document.querySelector(".app");
+            if (!overlay || !button || !appRoot) return;
+            overlay.hidden = !state.modeMenuOpen;
+            if (!state.modeMenuOpen) return;
+
+            var appRect = appRoot.getBoundingClientRect();
+            var buttonRect = button.getBoundingClientRect();
+            var origin = {
+                x: buttonRect.left + buttonRect.width / 2 - appRect.left,
+                y: buttonRect.top + buttonRect.height / 2 - appRect.top
+            };
+            var radiusX = Math.max(285, Math.min(430, appRect.width * 0.64));
+            var radiusY = Math.max(210, Math.min(330, appRect.height * 0.48));
+            var layout = [
+                { mode: "view", angle: -70, rx: radiusX * 0.86, ry: radiusY * 1.03 },
+                { mode: "mix", angle: -43, rx: radiusX * 1.02, ry: radiusY * 0.93 },
+                { mode: "all", angle: -17, rx: radiusX * 0.98, ry: radiusY * 0.76 }
+            ];
+            modeTargetCenters = {};
+            layout.forEach(function(item) {
+                var radians = item.angle * Math.PI / 180;
+                var x = origin.x + Math.cos(radians) * item.rx;
+                var y = origin.y + Math.sin(radians) * item.ry;
+                x = Math.max(78, Math.min(appRect.width - 86, x));
+                y = Math.max(78, Math.min(appRect.height - 78, y));
+                modeTargetCenters[item.mode] = { x: x + appRect.left, y: y + appRect.top };
+                var choice = overlay.querySelector("[data-mode-choice='" + item.mode + "']");
+                var line = overlay.querySelector("[data-mode-line='" + item.mode + "']");
+                if (choice) {
+                    choice.style.left = x + "px";
+                    choice.style.top = y + "px";
+                    choice.classList.toggle("active", state.permissionMode === item.mode);
+                }
+                if (line) {
+                    line.setAttribute("x1", origin.x);
+                    line.setAttribute("y1", origin.y);
+                    line.setAttribute("x2", x);
+                    line.setAttribute("y2", y);
+                }
+            });
+        }
+
+        function updateModeGesture(event) {
+            if (!modeGesture || modeGesture.pointerId !== event.pointerId) return;
+            var distance = Math.abs(event.clientX - modeGesture.startX) + Math.abs(event.clientY - modeGesture.startY);
+            if (distance > 16) modeGesture.moved = true;
+            modeGesture.target = nearestModeChoice(event.clientX, event.clientY);
+            highlightModeChoice(modeGesture.target);
+        }
+
+        function finishModeGesture(event) {
+            if (!modeGesture || modeGesture.pointerId !== event.pointerId) return;
+            var button = document.getElementById("modeButton");
+            if (button && button.hasPointerCapture && button.hasPointerCapture(event.pointerId)) {
+                button.releasePointerCapture(event.pointerId);
+            }
+            updateModeGesture(event);
+            if (modeGesture.moved && modeGesture.target) {
+                selectPermissionMode(modeGesture.target);
+            } else if (!modeGesture.moved && modeGesture.wasOpen) {
+                closeModeMenu();
+                renderBankBar();
+            }
+            highlightModeChoice(null);
+            modeGesture = null;
+        }
+
+        function bindModeButton(button) {
+            button.onpointerdown = function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                var wasOpen = state.modeMenuOpen;
+                if (!state.modeMenuOpen) openModeMenu();
+                if (button.setPointerCapture) button.setPointerCapture(event.pointerId);
+                modeGesture = {
+                    pointerId: event.pointerId,
+                    startX: event.clientX,
+                    startY: event.clientY,
+                    wasOpen: wasOpen,
+                    moved: false,
+                    target: null
+                };
+            };
+        }
+
+        function bindModeOverlay() {
+            var overlay = document.getElementById("modeOverlay");
+            if (!overlay) return;
+            Array.prototype.forEach.call(overlay.querySelectorAll("[data-mode-choice]"), function(choice) {
+                choice.onclick = function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    selectPermissionMode(choice.dataset.modeChoice);
+                };
+            });
+            overlay.onpointerdown = function(event) {
+                if (!event.target.closest("[data-mode-choice]")) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+            };
         }
 
         function isMeterDelegationMode() {
@@ -4366,9 +4722,17 @@
                 if (bank.page === "copy") active = false;
                 button.className = "btn-hw" + (active ? " active" : "") + (bank.disabled ? " disabled" : "") + (bank.page === "copy" ? copyButtonClass() : "");
                 button.textContent = bank.page === "copy" ? copyButtonLabel() : bank.label;
+                button.dataset.bankId = bank.id;
                 button.onclick = function() { setBank(bank.id); };
                 root.appendChild(button);
             });
+            var modeButton = document.createElement("button");
+            modeButton.id = "modeButton";
+            modeButton.className = modeButtonClass();
+            modeButton.textContent = "MODE " + modeButtonLabel();
+            bindModeButton(modeButton);
+            root.appendChild(modeButton);
+            positionModeOverlay();
         }
 
         function renderMixer() {
@@ -4490,7 +4854,7 @@
                 channelBody,
                 "<div class='strip-page-nav'>",
                 "<button class='btn-hw' id='stripPrev'>&lt; PREV</button>",
-                "<div class='strip-channel-name'><span>" + escapeHtml(baseLabel(channel)) + "</span><input id='stripNameInput' value='" + escapeHtml(suffix) + "' placeholder=' NAME'></div>",
+                "<div class='strip-channel-name'><span>" + escapeHtml(baseLabel(channel)) + "</span><input id='stripNameInput' maxlength='15' value='" + escapeHtml(suffix) + "' placeholder=' NAME'></div>",
                 "<button class='btn-hw' id='stripNext'>NEXT &gt;</button>",
                 "</div>"
             ].join("");
@@ -4501,8 +4865,9 @@
             document.getElementById("stripPrev").onclick = function() { selectChannelByOffset(-1); };
             document.getElementById("stripNext").onclick = function() { selectChannelByOffset(1); };
             document.getElementById("stripNameInput").oninput = function(event) {
-                var value = event.target.value;
+                var value = event.target.value.slice(0, 15);
                 if (value && value[0] !== " ") value = " " + value;
+                value = value.slice(0, 15);
                 event.target.value = value;
                 sceneDraft(state.loadedScene)[channel.id] = value;
                 persistScenes();
@@ -4604,9 +4969,9 @@
             page.className = "strip-page";
             var draft = sceneDraft();
             var sceneNameValue = state.sceneNameDrafts[state.selectedScene] || sceneTitle(state.selectedScene);
-            var sceneNameRow = "<div class='label-row scene-title-row'><div>SCENE</div><input id='sceneTitleInput' value='" + escapeHtml(sceneNameValue) + "' placeholder=' SCENE NAME'></div>";
+            var sceneNameRow = "<div class='label-row scene-title-row'><div>SCENE</div><input id='sceneTitleInput' maxlength='15' value='" + escapeHtml(sceneNameValue) + "' placeholder=' SCENE NAME'></div>";
             var labelRows = allChannels().map(function(channel) {
-                return "<div class='label-row'><div>" + escapeHtml(baseLabel(channel)) + "</div><input data-label-channel='" + channel.id + "' value='" + escapeHtml(draft[channel.id] || "") + "' placeholder=' NAME'></div>";
+                return "<div class='label-row'><div>" + escapeHtml(baseLabel(channel)) + "</div><input data-label-channel='" + channel.id + "' maxlength='15' value='" + escapeHtml(draft[channel.id] || "") + "' placeholder=' NAME'></div>";
             }).join("");
             var scenes = sceneIds.map(function(scene) {
                 var draftName = state.sceneNameDrafts[scene] || sceneTitle(scene);
@@ -4652,14 +5017,16 @@
             });
             var sceneTitleInput = document.getElementById("sceneTitleInput");
             sceneTitleInput.oninput = function(event) {
+                event.target.value = event.target.value.slice(0, 15);
                 state.sceneNameDrafts[state.selectedScene] = event.target.value;
                 persistScenes();
                 renderSceneListOnly(page);
             };
             Array.prototype.forEach.call(page.querySelectorAll("[data-label-channel]"), function(input) {
                 input.oninput = function(event) {
-                    var value = event.target.value;
+                    var value = event.target.value.slice(0, 15);
                     if (value && value[0] !== " ") value = " " + value;
+                    value = value.slice(0, 15);
                     event.target.value = value;
                     sceneDraft()[input.dataset.labelChannel] = value;
                     persistScenes();
@@ -4952,8 +5319,17 @@
             else if (state.view === "meter") renderMeterPage();
             else renderMixer();
             syncSoloRouting();
+            positionModeOverlay();
         }
 
+        document.addEventListener("pointerdown", guardPermissionEvent, true);
+        document.addEventListener("click", guardPermissionEvent, true);
+        document.addEventListener("input", guardPermissionEvent, true);
+        window.addEventListener("pointermove", updateModeGesture, true);
+        window.addEventListener("pointerup", finishModeGesture, true);
+        window.addEventListener("pointercancel", finishModeGesture, true);
+        window.addEventListener("resize", positionModeOverlay);
+        bindModeOverlay();
         loadScenes();
         socket.on("scene store", applySceneStore);
         socket.on("meter config", applyMeterConfig);
