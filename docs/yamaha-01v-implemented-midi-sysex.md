@@ -907,6 +907,8 @@ Known channel codes:
 
 SELECT should not be treated as a toggle state.
 
+Do not use `F0 43 10 3E 04 23 01 channelCode 01 04 F7` for software channel select. That family changes the Yamaha MID view page; keep it only as a channel-code reference.
+
 ### 14.5 SOLO SysEx
 
 Solo is observed but not fully validated.

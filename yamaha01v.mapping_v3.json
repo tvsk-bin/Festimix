@@ -660,10 +660,11 @@
   },
   "channelSelectRemote": {
     "source": "D:\\Yamaha 01v sysex\\select buttons 1 to 15-16 and then master and eff1 eff2 RTN.log",
-    "status": "observed_select_sysex",
+    "status": "channel_code_reference_only_do_not_send_family_directly",
     "family": "F0 43 10 3E 04 23 01 channelCode 01 04 F7",
     "notes": [
-      "Use the direct select SysEx captured from the Yamaha 01V select buttons.",
+      "Do not send this family from channel select; it changes the Yamaha MID view page.",
+      "Channel select uses buttonSysex.selectObserved with the same channel codes.",
       "Capture order is CH1 through CH15/16, then master, EFF RTN1, EFF RTN2.",
       "This replaces the earlier key-remote press/release experiment, which did not reliably select the channel on the console."
     ],
