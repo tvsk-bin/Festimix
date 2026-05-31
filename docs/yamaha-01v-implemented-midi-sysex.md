@@ -151,6 +151,8 @@ The `ccMappings` section is marked as validated and sourced from the Yamaha 01V 
 | RTN1 | 15 |
 | RTN2 | 16 |
 
+The main MIX UI writes input channel faders through SysEx when `sysexParameters.channelFader` has a matching address. RTN1/RTN2 continue to use the effect-return master send SysEx route.
+
 ### 4.2 Master faders
 
 | Target | CC |
@@ -570,6 +572,27 @@ The FX master fader addresses are derived from FX master and return fader logs.
 
 The stereo address is marked as confirmed from master fader logs on different pages.
 
+### 8.4 MIX input channel faders
+
+| Target | Address |
+|---|---|
+| CH1 | `0x000C` |
+| CH2 | `0x000D` |
+| CH3 | `0x000E` |
+| CH4 | `0x000F` |
+| CH5 | `0x0010` |
+| CH6 | `0x0011` |
+| CH7 | `0x0012` |
+| CH8 | `0x0013` |
+| CH9 | `0x0014` |
+| CH10 | `0x0015` |
+| CH11 | `0x0016` |
+| CH12 | `0x0017` |
+| CH13/14 | `0x0018` |
+| CH15/16 | `0x0019` |
+
+These are inferred as the contiguous MIX fader block before the existing RTN1/RTN2 master send addresses `0x001A` and `0x001B`, and before the known master fader block at `0x001C` onward.
+
 ## 9. Pan SysEx parameters
 
 Additional pan addresses are available for stereo channels and returns:
@@ -971,7 +994,7 @@ Some of these items are already partly implemented or partly confirmed elsewhere
 
 | Area | Transport | Status |
 |---|---|---|
-| Channel faders | MIDI CC | validated |
+| Channel faders | SysEx preferred, MIDI CC fallback | input SysEx inferred; CC validated |
 | Master faders | MIDI CC | validated |
 | Channel ON | MIDI CC | validated |
 | Master ON | MIDI CC | validated |

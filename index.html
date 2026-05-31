@@ -2119,7 +2119,7 @@
         function sendAllChannelControls(channel) {
             var controls = channelControls(channel);
             if (channel.midiKey) {
-                if (state.faders[channel.id] !== undefined) sendParameter("channelFader." + channel.midiKey, state.faders[channel.id]);
+                if (state.faders[channel.id] !== undefined) sendParameter(mixFaderParameter(channel), state.faders[channel.id]);
                 sendParameterForSend(channel, "aux1", controls.aux1);
                 sendParameterForSend(channel, "aux2", controls.aux2);
                 sendParameterForSend(channel, "aux3", controls.aux3);
@@ -2952,7 +2952,7 @@
             var targetControls = channelControls(target);
             if (state.faders[source.id] !== undefined) {
                 state.faders[target.id] = state.faders[source.id];
-                if (target.midiKey) sendParameter("channelFader." + target.midiKey, state.faders[target.id]);
+                if (target.midiKey) sendParameter(mixFaderParameter(target), state.faders[target.id]);
             }
             ["aux1", "aux2", "aux3", "aux4", "eff1", "eff2"].forEach(function(sendId) {
                 targetControls[sendId] = sourceControls[sendId];
@@ -3487,7 +3487,7 @@
         function faderParameter(channel) {
             if (channel && (channel.id === "RTN1" || channel.id === "RTN2")) {
                 var returnId = channel.id === "RTN1" ? "effRtn1" : "effRtn2";
-                if (state.mode === "MIX") return "effectReturnSend.master." + returnId;
+                if (state.mode === "MIX") return mixFaderParameter(channel);
                 if (state.mode === "AUX1") return "effectReturnSend.aux1." + returnId;
                 if (state.mode === "AUX2") return "effectReturnSend.aux2." + returnId;
                 if (state.mode === "AUX3") return "effectReturnSend.aux3." + returnId;
@@ -3498,6 +3498,13 @@
             var group = faderGroupByMode[state.mode];
             if (!group) return null;
             return group + "." + channel.midiKey;
+        }
+
+        function mixFaderParameter(channel) {
+            if (!channel) return null;
+            if (channel.id === "RTN1") return "effectReturnSend.master.effRtn1";
+            if (channel.id === "RTN2") return "effectReturnSend.master.effRtn2";
+            return "channelFader." + channel.midiKey;
         }
 
         function sendControlIdForMode(mode) {

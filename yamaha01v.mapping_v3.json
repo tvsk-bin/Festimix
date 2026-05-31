@@ -750,6 +750,24 @@
         "left": "0x03E3"
       }
     },
+    "channelFader": {
+      "validated": "inferred_from_mix_bus_fader_block_before_existing_return_and_master_fader_addresses",
+      "transport": "F0 43 10 3E 04 30 aaH aaL value F7",
+      "CH1": "0x000C",
+      "CH2": "0x000D",
+      "CH3": "0x000E",
+      "CH4": "0x000F",
+      "CH5": "0x0010",
+      "CH6": "0x0011",
+      "CH7": "0x0012",
+      "CH8": "0x0013",
+      "CH9": "0x0014",
+      "CH10": "0x0015",
+      "CH11": "0x0016",
+      "CH12": "0x0017",
+      "CH13_14": "0x0018",
+      "CH15_16": "0x0019"
+    },
     "masterFader": {
       "STEREO": "0x0024",
       "AUX1": "0x001C",
