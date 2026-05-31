@@ -1351,6 +1351,8 @@
         function selectMixerChannel(channel) {
             if (!channel || !channel.selectKey) return;
             // Yamaha 01V select/key-remote SysEx also changes display pages, so UI selection stays local.
+            state.selectedId = channel.id;
+            state.selectedLabel = channel.label;
         }
 
         function setMasterOn(master, enabled) {
