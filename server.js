@@ -8,7 +8,7 @@ var readline = require("readline");
 var midiApp = require("./app");
 
 var DEFAULT_MIDI_PORT = "Babyface Midi Port 1";
-var SERVER_VERSION = "2.1.0";
+var SERVER_VERSION = "3.0.0";
 var lastRunSettingsPath = path.join(__dirname, "data", "last-run-settings.json");
 var MIXER_PROFILES = [
     { id: "yamaha01vDefault", label: "Yamaha 01V", integration: "midi" }
@@ -28,8 +28,13 @@ function moduleVersion(name) {
 }
 
 function logServiceVersions() {
-    console.log("\nFestimix service versions:");
-    console.log("  server:", "Festimix " + SERVER_VERSION + " (TVSK 2026)");
+    console.log("");
+    console.log("(c) TVSK 2026");
+    console.log("Festimix v3");
+    console.log("");
+    console.log("Festimix service versions:");
+    console.log("  main:", "v3");
+    console.log("  server:", SERVER_VERSION);
     console.log("  node:", process.version);
     console.log("  socket.io:", moduleVersion("socket.io"));
     console.log("  express:", moduleVersion("express"));
@@ -217,6 +222,28 @@ function summarizeLastRunSettings(settings) {
     console.log("  safe reset:", settings.safeReset ? "YES" : "NO");
 }
 
+function logStartupSettings(settings, heading) {
+    console.log("\n" + heading + ":");
+    console.log("  mixer:", settings.mixerProfile.label);
+    console.log("  app mode:", settings.appMode);
+    console.log("  integration:", settings.mixerProfile.integration);
+    if (settings.mixerProfile.integration === "midi") {
+        console.log("  MIDI input:", settings.input);
+        if (settings.inputReason) console.log("    reason:", settings.inputReason);
+        console.log("  MIDI output:", settings.output);
+        if (settings.outputReason) console.log("    reason:", settings.outputReason);
+    }
+    console.log("  MIDI profile:", settings.profile);
+    console.log("  MIDI channel:", settings.channel);
+    console.log("  meter audio device:", settings.meterAudioDeviceName || "default");
+    console.log("  meter audio channels:", settings.meterAudioChannels.label);
+    console.log("  optional input bank:", settings.optionalInputBankEnabled ? "YES" : "NO");
+    if (settings.mixerProfile.id === "yamaha01vDefault") {
+        console.log("  AUX pre/post startup:", JSON.stringify(settings.auxPrePost));
+    }
+    console.log("  startup safe reset:", settings.safeReset ? "YES" : "NO");
+}
+
 function parseAppModeAnswer(answer, defaultValue) {
     var fallback = defaultValue || "tablet-only";
     var text = String(answer || "").trim().toLowerCase();
@@ -285,6 +312,20 @@ function parseYesNoAnswer(answer, defaultValue) {
     if (text === "y" || text === "yes" || text === "i" || text === "igen") return true;
     if (text === "n" || text === "no" || text === "nem") return false;
     return !!defaultValue;
+}
+
+function wantsStartupRestart(answer) {
+    var text = String(answer || "").trim().toLowerCase();
+    return text === "n" || text === "no" || text === "nem" ||
+        text === "u" || text === "ujra" || text === "újra" ||
+        text === "v" || text === "vissza" || text === "back" || text === "b";
+}
+
+async function confirmStartupSettings(rl, settings) {
+    if (!process.stdin.isTTY) return true;
+    logStartupSettings(settings, "Inditasi osszegzes");
+    var answer = await question(rl, "Mehet az inditas? [ENTER=mehet / ujra=vissza az elejere]: ");
+    return !wantsStartupRestart(answer);
 }
 
 async function askAuxPrePostModes(rl, mixerProfile) {
@@ -356,6 +397,18 @@ async function main() {
     var appMode = "tablet-only";
 
     try {
+        var acceptedStartup = false;
+        while (!acceptedStartup) {
+            inputSelection = null;
+            outputSelection = null;
+            safeReset = false;
+            meterAudioChannels = parseMeterAudioChannels(process.env.O1V_METER_AUDIO_CHANNELS || "");
+            meterAudioDeviceName = process.env.O1V_METER_AUDIO_DEVICE || "";
+            optionalInputBankEnabled = parseYesNoAnswer(process.env.O1V_OPTIONAL_INPUT_BANK || "", false);
+            auxPrePost = defaultAuxPrePostModes();
+            mixerProfile = MIXER_PROFILES[0];
+            appMode = "tablet-only";
+
         var lastRunSettings = await askLoadLastRunSettings(rl);
         if (lastRunSettings) {
             mixerProfile = mixerProfileById(lastRunSettings.mixerProfileId);
@@ -416,6 +469,29 @@ async function main() {
                 defaultName: DEFAULT_MIDI_PORT
             }, rl);
         }
+            var previewInput = inputSelection && inputSelection.port;
+            var previewOutput = outputSelection && outputSelection.port;
+            var previewProfile = process.env.O1V_MIDI_PROFILE || mixerProfile.id;
+            var previewChannel = parseInt(process.env.O1V_MIDI_CHANNEL || "1", 10);
+            acceptedStartup = await confirmStartupSettings(rl, {
+                mixerProfile: mixerProfile,
+                appMode: appMode,
+                input: previewInput,
+                output: previewOutput,
+                inputReason: inputSelection && inputSelection.reason,
+                outputReason: outputSelection && outputSelection.reason,
+                profile: previewProfile,
+                channel: previewChannel,
+                meterAudioDeviceName: meterAudioDeviceName,
+                meterAudioChannels: meterAudioChannels,
+                optionalInputBankEnabled: optionalInputBankEnabled,
+                auxPrePost: auxPrePost,
+                safeReset: safeReset
+            });
+            if (!acceptedStartup) {
+                console.log("\nRendben, kezdjuk ujra az inditasi beallitasokat.");
+            }
+        }
     } finally {
         rl.close();
     }
@@ -426,24 +502,21 @@ async function main() {
     var profile = process.env.O1V_MIDI_PROFILE || mixerProfile.id;
     var channel = parseInt(process.env.O1V_MIDI_CHANNEL || "1", 10);
 
-    console.log("\nSelected mixer:", mixerProfile.label);
-    console.log("Selected app mode:", appMode);
-    console.log("Selected integration:", mixerProfile.integration);
-    if (mixerProfile.integration === "midi") {
-        console.log("Selected MIDI input:", input);
-        console.log("  reason:", inputSelection.reason);
-        console.log("Selected MIDI output:", output);
-        console.log("  reason:", outputSelection.reason);
-    }
-    console.log("Selected MIDI profile:", profile);
-    console.log("Selected MIDI channel:", channel);
-    console.log("Selected meter audio device:", meterAudioDeviceName || "default");
-    console.log("Selected meter audio channels:", meterAudioChannels.label);
-    console.log("Optional input bank:", optionalInputBankEnabled ? "YES" : "NO");
-    if (mixerProfile.id === "yamaha01vDefault") {
-        console.log("Selected AUX pre/post startup:", JSON.stringify(auxPrePost));
-    }
-    console.log("Startup safe reset:", safeReset ? "YES" : "NO");
+    logStartupSettings({
+        mixerProfile: mixerProfile,
+        appMode: appMode,
+        input: input,
+        output: output,
+        inputReason: inputSelection && inputSelection.reason,
+        outputReason: outputSelection && outputSelection.reason,
+        profile: profile,
+        channel: channel,
+        meterAudioDeviceName: meterAudioDeviceName,
+        meterAudioChannels: meterAudioChannels,
+        optionalInputBankEnabled: optionalInputBankEnabled,
+        auxPrePost: auxPrePost,
+        safeReset: safeReset
+    }, "Selected startup settings");
     writeLastRunSettings({
         mixerProfileId: mixerProfile.id,
         mixerProfile: { id: mixerProfile.id, label: mixerProfile.label, integration: mixerProfile.integration },
@@ -464,7 +537,7 @@ async function main() {
         console.error("Unable to open selected MIDI device.");
         process.exitCode = 1;
     } else {
-        console.log("01V Web Controller running at http://localhost:" + port);
+        console.log("Festimix running at http://localhost:" + port);
     }
 }
 

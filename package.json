@@ -1,11 +1,10 @@
 {
-    "name": "@cdgco/01v-web-controller",
+    "name": "@tvsk/festimix",
     "version": "1.0.4",
     "description": "Festimix remote mixer control surface",
     "keywords": [
-        "Yamaha",
-        "01V",
-        "Yamaha 01V",
+        "Festimix",
+        "V3",
         "Mixer",
         "Remote Mixer",
         "Remote Control",
@@ -13,7 +12,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/cdgco/01V-Web-Controller.git"
+        "url": "https://github.com/tvsk-bin/Festimix.git"
     },
     "main": "main.js",
     "scripts": {
@@ -34,6 +33,6 @@
         "electron": "^9.0.5"
     },
     "bin": {
-        "01VWebController": "./global.js"
+        "Festimix": "./global.js"
     }
 }

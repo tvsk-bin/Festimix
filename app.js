@@ -145,6 +145,9 @@ function connectOutport(input, output, port, options) {
             console.log("Incoming SysEx:", formatSysExBytes(bytes));
         }
         midi.mapIncomingToUi(msg).forEach(function(event) {
+            if (event && (event.group === "channelSelect" || event.group === "channelSolo" || event.group === "masterSolo")) {
+                console.log("Mapped MIDI incoming:", JSON.stringify(event));
+            }
             io.emit("midi incoming", event);
         });
         var mapped = midi.mapIncomingToLegacyUi(msg);
@@ -223,6 +226,8 @@ function connectOutport(input, output, port, options) {
                     result = midi.setMasterSolo(action.master, action.enabled);
                 } else if (action.type === "selectChannel") {
                     result = midi.selectChannel(action.channel);
+                } else if (action.type === "selectMasterBus") {
+                    result = midi.selectMasterBus(action.mode);
                 } else if (action.type === "writeEqParameter") {
                     result = midi.writeEqParameter(action.channel, action.band, action.parameter, action.value);
                 } else if (action.type === "writeDynamicsBundle") {

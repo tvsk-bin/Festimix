@@ -21,6 +21,7 @@
     "AUX4": "pre"
   },
   "safeReset": true,
+  "appMode": "tablet-only",
   "midiProfile": "yamaha01vDefault",
   "midiChannel": 1
 }

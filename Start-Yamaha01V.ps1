@@ -6,17 +6,13 @@ $url = "http://localhost:3000"
 Set-Location $projectRoot
 
 Write-Host ""
-Write-Host "Yamaha 01V Web Controller inditas" -ForegroundColor Cyan
+Write-Host "Festimix v3 inditas" -ForegroundColor Cyan
 Write-Host "Projekt: $projectRoot"
-Write-Host ""
-Write-Host "MIDI port valasztas:"
-Write-Host "  ENTER = aktualis alapertelmezett, jelenleg Babyface Midi Port 1 ha elerheto"
-Write-Host "  irhatsz port indexet vagy port nevreszletet is"
 Write-Host ""
 Write-Host "Web UI: $url"
 Write-Host ""
 
-Start-Job -Name "Yamaha01VBrowserOpen" -ScriptBlock {
+Start-Job -Name "FestimixBrowserOpen" -ScriptBlock {
     param($targetUrl)
     for ($attempt = 0; $attempt -lt 120; $attempt++) {
         try {
