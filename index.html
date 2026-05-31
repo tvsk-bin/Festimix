@@ -1742,7 +1742,7 @@
                 sendParameter("pan." + keys[1], pairedValue);
                 return;
             }
-            var midiValue = Math.round(((parseInt(value, 10) + 16) / 32) * 127);
+            var midiValue = Math.round(((parseInt(value, 10) + 16) / 32) * 32);
             sendParameter("pan." + channel.midiKey, midiValue);
         }
 

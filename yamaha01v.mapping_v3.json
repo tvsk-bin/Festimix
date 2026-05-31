@@ -729,6 +729,18 @@
   },
   "sysexParameters": {
     "pan": {
+      "CH1": "0x0360",
+      "CH2": "0x0361",
+      "CH3": "0x0362",
+      "CH4": "0x0363",
+      "CH5": "0x0364",
+      "CH6": "0x0365",
+      "CH7": "0x0366",
+      "CH8": "0x0367",
+      "CH9": "0x0368",
+      "CH10": "0x0369",
+      "CH11": "0x036A",
+      "CH12": "0x036B",
       "CH13_L": "0x0374",
       "CH13_R": "0x0375",
       "CH15_L": "0x0376",
@@ -737,7 +749,7 @@
       "RTN1_R": "0x0379",
       "RTN2_L": "0x037A",
       "RTN2_R": "0x037B",
-      "validated": "from stereo 1314, 1516, eff1 ret, eff2 ret pan es csatornavaltasok.log"
+      "validated": "from D:\\Github-hatterinfok\\Yamaha 01v sysex\\pan 1-eff2.log"
     },
     "attenuator": {
       "notes": "0x5D is the sniffed -3 dB mono attenuation value. Address sequence is kept for future level/trim logic.",

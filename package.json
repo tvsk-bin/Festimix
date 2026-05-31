@@ -17,6 +17,7 @@
     },
     "main": "main.js",
     "scripts": {
+        "test:mapping": "node test/yamaha-mapping-smoke.js",
         "start": "electron .",
         "server": "node server.js"
     },

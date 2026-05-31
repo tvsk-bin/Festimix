@@ -595,10 +595,22 @@ These are inferred as the contiguous MIX fader block before the existing RTN1/RT
 
 ## 9. Pan SysEx parameters
 
-Additional pan addresses are available for stereo channels and returns:
+Pan SysEx uses 0..32 values, with center at 16. Mono input channels use one pan address; stereo channels and effect returns use separate L/R pan addresses.
 
 | Target | Address |
 |---|---|
+| CH1 | `0x0360` |
+| CH2 | `0x0361` |
+| CH3 | `0x0362` |
+| CH4 | `0x0363` |
+| CH5 | `0x0364` |
+| CH6 | `0x0365` |
+| CH7 | `0x0366` |
+| CH8 | `0x0367` |
+| CH9 | `0x0368` |
+| CH10 | `0x0369` |
+| CH11 | `0x036A` |
+| CH12 | `0x036B` |
 | CH13 L | `0x0374` |
 | CH13 R | `0x0375` |
 | CH15 L | `0x0376` |
@@ -608,7 +620,7 @@ Additional pan addresses are available for stereo channels and returns:
 | RTN2 L | `0x037A` |
 | RTN2 R | `0x037B` |
 
-Validated from: `stereo 1314, 1516, eff1 ret, eff2 ret pan es csatornavaltasok.log`.
+Validated from: `D:\Github-hatterinfok\Yamaha 01v sysex\pan 1-eff2.log`.
 
 ## 10. Attenuator parameters
 
