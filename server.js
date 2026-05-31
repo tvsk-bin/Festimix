@@ -207,6 +207,7 @@ function mixerProfileById(id) {
 function summarizeLastRunSettings(settings) {
     if (!settings) return;
     console.log("\nLast run settings:");
+    console.log("  app mode:", settings.appMode || "tablet-only");
     console.log("  mixer:", (settings.mixerProfile && settings.mixerProfile.label) || settings.mixerProfileId || "unknown");
     console.log("  midi input:", settings.midiInput || "default");
     console.log("  midi output:", settings.midiOutput || "default");
@@ -214,6 +215,26 @@ function summarizeLastRunSettings(settings) {
     console.log("  optional input bank:", settings.optionalInputBankEnabled ? "YES" : "NO");
     console.log("  aux pre/post:", JSON.stringify(settings.auxPrePost || defaultAuxPrePostModes()));
     console.log("  safe reset:", settings.safeReset ? "YES" : "NO");
+}
+
+function parseAppModeAnswer(answer, defaultValue) {
+    var fallback = defaultValue || "tablet-only";
+    var text = String(answer || "").trim().toLowerCase();
+    if (!text) return fallback;
+    if (text === "a" || text === "assist" || text === "assistant" || text === "assziszt" || text === "asist") return "assist";
+    if (text === "t" || text === "tablet" || text === "tablet-only" || text === "tablet only" || text === "tabletonly") return "tablet-only";
+    return fallback;
+}
+
+async function askAppMode(rl, defaultValue) {
+    var envMode = process.env.FESTIMIX_APP_MODE || process.env.O1V_APP_MODE || "";
+    if (envMode) return parseAppModeAnswer(envMode, defaultValue || "tablet-only");
+    if (!process.stdin.isTTY) return defaultValue || "tablet-only";
+    console.log("\nFestimix inditasi mod:");
+    console.log("  [t] tablet only: ismert V3 felulet duplex funkciokkal");
+    console.log("  [a] assist: V3 plusz assistant/raw Yamaha EQ modulok");
+    var answer = await question(rl, "Valassz modot [tablet only]: ");
+    return parseAppModeAnswer(answer, defaultValue || "tablet-only");
 }
 
 async function askLoadLastRunSettings(rl) {
@@ -332,6 +353,7 @@ async function main() {
     var optionalInputBankEnabled = parseYesNoAnswer(process.env.O1V_OPTIONAL_INPUT_BANK || "", false);
     var auxPrePost = defaultAuxPrePostModes();
     var mixerProfile = MIXER_PROFILES[0];
+    var appMode = "tablet-only";
 
     try {
         var lastRunSettings = await askLoadLastRunSettings(rl);
@@ -344,7 +366,10 @@ async function main() {
             meterAudioDeviceName = lastRunSettings.meterAudioDeviceName || "";
             optionalInputBankEnabled = !!lastRunSettings.optionalInputBankEnabled;
             auxPrePost = lastRunSettings.auxPrePost || auxPrePost;
+            appMode = lastRunSettings.appMode || appMode;
+            appMode = await askAppMode(rl, appMode);
         } else {
+            appMode = await askAppMode(rl, appMode);
             mixerProfile = await pickMixerProfile(rl);
             if (mixerProfile.integration === "midi") {
                 var info = listPorts();
@@ -402,6 +427,7 @@ async function main() {
     var channel = parseInt(process.env.O1V_MIDI_CHANNEL || "1", 10);
 
     console.log("\nSelected mixer:", mixerProfile.label);
+    console.log("Selected app mode:", appMode);
     console.log("Selected integration:", mixerProfile.integration);
     if (mixerProfile.integration === "midi") {
         console.log("Selected MIDI input:", input);
@@ -428,11 +454,12 @@ async function main() {
         optionalInputBankEnabled: optionalInputBankEnabled,
         auxPrePost: auxPrePost,
         safeReset: safeReset,
+        appMode: appMode,
         midiProfile: profile,
         midiChannel: channel
     });
 
-    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, safeReset: safeReset, meterAudioChannels: meterAudioChannels, meterAudioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled, auxPrePost: auxPrePost });
+    var result = midiApp.connectOutport(input, output, port, { profile: profile, channel: channel, safeReset: safeReset, meterAudioChannels: meterAudioChannels, meterAudioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled, auxPrePost: auxPrePost, appMode: appMode });
     if (result === 1) {
         console.error("Unable to open selected MIDI device.");
         process.exitCode = 1;

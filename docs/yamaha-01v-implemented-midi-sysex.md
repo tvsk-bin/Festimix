@@ -1038,7 +1038,39 @@ Some of these items are already partly implemented or partly confirmed elsewhere
 | Smart EQ | Concept only |
 | Attenuator / trim logic | Incomplete / future use |
 
-## 19. Maintenance rule
+## 19. Duplex incoming support
+
+v3 contains a first-pass incoming MIDI/SysEx translator for hardware-to-UI updates.
+
+Runtime rule:
+
+```text
+Outgoing Yamaha 01V control remains SysEx-first where the app already uses SysEx.
+Incoming Yamaha 01V feedback accepts both Control Change and SysEx, because the hardware does not emit SysEx for every front-panel move while the DSP/control surface are coupled.
+```
+
+Currently mapped incoming feedback:
+
+| UI area | Incoming transport | Status |
+|---|---|---|
+| Channel faders | MIDI CC 1-16 | implemented |
+| Master faders | MIDI CC 17-27 and SysEx edit-buffer addresses | implemented |
+| Channel ON | MIDI CC 28-44 and observed SysEx button families | implemented |
+| Master ON | MIDI CC 45-55 and observed SysEx button families | implemented |
+| Pan / balance | MIDI CC 56-76 and known stereo/return SysEx pan addresses | implemented |
+| Phase reverse | observed SysEx button families | implemented |
+| Input FX sends | MIDI CC fx1/fx2 tables | implemented |
+| AUX sends | known SysEx edit-buffer addresses | implemented |
+| Effect return sends | known SysEx stored-prefix messages | implemented |
+
+Still needs hardware validation:
+
+- Whether the console emits CC or SysEx for each of these controls in every operating page when the Yamaha interface is actively controlling the DSP.
+- Exact behavior for paired stereo pan feedback. The UI can update from a single L/R message, but richer inference of Stereo/Wide/Narrow/Mono is intentionally conservative.
+- Solo feedback remains excluded from automatic duplex state because the existing capture notes say the on/off direction and paired-message behavior still need validation.
+- EQ, dynamics, HPF, presets, scene state, attenuator/trim and detailed effect parameters remain command/write oriented until enough incoming captures exist.
+
+## 20. Maintenance rule
 
 Whenever `yamaha01v.mapping_v3.json` is changed, this document should be checked and updated.
 

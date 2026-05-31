@@ -62,6 +62,7 @@ function connectOutport(input, output, port, options) {
     var meterAudioChannels = options.meterAudioChannels || { left: 0, right: 1, label: "1-2" };
     var meterAudioDeviceName = options.meterAudioDeviceName || "";
     var optionalInputBankEnabled = !!options.optionalInputBankEnabled;
+    var appMode = options.appMode === "assist" ? "assist" : "tablet-only";
 
     function executeEngineCommands(commands) {
         return (commands || []).map(function(command) {
@@ -138,9 +139,24 @@ function connectOutport(input, output, port, options) {
         }
     }
 
+    inPort.connect(function(msg) {
+        var bytes = Array.prototype.slice.call(msg || []);
+        if (bytes[0] === 0xf0) {
+            console.log("Incoming SysEx:", formatSysExBytes(bytes));
+        }
+        midi.mapIncomingToUi(msg).forEach(function(event) {
+            io.emit("midi incoming", event);
+        });
+        var mapped = midi.mapIncomingToLegacyUi(msg);
+        if (mapped) {
+            io.emit("fader change", mapped.legacyId, mapped.value);
+        }
+    });
+
     io.on("connection", (socket) => {
         socket.emit("scene store", readSceneStore());
         socket.emit("engine modules", engine.describeModules());
+        socket.emit("app mode", { mode: appMode });
         socket.emit("meter config", { audioChannels: meterAudioChannels, audioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled });
         if (latestAudioMeterFrame) socket.emit("audio meter frame", latestAudioMeterFrame);
         socket.on("scene store save", (store) => {
@@ -235,6 +251,12 @@ function connectOutport(input, output, port, options) {
                         action: "engineMasterEqIntent",
                         messages: executeEngineCommands(engine.setMasterEqIntent(action.target, action.control, action.value, action.state))
                     };
+                } else if (action.type === "engineRawYamahaEqIntent") {
+                    result = {
+                        sent: true,
+                        action: "engineRawYamahaEqIntent",
+                        messages: executeEngineCommands(engine.setRawYamahaEqIntent(action.target, action.state))
+                    };
                 } else if (action.type === "engineAuxEqIntent") {
                     result = {
                         sent: true,
@@ -303,16 +325,6 @@ function connectOutport(input, output, port, options) {
                 socket.emit("midi warning", result);
             } else {
                 socket.emit("eq prototype status", result);
-            }
-        });
-        inPort.connect(function(msg) {
-            if (msg && msg[0] === 0xf0) {
-                console.log("Incoming SysEx:", formatSysExBytes(Array.prototype.slice.call(msg)));
-                return;
-            }
-            var mapped = midi.mapIncomingToLegacyUi(msg);
-            if (mapped) {
-                io.emit("fader change", mapped.legacyId, mapped.value);
             }
         });
         socket.emit("midi status", { profile: midi.profile.id, profileName: midi.profile.name, channel: midi.channel });
