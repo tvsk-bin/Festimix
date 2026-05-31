@@ -892,22 +892,22 @@ Families:
 Family:
 
 ```text
-F0 43 10 3E 04 23 01 channelCode 09 02 F7
+F0 43 10 3E 04 23 01 channelCode 10 00 F7
 ```
 
 Known channel codes:
 
 | Target | Channel code | Full message |
 |---|---|---|
-| CH1 | `0x00` | `F0 43 10 3E 04 23 01 00 09 02 F7` |
-| CH13/14 | `0x0C` | `F0 43 10 3E 04 23 01 0C 09 02 F7` |
-| CH15/16 | `0x0D` | `F0 43 10 3E 04 23 01 0D 09 02 F7` |
-| RTN1 | `0x0E` | `F0 43 10 3E 04 23 01 0E 09 02 F7` |
-| RTN2 | `0x0F` | `F0 43 10 3E 04 23 01 0F 09 02 F7` |
+| CH1 | `0x00` | `F0 43 10 3E 04 23 01 00 10 00 F7` |
+| CH13/14 | `0x0C` | `F0 43 10 3E 04 23 01 0C 10 00 F7` |
+| CH15/16 | `0x0D` | `F0 43 10 3E 04 23 01 0D 10 00 F7` |
+| RTN1 | `0x0E` | `F0 43 10 3E 04 23 01 0E 10 00 F7` |
+| RTN2 | `0x0F` | `F0 43 10 3E 04 23 01 0F 10 00 F7` |
 
 SELECT should not be treated as a toggle state.
 
-Do not use `F0 43 10 3E 04 23 01 channelCode 01 04 F7` for software channel select. That family changes the Yamaha MID view page; keep it only as a channel-code reference.
+Do not use `F0 43 10 3E 04 23 01 channelCode 01 04 F7` or `F0 43 10 3E 04 23 01 channelCode 09 02 F7` for software channel select. Those families can change Yamaha display pages; keep them only as channel-code references.
 
 ### 14.5 SOLO SysEx
 

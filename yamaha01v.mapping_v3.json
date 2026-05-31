@@ -659,12 +659,12 @@
     ]
   },
   "channelSelectRemote": {
-    "source": "D:\\Yamaha 01v sysex\\select buttons 1 to 15-16 and then master and eff1 eff2 RTN.log",
+    "source": "D:\\Github-hatterinfok\\Yamaha 01v sysex\\ch select 1-15-16 and eff RTN.log",
     "status": "channel_code_reference_only_do_not_send_family_directly",
     "family": "F0 43 10 3E 04 23 01 channelCode 01 04 F7",
     "notes": [
       "Do not send this family from channel select; it changes the Yamaha MID view page.",
-      "Channel select uses buttonSysex.selectObserved with the same channel codes.",
+      "Channel select sends buttonSysex.selectObserved: F0 43 10 3E 04 23 01 channelCode 10 00 F7.",
       "Capture order is CH1 through CH15/16, then master, EFF RTN1, EFF RTN2.",
       "This replaces the earlier key-remote press/release experiment, which did not reliably select the channel on the console."
     ],
@@ -1354,26 +1354,26 @@
       }
     },
     "selectObserved": {
-      "family": "F0 43 10 3E 04 23 01 channelCode 09 02 F7",
+      "family": "F0 43 10 3E 04 23 01 channelCode 10 00 F7",
       "CH1": {
         "channelCode": "0x00",
-        "bytes": "F0 43 10 3E 04 23 01 00 09 02 F7"
+        "bytes": "F0 43 10 3E 04 23 01 00 10 00 F7"
       },
       "CH13_14": {
         "channelCode": "0x0C",
-        "bytes": "F0 43 10 3E 04 23 01 0C 09 02 F7"
+        "bytes": "F0 43 10 3E 04 23 01 0C 10 00 F7"
       },
       "CH15_16": {
         "channelCode": "0x0D",
-        "bytes": "F0 43 10 3E 04 23 01 0D 09 02 F7"
+        "bytes": "F0 43 10 3E 04 23 01 0D 10 00 F7"
       },
       "RTN1": {
         "channelCode": "0x0E",
-        "bytes": "F0 43 10 3E 04 23 01 0E 09 02 F7"
+        "bytes": "F0 43 10 3E 04 23 01 0E 10 00 F7"
       },
       "RTN2": {
         "channelCode": "0x0F",
-        "bytes": "F0 43 10 3E 04 23 01 0F 09 02 F7"
+        "bytes": "F0 43 10 3E 04 23 01 0F 10 00 F7"
       }
     },
     "soloObserved": {
