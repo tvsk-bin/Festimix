@@ -1,0 +1,27 @@
+{
+  "mixerProfileId": "yamaha01vDefault",
+  "mixerProfile": {
+    "id": "yamaha01vDefault",
+    "label": "Yamaha 01V",
+    "integration": "midi"
+  },
+  "midiInput": "Babyface Midi Port 1",
+  "midiOutput": "Babyface Midi Port 1",
+  "meterAudioDeviceName": "Analog (1+2) (RME Babyface Pro)",
+  "meterAudioChannels": {
+    "left": 0,
+    "right": 1,
+    "label": "1-2"
+  },
+  "optionalInputBankEnabled": false,
+  "auxPrePost": {
+    "AUX1": "pre",
+    "AUX2": "pre",
+    "AUX3": "pre",
+    "AUX4": "pre"
+  },
+  "safeReset": true,
+  "appMode": "tablet-only",
+  "midiProfile": "yamaha01vDefault",
+  "midiChannel": 1
+}

@@ -151,6 +151,8 @@ The `ccMappings` section is marked as validated and sourced from the Yamaha 01V 
 | RTN1 | 15 |
 | RTN2 | 16 |
 
+The main MIX UI writes input channel faders through SysEx when `sysexParameters.channelFader` has a matching address. RTN1/RTN2 continue to use the effect-return master send SysEx route.
+
 ### 4.2 Master faders
 
 | Target | CC |
@@ -570,12 +572,45 @@ The FX master fader addresses are derived from FX master and return fader logs.
 
 The stereo address is marked as confirmed from master fader logs on different pages.
 
-## 9. Pan SysEx parameters
-
-Additional pan addresses are available for stereo channels and returns:
+### 8.4 MIX input channel faders
 
 | Target | Address |
 |---|---|
+| CH1 | `0x000C` |
+| CH2 | `0x000D` |
+| CH3 | `0x000E` |
+| CH4 | `0x000F` |
+| CH5 | `0x0010` |
+| CH6 | `0x0011` |
+| CH7 | `0x0012` |
+| CH8 | `0x0013` |
+| CH9 | `0x0014` |
+| CH10 | `0x0015` |
+| CH11 | `0x0016` |
+| CH12 | `0x0017` |
+| CH13/14 | `0x0018` |
+| CH15/16 | `0x0019` |
+
+These are inferred as the contiguous MIX fader block before the existing RTN1/RTN2 master send addresses `0x001A` and `0x001B`, and before the known master fader block at `0x001C` onward.
+
+## 9. Pan SysEx parameters
+
+Pan SysEx uses 0..32 values, with center at 16. Mono input channels use one pan address; stereo channels and effect returns use separate L/R pan addresses.
+
+| Target | Address |
+|---|---|
+| CH1 | `0x0360` |
+| CH2 | `0x0361` |
+| CH3 | `0x0362` |
+| CH4 | `0x0363` |
+| CH5 | `0x0364` |
+| CH6 | `0x0365` |
+| CH7 | `0x0366` |
+| CH8 | `0x0367` |
+| CH9 | `0x0368` |
+| CH10 | `0x0369` |
+| CH11 | `0x036A` |
+| CH12 | `0x036B` |
 | CH13 L | `0x0374` |
 | CH13 R | `0x0375` |
 | CH15 L | `0x0376` |
@@ -585,7 +620,7 @@ Additional pan addresses are available for stereo channels and returns:
 | RTN2 L | `0x037A` |
 | RTN2 R | `0x037B` |
 
-Validated from: `stereo 1314, 1516, eff1 ret, eff2 ret pan es csatornavaltasok.log`.
+Validated from: `D:\Github-hatterinfok\Yamaha 01v sysex\pan 1-eff2.log`.
 
 ## 10. Attenuator parameters
 
@@ -869,20 +904,22 @@ Families:
 Family:
 
 ```text
-F0 43 10 3E 04 23 01 channelCode 09 02 F7
+F0 43 10 3E 04 23 01 channelCode 10 00 F7
 ```
 
 Known channel codes:
 
 | Target | Channel code | Full message |
 |---|---|---|
-| CH1 | `0x00` | `F0 43 10 3E 04 23 01 00 09 02 F7` |
-| CH13/14 | `0x0C` | `F0 43 10 3E 04 23 01 0C 09 02 F7` |
-| CH15/16 | `0x0D` | `F0 43 10 3E 04 23 01 0D 09 02 F7` |
-| RTN1 | `0x0E` | `F0 43 10 3E 04 23 01 0E 09 02 F7` |
-| RTN2 | `0x0F` | `F0 43 10 3E 04 23 01 0F 09 02 F7` |
+| CH1 | `0x00` | `F0 43 10 3E 04 23 01 00 10 00 F7` |
+| CH13/14 | `0x0C` | `F0 43 10 3E 04 23 01 0C 10 00 F7` |
+| CH15/16 | `0x0D` | `F0 43 10 3E 04 23 01 0D 10 00 F7` |
+| RTN1 | `0x0E` | `F0 43 10 3E 04 23 01 0E 10 00 F7` |
+| RTN2 | `0x0F` | `F0 43 10 3E 04 23 01 0F 10 00 F7` |
 
 SELECT should not be treated as a toggle state.
+
+Do not use `F0 43 10 3E 04 23 01 channelCode 01 04 F7` or `F0 43 10 3E 04 23 01 channelCode 09 02 F7` for software channel select. Those families can change Yamaha display pages; keep them only as channel-code references.
 
 ### 14.5 SOLO SysEx
 
@@ -971,7 +1008,7 @@ Some of these items are already partly implemented or partly confirmed elsewhere
 
 | Area | Transport | Status |
 |---|---|---|
-| Channel faders | MIDI CC | validated |
+| Channel faders | SysEx preferred, MIDI CC fallback | input SysEx inferred; CC validated |
 | Master faders | MIDI CC | validated |
 | Channel ON | MIDI CC | validated |
 | Master ON | MIDI CC | validated |
@@ -1001,7 +1038,39 @@ Some of these items are already partly implemented or partly confirmed elsewhere
 | Smart EQ | Concept only |
 | Attenuator / trim logic | Incomplete / future use |
 
-## 19. Maintenance rule
+## 19. Duplex incoming support
+
+v3 contains a first-pass incoming MIDI/SysEx translator for hardware-to-UI updates.
+
+Runtime rule:
+
+```text
+Outgoing Yamaha 01V control remains SysEx-first where the app already uses SysEx.
+Incoming Yamaha 01V feedback accepts both Control Change and SysEx, because the hardware does not emit SysEx for every front-panel move while the DSP/control surface are coupled.
+```
+
+Currently mapped incoming feedback:
+
+| UI area | Incoming transport | Status |
+|---|---|---|
+| Channel faders | MIDI CC 1-16 | implemented |
+| Master faders | MIDI CC 17-27 and SysEx edit-buffer addresses | implemented |
+| Channel ON | MIDI CC 28-44 and observed SysEx button families | implemented |
+| Master ON | MIDI CC 45-55 and observed SysEx button families | implemented |
+| Pan / balance | MIDI CC 56-76 and known stereo/return SysEx pan addresses | implemented |
+| Phase reverse | observed SysEx button families | implemented |
+| Input FX sends | MIDI CC fx1/fx2 tables | implemented |
+| AUX sends | known SysEx edit-buffer addresses | implemented |
+| Effect return sends | known SysEx stored-prefix messages | implemented |
+
+Still needs hardware validation:
+
+- Whether the console emits CC or SysEx for each of these controls in every operating page when the Yamaha interface is actively controlling the DSP.
+- Exact behavior for paired stereo pan feedback. The UI can update from a single L/R message, but richer inference of Stereo/Wide/Narrow/Mono is intentionally conservative.
+- Solo feedback remains excluded from automatic duplex state because the existing capture notes say the on/off direction and paired-message behavior still need validation.
+- EQ, dynamics, HPF, presets, scene state, attenuator/trim and detailed effect parameters remain command/write oriented until enough incoming captures exist.
+
+## 20. Maintenance rule
 
 Whenever `yamaha01v.mapping_v3.json` is changed, this document should be checked and updated.
 

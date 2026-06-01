@@ -21,7 +21,8 @@
             --on: #1fb96b;
             --off: #5a1e22;
             --bank-bar-width: clamp(42px, 5.4vw, 58px);
-            --channel-select-height: clamp(62px, 9.6vh, 92px);
+            --bus-select-height: clamp(58px, 9vh, 86px);
+            --channel-select-height: var(--bus-select-height);
             --channel-select-button-height: calc(var(--channel-select-height) - 16px);
             --strip-button-height: clamp(42px, 6vh, 52px);
         }
@@ -57,11 +58,10 @@
             flex-direction: column;
             overflow: hidden;
             background: var(--bg);
-            position: relative;
         }
 
         .top-bar {
-            flex: 0 0 clamp(58px, 9vh, 86px);
+            flex: 0 0 var(--bus-select-height);
             display: grid;
             grid-template-columns: repeat(8, minmax(0, 1fr));
             gap: 8px;
@@ -126,9 +126,7 @@
         }
 
         .channel-row .btn-hw {
-            width: 100%;
-            height: 100%;
-            aspect-ratio: auto;
+            aspect-ratio: 1.25 / 1;
             min-height: 0;
             display: flex;
             flex-direction: column;
@@ -140,12 +138,8 @@
         }
 
         .channel-button-main {
-            max-width: 100%;
             font-size: clamp(11px, 1.2vw, 14px);
             font-weight: 900;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
         .channel-button-name {
@@ -270,13 +264,71 @@
             flex: 1 1 auto;
             min-height: 0;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 4px 0;
+            gap: 8px;
+            padding: 4px 0 2px;
         }
 
         .channel-meter-fader-box {
             padding: 4px 0;
+        }
+
+        .strip-fader-main {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .strip-pan-fader {
+            flex: 0 0 clamp(18px, 2.8vh, 24px);
+            width: min(84%, 86px);
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            touch-action: none;
+        }
+
+        .strip-pan-fader::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 999px;
+            background: #3d4247;
+            border: 1px solid #5c646c;
+        }
+
+        .strip-pan-fader::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: clamp(16px, 1.8vw, 22px);
+            height: clamp(16px, 1.8vw, 22px);
+            margin-top: calc((6px - clamp(16px, 1.8vw, 22px)) / 2);
+            border: 1px solid #f1f1f1;
+            background: #d8d8d8;
+            border-radius: 50%;
+        }
+
+        .strip-pan-fader::-moz-range-track {
+            height: 6px;
+            border-radius: 999px;
+            background: #3d4247;
+            border: 1px solid #5c646c;
+        }
+
+        .strip-pan-fader::-moz-range-thumb {
+            width: clamp(16px, 1.8vw, 22px);
+            height: clamp(16px, 1.8vw, 22px);
+            border: 1px solid #f1f1f1;
+            background: #d8d8d8;
+            border-radius: 50%;
+        }
+
+        .strip-pan-fader:disabled {
+            opacity: 0.34;
+            filter: grayscale(1);
         }
 
         .channel-meter-fader-shell {
@@ -683,11 +735,11 @@
         }
 
         .strip-page-nav {
-            flex: 0 0 clamp(56px, 7.8vh, 74px);
+            flex: 0 0 clamp(48px, 6.8vh, 64px);
             display: grid;
             grid-template-columns: minmax(84px, 0.75fr) minmax(0, 2.7fr) minmax(84px, 0.75fr);
             gap: 8px;
-            padding: 6px 4px 2px;
+            padding: 4px 4px 0;
         }
 
         .send-grid {
@@ -735,6 +787,199 @@
 
         .effect-preset-cell {
             align-items: stretch;
+        }
+
+        .assist-eq-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: minmax(0, 3fr) minmax(180px, 1fr);
+            gap: 10px;
+            padding: 6px 4px 8px;
+        }
+
+        .assist-eq-left {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: minmax(0, 1fr) clamp(82px, 13vh, 116px);
+            gap: 10px;
+        }
+
+        .raw-eq-pad {
+            min-height: 0;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #303840;
+            border-radius: 7px;
+            background: #11161a;
+            touch-action: none;
+        }
+
+        .raw-eq-pad::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: transparent;
+            pointer-events: none;
+        }
+
+        .raw-eq-pad.snapshot-active::after {
+            background: rgba(180, 190, 200, 0.08);
+        }
+
+        .raw-eq-spectrum {
+            position: absolute;
+            inset: 0;
+            opacity: 0.42;
+        }
+
+        .raw-eq-snapshot-image {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.5;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .raw-eq-gridline {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(242, 242, 242, 0.5);
+            transform: translateX(-50%);
+            z-index: 2;
+        }
+
+        .raw-eq-node {
+            position: absolute;
+            width: clamp(34px, 4.8vw, 52px);
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.78);
+            background: #d6aa21;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+            box-shadow: 0 0 20px rgba(214, 170, 33, 0.46);
+        }
+
+        .raw-eq-band-label,
+        .raw-eq-freq-label {
+            position: absolute;
+            transform: translateX(-50%);
+            z-index: 4;
+            font-size: clamp(10px, 1.15vw, 13px);
+            font-weight: 900;
+            color: rgba(242,242,242,0.86);
+            pointer-events: none;
+        }
+
+        .raw-eq-band-label {
+            top: 8px;
+        }
+
+        .raw-eq-freq-label {
+            bottom: 8px;
+        }
+
+        .raw-eq-q-row {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .raw-eq-q-cell .swipe-value {
+            width: min(100%, 112px);
+            min-height: clamp(42px, 5.8vh, 54px);
+            justify-self: center;
+            background: linear-gradient(180deg, #15191d 0 34%, #30363d 35% 65%, #15191d 66% 100%);
+            border-color: #5c646c;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), inset 10px 0 18px rgba(255,255,255,0.03), inset -10px 0 18px rgba(0,0,0,0.26);
+        }
+
+        .raw-eq-side {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-rows: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .assist-send-cell {
+            min-height: 0;
+        }
+
+        .assist-send-cell .value-box {
+            min-height: 100%;
+        }
+
+        .assist-send-cell .send-row {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .assist-send-cell .swipe-value {
+            width: min(100%, 54px);
+            min-height: 0;
+            height: 100%;
+            padding: 8px 4px;
+            border-color: #5c646c;
+            background: linear-gradient(90deg, #15191d 0 34%, #30363d 35% 65%, #15191d 66% 100%);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), inset 0 10px 18px rgba(255,255,255,0.04), inset 0 -10px 18px rgba(0,0,0,0.28);
+            font-size: clamp(12px, 1.45vw, 18px);
+            justify-self: center;
+            touch-action: none;
+        }
+
+        .assist-pan-cell {
+            grid-column: span 3;
+        }
+
+        .assist-att-cell {
+            grid-column: span 2;
+        }
+
+        .assist-phase-cell {
+            min-height: 0;
+        }
+
+        .assist-phase-cell .btn-hw {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            padding: 6px 4px;
+            border-radius: 6px;
+            font-size: clamp(10px, 1.05vw, 13px);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+        }
+
+        .assist-spread-cell .swipe-value {
+            width: min(100%, 54px);
+            height: 100%;
+            min-height: 0;
+            padding: 8px 4px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            justify-self: center;
+            touch-action: none;
+        }
+
+        .assist-master-fader {
+            grid-row: span 2;
+        }
+
+        .assist-master-comp-column {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: repeat(4, minmax(0, 1fr));
+            gap: 10px;
         }
 
         .effect-preset-grid {
@@ -822,9 +1067,6 @@
             font-weight: 800;
             text-align: center;
             cursor: pointer;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
         .scene-name-input.active {
@@ -905,21 +1147,21 @@
 
         .mode-button.mode-view {
             background: #b7272d;
-            color: #fff;
+            color: transparent;
             border-color: #ff757a;
             box-shadow: 0 0 16px rgba(183, 39, 45, 0.5);
         }
 
         .mode-button.mode-mix {
             background: #d6aa21;
-            color: #171100;
+            color: transparent;
             border-color: #ffe06a;
             box-shadow: 0 0 16px rgba(214, 170, 33, 0.5);
         }
 
         .mode-button.mode-all {
             background: var(--on);
-            color: #06140d;
+            color: transparent;
             border-color: #80f0b5;
             box-shadow: 0 0 16px rgba(31, 185, 107, 0.5);
         }
@@ -956,6 +1198,10 @@
             stroke: var(--on);
         }
 
+        .mode-overlay line[data-mode-line="expert"] {
+            stroke: #2f8cff;
+        }
+
         .mode-choice {
             position: absolute;
             width: clamp(70px, 8.5vw, 94px);
@@ -986,6 +1232,13 @@
             border-color: var(--on);
             color: #06140d;
             box-shadow: 0 0 18px rgba(31, 185, 107, 0.48), inset 0 0 0 2px rgba(255,255,255,0.08);
+        }
+
+        .mode-choice[data-mode-choice="expert"] {
+            background: #2f8cff;
+            border-color: #2f8cff;
+            color: #031326;
+            box-shadow: 0 0 18px rgba(47, 140, 255, 0.48), inset 0 0 0 2px rgba(255,255,255,0.08);
         }
 
         .mode-choice.active,
@@ -1227,10 +1480,12 @@
                 <line data-mode-line="view" x1="0" y1="0" x2="0" y2="0"></line>
                 <line data-mode-line="mix" x1="0" y1="0" x2="0" y2="0"></line>
                 <line data-mode-line="all" x1="0" y1="0" x2="0" y2="0"></line>
+                <line data-mode-line="expert" x1="0" y1="0" x2="0" y2="0"></line>
             </svg>
-            <button class="mode-choice" data-mode-choice="view" aria-label="View only"><i class="fa fa-eye" aria-hidden="true"></i></button>
-            <button class="mode-choice" data-mode-choice="mix" aria-label="Mix"><i class="fa fa-sliders" aria-hidden="true"></i></button>
-            <button class="mode-choice" data-mode-choice="all" aria-label="All"><i class="fa fa-unlock" aria-hidden="true"></i></button>
+            <button class="mode-choice" data-mode-choice="view" aria-label="View only"></button>
+            <button class="mode-choice" data-mode-choice="mix" aria-label="Mix"></button>
+            <button class="mode-choice" data-mode-choice="all" aria-label="All"></button>
+            <button class="mode-choice" data-mode-choice="expert" aria-label="Expert EQ"></button>
         </div>
     </div>
 
@@ -1261,6 +1516,7 @@
                     handlers[event] = handlers[event] || [];
                     handlers[event].push(handler);
                     if (event === "scene store") emitLater(event, readSceneStore());
+                    if (event === "app mode") emitLater(event, { mode: "assist" });
                     if (event === "meter config") {
                         emitLater(event, {
                             audioChannels: { left: 0, right: 1, label: "DEMO" },
@@ -1348,21 +1604,35 @@
             }
         ];
 
+        // Assist mode keeps tablet and console channel selection independent; master mode may drive Yamaha select.
+        var sendHardwareChannelSelectFromUi = true;
+
         var state = {
             mode: "MIX",
             bankId: "1-8",
             view: "mixer",
             selectedId: null,
             selectedLabel: null,
-            permissionMode: "all",
-            modeMenuOpen: false,
             faders: {},
             on: {},
             solo: {},
-            master: {},
+            master: {
+                "masterFader.effect1": 127,
+                "masterFader.effect2": 127
+            },
             masterOn: {},
             masterSolo: {},
             activeMasterSoloTarget: null,
+            rawEqSnapshotCache: {
+                dataUrl: "",
+                channelIds: [],
+                masterIds: [],
+                createdAt: 0
+            },
+            rawEqSpectrumSnapshots: {
+                channel: {},
+                master: {}
+            },
             masterEq: {},
             effectPreset: {},
             stripControls: {},
@@ -1379,6 +1649,11 @@
             sceneResetUndo: null,
             previousViewBeforeScenes: null,
             previousViewBeforeMeter: null,
+            meterDelegationActive: false,
+            permissionMode: "all",
+            modeMenuOpen: false,
+            appMode: "assist",
+            expertEqMode: false,
             audioMeter: {
                 running: false,
                 requesting: false,
@@ -1399,6 +1674,7 @@
                 deviceName: "",
                 optionalInputBankEnabled: false,
                 spectrumSmoothed: [],
+                lastGoodSpectrum: [],
                 leftPpm: null,
                 rightPpm: null,
                 leftPeakHold: -60,
@@ -1510,6 +1786,12 @@
             EFF2: "fx1Send"
         };
 
+        try {
+            var appModeParam = String(new URLSearchParams(window.location.search || "").get("appMode") || "").toLowerCase();
+            if (appModeParam === "master" || appModeParam === "tablet-only" || appModeParam === "tablet") state.appMode = "tablet-only";
+            if (appModeParam === "assist") state.appMode = "assist";
+        } catch (error) {}
+
         var permissionModes = {
             view: { label: "View Mode", className: "mode-view" },
             mix: { label: "Mix Mode", className: "mode-mix" },
@@ -1570,6 +1852,7 @@
         function isMixEditableTarget(target) {
             if (!target || !target.closest) return false;
             if (target.closest("input.v-fader")) return true;
+            if (target.closest("input.strip-pan-fader")) return true;
             if (target.closest(".btn-hw.on-btn")) return true;
             if (target.closest(".btn-hw.solo")) return true;
             if (target.closest("[data-strip-action='on']") || target.closest("[data-strip-action='solo']")) return true;
@@ -1626,7 +1909,11 @@
 
         function selectMixerChannel(channel) {
             if (!channel || !channel.selectKey) return;
-            sendAction({ type: "selectChannel", channel: channel.selectKey });
+            state.selectedId = channel.id;
+            state.selectedLabel = channel.label;
+            if (shouldSendHardwareChannelSelect()) {
+                sendAction({ type: "selectChannel", channel: channel.selectKey });
+            }
         }
 
         function setMasterOn(master, enabled) {
@@ -1674,9 +1961,23 @@
         function selectPermissionMode(mode) {
             if (!permissionModes[mode]) return;
             state.permissionMode = mode;
+            if (mode === "all") state.expertEqMode = false;
             closeModeMenu();
             renderTopBar();
             renderBankBar();
+            if (state.view === "strip") renderStripPage();
+        }
+
+        function selectModeChoice(mode) {
+            if (mode === "expert") {
+                state.expertEqMode = true;
+                closeModeMenu();
+                renderTopBar();
+                renderBankBar();
+                if (state.view === "strip") renderStripPage();
+                return;
+            }
+            selectPermissionMode(mode);
         }
 
         function nearestModeChoice(clientX, clientY) {
@@ -1721,10 +2022,13 @@
             var allLeft = modeTargetFromFader(4, 0.20);
             var allRight = modeTargetFromFader(5, 0.20);
             if (viewTarget && mixTarget && allLeft && allRight) {
+                var allX = (allLeft.x + allRight.x) / 2;
+                var allY = (allLeft.y + allRight.y) / 2;
                 return [
                     { mode: "view", x: viewTarget.x, y: viewTarget.y },
                     { mode: "mix", x: mixTarget.x, y: mixTarget.y },
-                    { mode: "all", x: (allLeft.x + allRight.x) / 2, y: (allLeft.y + allRight.y) / 2 }
+                    { mode: "all", x: allX, y: allY },
+                    { mode: "expert", x: allX + 92, y: allY - 92 }
                 ];
             }
             var radiusX = Math.max(360, Math.min(620, appRect.width * 0.72));
@@ -1732,7 +2036,8 @@
             return [
                 { mode: "view", angle: 62, rx: radiusX * 0.18, ry: radiusY * 0.98 },
                 { mode: "mix", angle: 47, rx: radiusX * 0.42, ry: radiusY * 0.72 },
-                { mode: "all", angle: 30, rx: radiusX * 0.64, ry: radiusY * 0.42 }
+                { mode: "all", angle: 30, rx: radiusX * 0.64, ry: radiusY * 0.42 },
+                { mode: "expert", angle: 18, rx: radiusX * 0.78, ry: radiusY * 0.26 }
             ].map(function(item) {
                 var radians = item.angle * Math.PI / 180;
                 return {
@@ -1770,7 +2075,9 @@
                 if (choice) {
                     choice.style.left = x + "px";
                     choice.style.top = y + "px";
-                    choice.classList.toggle("active", state.permissionMode === item.mode);
+                    var isActiveChoice = item.mode === "expert" ? state.expertEqMode : state.permissionMode === item.mode;
+                    if (item.mode === "all" && state.expertEqMode) isActiveChoice = false;
+                    choice.classList.toggle("active", isActiveChoice);
                 }
                 if (line) {
                     line.setAttribute("x1", origin.x);
@@ -1797,7 +2104,7 @@
             }
             updateModeGesture(event);
             if (modeGesture.moved && modeGesture.target) {
-                selectPermissionMode(modeGesture.target);
+                selectModeChoice(modeGesture.target);
             } else if (!modeGesture.moved && modeGesture.wasOpen) {
                 closeModeMenu();
                 renderTopBar();
@@ -1847,7 +2154,7 @@
         }
 
         function isMeterDelegationMode() {
-            return state.view === "meter";
+            return state.meterDelegationActive || state.view === "meter";
         }
 
         function isMeterDoubleTap(key) {
@@ -1872,7 +2179,12 @@
             return isDouble;
         }
 
+        function resetNormalMasterTap() {
+            lastNormalMasterTap = { mode: null, time: 0 };
+        }
+
         function exitMeterMode() {
+            state.meterDelegationActive = false;
             state.view = "mixer";
             state.previousViewBeforeMeter = null;
         }
@@ -1892,8 +2204,9 @@
             };
             clearChannelSolos();
             clearMasterSoloState(null);
-            state.solo[channel.id] = true;
+            setChannelSoloState(channel.id, true);
             setChannelSolo(channel.soloKey, true);
+            state.meterDelegationActive = true;
             state.view = "meter";
             state.selectedId = channel.id;
             state.selectedLabel = channel.label;
@@ -1909,17 +2222,89 @@
                 selectedId: state.selectedId,
                 selectedLabel: state.selectedLabel
             };
+            state.meterDelegationActive = true;
             state.view = "meter";
             meterSelectMasterMode(mode);
         }
 
         function exitMeterModeToMaster(mode) {
             var master = masterByMode[mode] || masterByMode.MIX;
+            state.meterDelegationActive = false;
             state.mode = mode;
             state.view = "masterStrip";
             state.previousViewBeforeMeter = null;
             state.selectedId = "master:" + mode;
             state.selectedLabel = master.label;
+            render();
+        }
+
+        function enterMeterModeWithCurrentSolo() {
+            state.previousViewBeforeMeter = {
+                view: state.view,
+                selectedId: state.selectedId,
+                selectedLabel: state.selectedLabel
+            };
+            state.meterDelegationActive = true;
+            state.view = "meter";
+            syncSoloRouting();
+            render();
+        }
+
+        function exitMeterModeToBus(mode) {
+            state.meterDelegationActive = false;
+            state.mode = mode;
+            state.view = "mixer";
+            state.previousViewBeforeMeter = null;
+            state.selectedId = null;
+            state.selectedLabel = null;
+            resetNormalMasterTap();
+            render();
+        }
+
+        function meterSoloTargetCount() {
+            return activeChannelSoloIds().length + activeMasterSoloIds().length;
+        }
+
+        function isOnlyMeterChannelTarget(channel) {
+            return !!(channel && state.solo[channel.id] && meterSoloTargetCount() === 1);
+        }
+
+        function meterModeReturnChannelId(mode) {
+            if (mode === "EFF1") return "RTN1";
+            if (mode === "EFF2") return "RTN2";
+            return null;
+        }
+
+        function isOnlyMeterModeTarget(mode) {
+            var returnId = meterModeReturnChannelId(mode);
+            if (returnId) return !!state.solo[returnId] && meterSoloTargetCount() === 1;
+            var master = masterByMode[mode];
+            return !!(master && state.masterSolo[master.id] && meterSoloTargetCount() === 1);
+        }
+
+        function toggleMeterChannelDetail(channel) {
+            if (!channel) return;
+            if (state.view === "strip" && state.selectedId === channel.id) {
+                state.view = "meter";
+            } else {
+                state.view = "strip";
+                state.selectedId = channel.id;
+                state.selectedLabel = channel.label;
+            }
+            render();
+        }
+
+        function toggleMeterMasterDetail(mode) {
+            var master = masterByMode[mode];
+            if (!master) return;
+            if (state.view === "masterStrip" && state.selectedId === "master:" + mode) {
+                state.view = "meter";
+            } else {
+                state.mode = mode;
+                state.view = "masterStrip";
+                state.selectedId = "master:" + mode;
+                state.selectedLabel = master.label;
+            }
             render();
         }
 
@@ -1929,6 +2314,29 @@
             if (params.get("meterSource") === "0") return false;
             var host = window.location.hostname;
             return host === "localhost" || host === "127.0.0.1" || host === "::1";
+        }
+
+        function isAssistMode() {
+            return state.appMode === "assist";
+        }
+
+        function isExpertEqChannel(channel) {
+            return !!(state.expertEqMode && channel && eqSupportedChannel(channel) && channel.id !== "RTN1" && channel.id !== "RTN2");
+        }
+
+        function shouldSendHardwareChannelSelect() {
+            return sendHardwareChannelSelectFromUi && !isAssistMode();
+        }
+
+        function selectMixerMasterBus(mode) {
+            // Bus selector taps are tablet-side association only. Yamaha fader/page mode stays untouched.
+        }
+
+        function applyAppMode(payload) {
+            var mode = payload && payload.mode === "assist" ? "assist" : "tablet-only";
+            if (state.appMode === mode) return;
+            state.appMode = mode;
+            render();
         }
 
         function eqGainDbToByte(value) {
@@ -1969,6 +2377,9 @@
                     hpf: controls.hpf
                 }
             });
+            if (control === "lowGain" || control === "midGain" || control === "midFrequency" || control === "highGain") {
+                applyAutomaticEqAttenuation(channel);
+            }
         }
 
         function sendChannelEqBundle(channel) {
@@ -2182,7 +2593,7 @@
         function sendAllChannelControls(channel) {
             var controls = channelControls(channel);
             if (channel.midiKey) {
-                if (state.faders[channel.id] !== undefined) sendParameter("channelFader." + channel.midiKey, state.faders[channel.id]);
+                if (state.faders[channel.id] !== undefined) sendParameter(mixFaderParameter(channel), state.faders[channel.id]);
                 sendParameterForSend(channel, "aux1", controls.aux1);
                 sendParameterForSend(channel, "aux2", controls.aux2);
                 sendParameterForSend(channel, "aux3", controls.aux3);
@@ -2214,7 +2625,7 @@
                 sendParameter("pan." + keys[1], pairedValue);
                 return;
             }
-            var midiValue = Math.round(((parseInt(value, 10) + 16) / 32) * 127);
+            var midiValue = Math.round(((parseInt(value, 10) + 16) / 32) * 32);
             sendParameter("pan." + channel.midiKey, midiValue);
         }
 
@@ -2243,8 +2654,66 @@
             var panValue = config.panDisabled ? 0 : Math.max(panRange[0], Math.min(panRange[1], parseInt(pan, 10) || 0));
             sendParameter("pan." + keys[0], config.left + panValue + 16);
             sendParameter("pan." + keys[1], config.right + panValue + 16);
-            if (channel.id === "13_14") sendParameter("attenuator.CH13_14.left", 0x60);
-            if (channel.id === "15_16") sendParameter("attenuator.CH15_16.left", 0x60);
+            if (channel.id === "13_14") sendParameter("attenuator.CH13_14.level", 0x60);
+            if (channel.id === "15_16") sendParameter("attenuator.CH15_16.level", 0x60);
+        }
+
+        function channelAttenuatorParameters(channel) {
+            if (!channel || !channel.midiKey) return [];
+            if (/^\d+$/.test(channel.midiKey)) {
+                var number = parseInt(channel.midiKey, 10);
+                return number >= 1 && number <= 16 ? ["attenuator." + channel.midiKey + ".level"] : [];
+            }
+            if (channel.id === "13_14") return ["attenuator.CH13_14.level"];
+            if (channel.id === "15_16") return ["attenuator.CH15_16.level"];
+            return [];
+        }
+
+        function attenuationDbToRaw(db) {
+            var value = Math.max(-96, Math.min(0, parseFloat(db) || 0));
+            return Math.round(value + 96);
+        }
+
+        function sendChannelAttenuation(channel, db) {
+            channelAttenuatorParameters(channel).forEach(function(parameterId) {
+                sendParameter(parameterId, attenuationDbToRaw(db));
+            });
+        }
+
+        // Automatic EQ ATT is intentionally isolated here; this curve may be revised later.
+        function autoAttenuationDb(settings) {
+            var freqs = [63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500];
+            function bell(f, f0, gain, q) {
+                var oct = Math.log2(f / f0);
+                var width = 1.4 / (q || 1);
+                return gain * Math.exp(-0.5 * Math.pow(oct / width, 2));
+            }
+            function highShelf(f, gain, f0) {
+                var x = Math.log2(f / (f0 || 8000));
+                return gain / (1 + Math.exp(-4 * x));
+            }
+            var maxBoost = 0;
+            freqs.forEach(function(f) {
+                var boost =
+                    bell(f, 125, settings.bassGain, 1) +
+                    bell(f, settings.midFreq, settings.midGain, 1) +
+                    highShelf(f, settings.highGain, 8000);
+                maxBoost = Math.max(maxBoost, boost);
+            });
+            return Math.min(24, Math.max(0, maxBoost - 8));
+        }
+
+        function applyAutomaticEqAttenuation(channel) {
+            if (!channelAttenuatorParameters(channel).length) return;
+            var controls = channelControls(channel);
+            var attenuation = autoAttenuationDb({
+                bassGain: controls.lowGain,
+                midGain: controls.midGain,
+                midFreq: midFreqPresets[controls.midFreqIndex],
+                highGain: controls.highGain
+            });
+            controls.eqAtt = -attenuation;
+            sendChannelAttenuation(channel, controls.eqAtt);
         }
 
         function activeBank() {
@@ -2470,6 +2939,7 @@
             meter.sampleRate = payload.sampleRate || meter.sampleRate || 44100;
             meter.status = payload.status || "RECEIVING HOST METER";
             meter.data = Object.assign({}, meter.data, payload.data);
+            rememberLastGoodSpectrum();
             updateAudioMeterDom();
         }
 
@@ -2561,8 +3031,125 @@
             if (rightHoldLine) rightHoldLine.style.left = dbToPercent(rightHoldValue, -60, 0) + "%";
             var rightChannel = document.getElementById("rightMeterChannel");
             if (rightChannel) rightChannel.classList.toggle("inactive", !meterContext.stereo);
+            rememberLastGoodSpectrum(true);
+            if ((activeChannelSoloIds().length || activeMasterSoloIds().length) && !state.rawEqSnapshotCache.dataUrl) updateRawEqSnapshotCache();
             drawSpectrum();
+            drawRawEqSpectrumCanvases();
             updateInlineMeterDom();
+        }
+
+        function currentRawEqSpectrumSnapshot() {
+            var spectrum = state.audioMeter.lastGoodSpectrum || [];
+            return spectrum.length ? spectrum.slice() : [];
+        }
+
+        function isUsableRawEqSpectrum(data) {
+            if (!data || !data.length) return false;
+            return data.some(function(value) {
+                return typeof value === "number" && value > -88;
+            });
+        }
+
+        function rememberLastGoodSpectrum(preferRaw) {
+            var meter = state.audioMeter;
+            var raw = meter.data.spectrum || [];
+            var spectrum = (!preferRaw && meter.spectrumSmoothed && meter.spectrumSmoothed.length) ? meter.spectrumSmoothed : raw;
+            if (isUsableRawEqSpectrum(spectrum)) state.audioMeter.lastGoodSpectrum = spectrum.slice();
+        }
+
+        function activeChannelSoloIds() {
+            return allChannels().filter(function(channel) {
+                return !!state.solo[channel.id];
+            }).map(function(channel) {
+                return channel.id;
+            });
+        }
+
+        function activeMasterSoloIds() {
+            return masterSoloTargetIds.filter(function(id) {
+                return !!state.masterSolo[id];
+            });
+        }
+
+        function spectrumSnapshotDataUrl(data) {
+            if (!isUsableRawEqSpectrum(data)) return "";
+            var width = 420;
+            var height = 220;
+            var canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            var ctx = canvas.getContext("2d");
+            var minDb = -90;
+            var maxDb = 0;
+            var sampleRate = state.audioMeter.sampleRate || 44100;
+            var minFreq = 30;
+            var maxFreq = Math.min(sampleRate / 2 || 20000, 20000);
+            var barCount = 112;
+            var gradient = ctx.createLinearGradient(0, height, 0, 0);
+            gradient.addColorStop(0, "rgba(31,185,107,0.35)");
+            gradient.addColorStop(0.7, "rgba(214,170,33,0.52)");
+            gradient.addColorStop(1, "rgba(217,48,48,0.68)");
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = gradient;
+            for (var bar = 0; bar < barCount; bar++) {
+                var xNorm = barCount === 1 ? 0 : bar / (barCount - 1);
+                var freq = minFreq * Math.pow(maxFreq / minFreq, xNorm);
+                var bin = clamp(Math.round(freq / (sampleRate / 2) * (data.length - 1)), 0, data.length - 1);
+                var value = clamp(data[bin], minDb, maxDb);
+                var barHeight = Math.max(1, dbToPercent(value, minDb, maxDb) / 100 * height);
+                var x = xNorm * width;
+                ctx.fillRect(x, height - barHeight, Math.max(2, width / barCount - 1), barHeight);
+            }
+            return canvas.toDataURL("image/png");
+        }
+
+        function updateRawEqSnapshotCache() {
+            var channelIds = activeChannelSoloIds();
+            var masterIds = activeMasterSoloIds();
+            if (!channelIds.length && !masterIds.length) {
+                state.rawEqSnapshotCache = { dataUrl: "", channelIds: [], masterIds: [], createdAt: 0 };
+                return;
+            }
+            var data = currentRawEqSpectrumSnapshot();
+            var dataUrl = spectrumSnapshotDataUrl(data);
+            if (!dataUrl) {
+                state.rawEqSnapshotCache = { dataUrl: "", channelIds: channelIds, masterIds: masterIds, createdAt: 0 };
+                return;
+            }
+            state.rawEqSnapshotCache = {
+                dataUrl: dataUrl,
+                channelIds: channelIds,
+                masterIds: masterIds,
+                createdAt: Date.now()
+            };
+        }
+
+        function rawEqOwnerHasSnapshot(owner, isMaster) {
+            var cache = state.rawEqSnapshotCache || {};
+            if (!cache.dataUrl || !owner) return false;
+            var ids = isMaster ? cache.masterIds : cache.channelIds;
+            return ids && ids.indexOf(owner.id) !== -1;
+        }
+
+        function captureChannelRawEqSnapshot(channelId) {
+            if (!channelId) return;
+            var snapshot = currentRawEqSpectrumSnapshot();
+            if (isUsableRawEqSpectrum(snapshot)) state.rawEqSpectrumSnapshots.channel[channelId] = snapshot;
+        }
+
+        function clearChannelRawEqSnapshot(channelId) {
+            if (!channelId) return;
+            delete state.rawEqSpectrumSnapshots.channel[channelId];
+        }
+
+        function setChannelSoloState(channelId, enabled) {
+            if (!channelId) return;
+            var wasEnabled = !!state.solo[channelId];
+            state.solo[channelId] = !!enabled;
+            if (enabled && !wasEnabled) captureChannelRawEqSnapshot(channelId);
+            if (!enabled) clearChannelRawEqSnapshot(channelId);
+            updateRawEqSnapshotCache();
+            scheduleRawEqSpectrumDraw();
         }
 
         function drawSpectrum() {
@@ -2644,6 +3231,61 @@
                 var x = xNorm * (width - barWidth);
                 ctx.fillRect(x, plotHeight - barHeight, barWidth, barHeight);
             }
+            rememberLastGoodSpectrum();
+        }
+
+        function drawRawEqSpectrumCanvases() {
+            rawEqSpectrumDrawPending = false;
+            Array.prototype.forEach.call(document.querySelectorAll("[data-raw-eq-spectrum]"), function(canvas) {
+                var ownerType = canvas.dataset.rawEqOwner;
+                var ownerId = canvas.dataset.rawEqOwnerId;
+                var active = ownerType === "master" ? !!state.masterSolo[ownerId] : !!state.solo[ownerId];
+                if (ownerType === "channel") {
+                    if (!active) clearChannelRawEqSnapshot(ownerId);
+                }
+                var data = ownerType === "channel" ? (state.rawEqSpectrumSnapshots.channel[ownerId] || []) : (state.audioMeter.data.spectrum || []);
+                var pad = canvas.closest ? canvas.closest("[data-raw-eq-pad]") : null;
+                if (pad) pad.classList.toggle("snapshot-active", !!active && (ownerType !== "channel" || isUsableRawEqSpectrum(data)));
+                var rect = canvas.getBoundingClientRect();
+                var width = Math.max(1, Math.floor(rect.width));
+                var height = Math.max(1, Math.floor(rect.height));
+                var ratio = window.devicePixelRatio || 1;
+                if (canvas.width !== Math.floor(width * ratio) || canvas.height !== Math.floor(height * ratio)) {
+                    canvas.width = Math.floor(width * ratio);
+                    canvas.height = Math.floor(height * ratio);
+                }
+                var ctx = canvas.getContext("2d");
+                ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+                ctx.clearRect(0, 0, width, height);
+                if (!active || !data.length) return;
+
+                var minDb = -90;
+                var maxDb = 0;
+                var sampleRate = state.audioMeter.sampleRate || 44100;
+                var minFreq = 30;
+                var maxFreq = Math.min(sampleRate / 2 || 20000, 20000);
+                var barCount = clamp(Math.floor(width / 5), 36, 140);
+                var gradient = ctx.createLinearGradient(0, height, 0, 0);
+                gradient.addColorStop(0, "rgba(31,185,107,0.3)");
+                gradient.addColorStop(0.7, "rgba(214,170,33,0.46)");
+                gradient.addColorStop(1, "rgba(217,48,48,0.62)");
+                ctx.fillStyle = gradient;
+                for (var bar = 0; bar < barCount; bar++) {
+                    var xNorm = barCount === 1 ? 0 : bar / (barCount - 1);
+                    var freq = minFreq * Math.pow(maxFreq / minFreq, xNorm);
+                    var bin = clamp(Math.round(freq / (sampleRate / 2) * (data.length - 1)), 0, data.length - 1);
+                    var value = clamp(data[bin], minDb, maxDb);
+                    var barHeight = Math.max(1, dbToPercent(value, minDb, maxDb) / 100 * height);
+                    var x = xNorm * width;
+                    ctx.fillRect(x, height - barHeight, Math.max(2, width / barCount - 1), barHeight);
+                }
+            });
+        }
+
+        function scheduleRawEqSpectrumDraw() {
+            if (rawEqSpectrumDrawPending) return;
+            rawEqSpectrumDrawPending = true;
+            window.requestAnimationFrame(drawRawEqSpectrumCanvases);
         }
 
         function channelMeterLevel() {
@@ -2690,14 +3332,21 @@
             masterSoloTargetIds.forEach(function(id) {
                 if (id !== exceptId) state.masterSolo[id] = false;
             });
+            updateRawEqSnapshotCache();
         }
 
         function clearChannelSolos() {
             allChannels().forEach(function(channel) {
                 if (state.solo[channel.id]) {
-                    state.solo[channel.id] = false;
+                    setChannelSoloState(channel.id, false);
                     setChannelSolo(channel.soloKey, false);
                 }
+            });
+        }
+
+        function clearChannelSoloState() {
+            allChannels().forEach(function(channel) {
+                setChannelSoloState(channel.id, false);
             });
         }
 
@@ -2731,8 +3380,14 @@
             return !!(master && state.masterSolo[master.id]) || isAutoMixMasterSolo(master);
         }
 
+        function isModeMeterSelectorOn(mode) {
+            if (mode === "EFF1") return !!state.solo.RTN1;
+            if (mode === "EFF2") return !!state.solo.RTN2;
+            return isMasterMeterActive(masterByMode[mode]);
+        }
+
         function shouldAudioMeterRun() {
-            return state.view === "meter" || hasChannelSolo() || hasMasterSolo() || isAutoMixMasterSolo(masterByMode[state.mode]);
+            return isMeterDelegationMode() || hasChannelSolo() || hasMasterSolo() || isAutoMixMasterSolo(masterByMode[state.mode]);
         }
 
         function syncAudioMeterService() {
@@ -2780,8 +3435,8 @@
             if (meter.stream) {
                 meter.stream.getTracks().forEach(function(track) { track.stop(); });
             }
-            meter.demoTimer = null;
             if (meter.context && meter.context.state !== "closed") meter.context.close();
+            meter.demoTimer = null;
             meter.processor = null;
             meter.source = null;
             meter.stream = null;
@@ -2914,6 +3569,7 @@
                     stereoWidth: channel && (channel.id === "13_14" || channel.id === "15_16" || channel.id === "RTN1" || channel.id === "RTN2") ? 16 : 0,
                     stereoSpreadMode: "Stereo",
                     stereoPan: 0,
+                    eqAtt: 0,
                     aux1: -70,
                     aux2: -70,
                     aux3: -70,
@@ -3056,7 +3712,7 @@
             var targetControls = channelControls(target);
             if (state.faders[source.id] !== undefined) {
                 state.faders[target.id] = state.faders[source.id];
-                if (target.midiKey) sendParameter("channelFader." + target.midiKey, state.faders[target.id]);
+                if (target.midiKey) sendParameter(mixFaderParameter(target), state.faders[target.id]);
             }
             ["aux1", "aux2", "aux3", "aux4", "eff1", "eff2"].forEach(function(sendId) {
                 targetControls[sendId] = sourceControls[sendId];
@@ -3067,7 +3723,7 @@
         function copyChannelSettingsToTarget(source, target) {
             var sourceControls = channelControls(source);
             var targetControls = channelControls(target);
-            ["hpf", "phase", "midFreqIndex", "pan", "stereoWidth", "stereoSpreadMode", "stereoPan", "panPreset", "lowGain", "midGain", "highGain", "comp", "compPresetIndex", "compPosition"].forEach(function(key) {
+            ["hpf", "phase", "midFreqIndex", "pan", "stereoWidth", "stereoSpreadMode", "stereoPan", "eqAtt", "panPreset", "lowGain", "midGain", "highGain", "comp", "compPresetIndex", "compPosition"].forEach(function(key) {
                 targetControls[key] = cloneData(sourceControls[key]);
             });
             sendPanControl(target, targetControls.pan);
@@ -3504,6 +4160,7 @@
             state.faders = {};
             state.on = {};
             state.solo = {};
+            state.rawEqSpectrumSnapshots.channel = {};
             state.stripControls = {};
             state.masterOn = {};
             state.masterEq = {};
@@ -3520,6 +4177,227 @@
 
         function masterOnState(master) {
             return state.masterOn[master.id] !== false;
+        }
+
+        function channelByMidiTarget(target) {
+            var text = String(target || "").toUpperCase();
+            if (text === "CH13_L" || text === "CH13_R") return channelById("13_14") || null;
+            if (text === "CH15_L" || text === "CH15_R") return channelById("15_16") || null;
+            if (text.indexOf("CH") === 0) text = text.slice(2);
+            text = text.replace(/_(L|R)$/, "");
+            return channelById(text) || null;
+        }
+
+        function masterParameterFromIncoming(target) {
+            var key = String(target || "").toUpperCase();
+            if (key === "STEREO") return "masterFader.stereo";
+            if (key === "AUX1" || key === "AUX2" || key === "AUX3" || key === "AUX4") return "masterFader." + key.toLowerCase();
+            if (key === "EFFECT1") return "masterFader.effect1";
+            if (key === "EFFECT2") return "masterFader.effect2";
+            return null;
+        }
+
+        function masterIdFromIncoming(target) {
+            var key = String(target || "").toUpperCase();
+            if (key === "STEREO") return "stereo";
+            if (key === "EFFECT1") return "effect1";
+            if (key === "EFFECT2") return "effect2";
+            return key.toLowerCase();
+        }
+
+        function panFromIncoming(value, valueMax) {
+            var max = parseInt(valueMax, 10) || 127;
+            var raw = Math.max(0, Math.min(max, parseInt(value, 10) || 0));
+            return Math.round((raw / max) * 32 - 16);
+        }
+
+        var midiIncomingRenderPending = false;
+        var yamahaSelectedChannelId = null;
+        var rawEqSpectrumDrawPending = false;
+
+        function scheduleMidiIncomingRender() {
+            if (midiIncomingRenderPending) return;
+            midiIncomingRenderPending = true;
+            window.requestAnimationFrame(function() {
+                midiIncomingRenderPending = false;
+                render();
+            });
+        }
+
+        function applyIncomingChannelFader(event) {
+            var channel = channelByMidiTarget(event.target || event.channelId);
+            if (!channel) return false;
+            state.faders[channel.id] = midiFaderValue(event.value);
+            return true;
+        }
+
+        function applyIncomingMasterFader(event) {
+            var parameter = masterParameterFromIncoming(event.target);
+            if (!parameter) return false;
+            setMasterFaderValue(parameter, event.value);
+            return true;
+        }
+
+        function applyIncomingChannelOn(event) {
+            var channel = channelByMidiTarget(event.target || event.channelId);
+            if (!channel) return false;
+            state.on[channel.id] = !!event.enabled;
+            return true;
+        }
+
+        function applyIncomingMasterOn(event) {
+            var masterId = event.masterId || masterIdFromIncoming(event.target);
+            if (!masterId) return false;
+            state.masterOn[masterId] = !!event.enabled;
+            return true;
+        }
+
+        function applyIncomingChannelSelect(event) {
+            if (isAssistMode()) return false;
+            var channel = channelByMidiTarget(event.target || event.channelId);
+            if (!channel) return false;
+            yamahaSelectedChannelId = channel.id;
+            state.selectedId = channel.id;
+            state.selectedLabel = channel.label;
+            return true;
+        }
+
+        function applyIncomingChannelSolo(event) {
+            var channel = event.selectedTarget ? (channelById(yamahaSelectedChannelId) || selectedChannel()) : channelByMidiTarget(event.target || event.channelId);
+            if (!channel) return false;
+            if (event.release) return false;
+            var enabled = event.toggle ? !state.solo[channel.id] : !!event.enabled;
+            if (enabled) clearMasterSoloState(null);
+            setChannelSoloState(channel.id, enabled);
+            if (enabled) state.activeMasterSoloTarget = null;
+            return true;
+        }
+
+        function applyIncomingMasterSolo(event) {
+            var masterId = event.masterId || masterIdFromIncoming(event.target);
+            if (!masterId) return false;
+            if (event.enabled) {
+                clearChannelSoloState();
+                clearMasterSoloState(masterId);
+                state.masterSolo[masterId] = true;
+                state.activeMasterSoloTarget = masterId;
+            } else {
+                state.masterSolo[masterId] = false;
+                if (state.activeMasterSoloTarget === masterId) state.activeMasterSoloTarget = activeManualMasterSoloTarget();
+            }
+            updateRawEqSnapshotCache();
+            return true;
+        }
+
+        function applyIncomingPhase(event) {
+            var channel = channelByMidiTarget(event.target || event.channelId);
+            if (!channel) return false;
+            channelControls(channel).phase = !!event.enabled;
+            return true;
+        }
+
+        function applyIncomingPan(event) {
+            var channel = channelByMidiTarget(event.target || event.channelId);
+            if (!channel) return false;
+            var controls = channelControls(channel);
+            var panValue = panFromIncoming(event.value, event.valueMax);
+            if (isStereoWidthSource(channel)) {
+                controls.stereoSpreadMode = "Wide";
+                controls.stereoPan = Math.max(-16, Math.min(16, panValue));
+            } else {
+                controls.pan = panValue;
+            }
+            return true;
+        }
+
+        function applyIncomingAuxSend(event) {
+            var channel = channelByMidiTarget(event.target || event.channelId);
+            if (!channel || !event.aux) return false;
+            channelControls(channel)[event.aux.toLowerCase()] = midiToDb(event.value);
+            return true;
+        }
+
+        function applyIncomingFxSend(event) {
+            var channel = channelByMidiTarget(event.target || event.channelId);
+            if (!channel) return false;
+            var controls = channelControls(channel);
+            if (event.group === "fx1Send") controls.eff2 = midiToDb(event.value);
+            if (event.group === "fx2Send") controls.eff1 = midiToDb(event.value);
+            return true;
+        }
+
+        function applyIncomingEffectReturnSend(event) {
+            var channel = channelByMidiTarget(event.channelId);
+            if (!channel) return false;
+            if (event.bus === "master") {
+                state.faders[channel.id] = midiFaderValue(event.value);
+                return true;
+            }
+            var sendId = {
+                aux1: "aux1",
+                aux2: "aux2",
+                aux3: "aux3",
+                aux4: "aux4",
+                eff1: "eff1",
+                eff2: "eff2",
+                fx1Send: "eff2",
+                fx2Send: "eff1"
+            }[event.bus];
+            if (!sendId) return false;
+            channelControls(channel)[sendId] = midiToDb(event.value);
+            return true;
+        }
+
+        function applyIncomingAttenuator(event) {
+            var channel = channelByMidiTarget(event.target || event.channelId);
+            if (!channel) return false;
+            channelControls(channel).eqAtt = Math.max(-96, Math.min(0, (parseInt(event.value, 10) || 0) - 96));
+            return true;
+        }
+
+        function rawEqBandKeyFromIncoming(band) {
+            return {
+                LOW: "low",
+                LO_MID: "lowMid",
+                HI_MID: "highMid",
+                HIGH: "high"
+            }[String(band || "").toUpperCase()] || null;
+        }
+
+        function applyIncomingRawEq(event) {
+            var bandKey = rawEqBandKeyFromIncoming(event.band);
+            if (!bandKey || !event.control) return false;
+            var isMaster = !!event.masterId;
+            var owner = isMaster ? { id: event.masterId } : channelByMidiTarget(event.target || event.channelId);
+            if (!owner) return false;
+            var raw = rawEqState(owner, isMaster);
+            if (!raw[bandKey]) return false;
+            var value = midiFaderValue(event.value);
+            if (event.control === "freq") raw[bandKey].freq = Math.max(0, Math.min(120, value));
+            else if (event.control === "gain") raw[bandKey].gain = Math.max(0, Math.min(72, value));
+            else if (event.control === "q") raw[bandKey].q = rawEqClampQValue(bandKey, value);
+            else return false;
+            return true;
+        }
+
+        function applyMidiIncoming(event) {
+            if (!event || !event.group) return;
+            var changed = false;
+            if (event.group === "channelFader") changed = applyIncomingChannelFader(event);
+            else if (event.group === "masterFader") changed = applyIncomingMasterFader(event);
+            else if (event.group === "channelOn") changed = applyIncomingChannelOn(event);
+            else if (event.group === "masterOn") changed = applyIncomingMasterOn(event);
+            else if (event.group === "channelSelect") changed = applyIncomingChannelSelect(event);
+            else if (event.group === "channelSolo") changed = applyIncomingChannelSolo(event);
+            else if (event.group === "masterSolo") changed = applyIncomingMasterSolo(event);
+            else if (event.group === "phase") changed = applyIncomingPhase(event);
+            else if (event.group === "pan") changed = applyIncomingPan(event);
+            else if (event.group === "rawEq") changed = applyIncomingRawEq(event);
+            else if (event.group === "auxSend") changed = applyIncomingAuxSend(event);
+            else if (event.group === "fx1Send" || event.group === "fx2Send") changed = applyIncomingFxSend(event);
+            else if (event.group === "effectReturnSend") changed = applyIncomingEffectReturnSend(event);
+            else if (event.group === "attenuator") changed = applyIncomingAttenuator(event);
+            if (changed) scheduleMidiIncomingRender();
         }
 
         function activeMasterPage(master) {
@@ -3552,6 +4430,7 @@
                             state.faders = JSON.parse(JSON.stringify(setup.faders || {}));
                             state.on = JSON.parse(JSON.stringify(setup.on || {}));
                             state.solo = JSON.parse(JSON.stringify(setup.solo || {}));
+                            state.rawEqSpectrumSnapshots.channel = {};
                             state.master = JSON.parse(JSON.stringify(setup.master || {}));
                             state.stripControls = JSON.parse(JSON.stringify(setup.stripControls || {}));
                             state.masterOn = JSON.parse(JSON.stringify(setup.masterOn || {}));
@@ -3591,7 +4470,7 @@
         function faderParameter(channel) {
             if (channel && (channel.id === "RTN1" || channel.id === "RTN2")) {
                 var returnId = channel.id === "RTN1" ? "effRtn1" : "effRtn2";
-                if (state.mode === "MIX") return "effectReturnSend.master." + returnId;
+                if (state.mode === "MIX") return mixFaderParameter(channel);
                 if (state.mode === "AUX1") return "effectReturnSend.aux1." + returnId;
                 if (state.mode === "AUX2") return "effectReturnSend.aux2." + returnId;
                 if (state.mode === "AUX3") return "effectReturnSend.aux3." + returnId;
@@ -3602,6 +4481,13 @@
             var group = faderGroupByMode[state.mode];
             if (!group) return null;
             return group + "." + channel.midiKey;
+        }
+
+        function mixFaderParameter(channel) {
+            if (!channel) return null;
+            if (channel.id === "RTN1") return "effectReturnSend.master.effRtn1";
+            if (channel.id === "RTN2") return "effectReturnSend.master.effRtn2";
+            return "channelFader." + channel.midiKey;
         }
 
         function sendControlIdForMode(mode) {
@@ -3684,6 +4570,152 @@
             return Math.round(Math.pow(normalized, 1 / 1.8) * 70 - 70);
         }
 
+        var rawEqBands = [
+            { key: "low", band: "LOW", label: "LOW", qParam: "Q_OR_TYPE", defaultFreq: 80, defaultQ: 0x29 },
+            { key: "lowMid", band: "LO_MID", label: "LO-MID", qParam: "Q", defaultFreq: 400, defaultQ: 0x14 },
+            { key: "highMid", band: "HI_MID", label: "HI-MID", qParam: "Q", defaultFreq: 2000, defaultQ: 0x14 },
+            { key: "high", band: "HIGH", label: "HIGH", qParam: "Q_OR_TYPE", defaultFreq: 10000, defaultQ: 0x2a }
+        ];
+        var rawEqTypeModes = {
+            low: { normalMax: 0x28, shelf: 0x29, pass: 0x2c, passLabel: "HPF" },
+            high: { normalMax: 0x28, shelf: 0x2a, pass: 0x2b, passLabel: "LPF" }
+        };
+        var rawEqNormalQLabels = [
+            "10", "9.0", "8.0", "7.1", "6.3", "5.6", "5.0", "4.5", "4.0", "3.6",
+            "3.2", "2.8", "2.5", "2.2", "2.0", "1.8", "1.6", "1.4", "1.2", "1.1",
+            "1.0", "0.9", "0.8", "0.7", "0.63", "0.56", "0.50", "0.45", "0.40", "0.36",
+            "0.32", "0.28", "0.25", "0.22", "0.20", "0.18", "0.16", "0.14", "0.12", "0.11",
+            "0.10"
+        ];
+
+        function hzToRawEqFreq(hz) {
+            var minHz = 20;
+            var maxHz = 20000;
+            var safe = Math.max(minHz, Math.min(maxHz, parseFloat(hz) || minHz));
+            var ratio = (Math.log(safe) - Math.log(minHz)) / (Math.log(maxHz) - Math.log(minHz));
+            return Math.round(ratio * 120);
+        }
+
+        function rawEqFreqToHz(raw) {
+            var minHz = 20;
+            var maxHz = 20000;
+            var value = Math.max(0, Math.min(120, parseInt(raw, 10) || 0));
+            return Math.round(minHz * Math.pow(maxHz / minHz, value / 120));
+        }
+
+        function rawEqGainToDb(raw) {
+            return Math.round((Math.max(0, Math.min(72, parseInt(raw, 10) || 0)) / 2) - 18);
+        }
+
+        function rawEqDbToGain(db) {
+            return eqGainDbToByte(db);
+        }
+
+        function rawEqTypeMode(bandKey) {
+            return rawEqTypeModes[bandKey] || null;
+        }
+
+        function isRawEqPassFilter(bandKey, q) {
+            var mode = rawEqTypeMode(bandKey);
+            return !!(mode && parseInt(q, 10) === mode.pass);
+        }
+
+        function rawEqNormalQMax() {
+            return rawEqNormalQLabels.length - 1;
+        }
+
+        function rawEqClampQValue(bandKey, q) {
+            var value = parseInt(q, 10);
+            if (isNaN(value)) value = 0x14;
+            var mode = rawEqTypeMode(bandKey);
+            if (mode && (value === mode.shelf || value === mode.pass)) return value;
+            return Math.max(0, Math.min(rawEqNormalQMax(), value));
+        }
+
+        function rawEqQDisplay(bandKey, q) {
+            var value = parseInt(q, 10);
+            var mode = rawEqTypeMode(bandKey);
+            if (mode) {
+                if (value === mode.pass) return mode.passLabel;
+                if (value === mode.shelf) return "SHELF";
+            }
+            value = rawEqClampQValue(bandKey, value);
+            return rawEqNormalQLabels[value] || String(value);
+        }
+
+        function rawEqNextQValue(bandKey, current, step) {
+            var value = rawEqClampQValue(bandKey, current);
+            var mode = rawEqTypeMode(bandKey);
+            if (!mode) return Math.max(0, Math.min(rawEqNormalQMax(), value + step));
+            if (step > 0) {
+                if (value < mode.normalMax) return value + 1;
+                if (value === mode.normalMax) return mode.shelf;
+                if (value === mode.pass) return 0;
+                return mode.shelf;
+            }
+            if (value === mode.shelf) return mode.normalMax;
+            if (value === mode.pass) return mode.pass;
+            if (value === 0) return mode.pass;
+            return Math.max(0, value - 1);
+        }
+
+        function applyRawEqQValue(raw, bandKey, next) {
+            var item = raw[bandKey];
+            if (!item) return false;
+            var wasPass = isRawEqPassFilter(bandKey, item.q);
+            var isPass = isRawEqPassFilter(bandKey, next);
+            if (next === item.q) return false;
+            item.q = next;
+            if (isPass && !wasPass) item.gain = rawEqDbToGain(18);
+            if (wasPass && !isPass) item.gain = rawEqDbToGain(0);
+            return true;
+        }
+
+        function rawEqState(owner, isMaster) {
+            var eq = isMaster ? masterEqControls(owner) : channelControls(owner);
+            if (!eq.rawEq) eq.rawEq = {};
+            rawEqBands.forEach(function(band) {
+                if (!eq.rawEq[band.key]) {
+                    eq.rawEq[band.key] = {
+                        freq: hzToRawEqFreq(band.defaultFreq),
+                        gain: rawEqDbToGain(0),
+                        q: band.defaultQ
+                    };
+                }
+            });
+            return eq.rawEq;
+        }
+
+        function rawEqTarget(owner, isMaster) {
+            if (isMaster) {
+                return {
+                    type: "master",
+                    id: owner.id,
+                    masterId: owner.id,
+                    targetKey: masterEqTargetKey(owner),
+                    mode: state.mode
+                };
+            }
+            return { type: "channel", id: owner.id, midiKey: owner.midiKey };
+        }
+
+        function sendRawEq(owner, isMaster) {
+            var raw = rawEqState(owner, isMaster);
+            var bands = {};
+            rawEqBands.forEach(function(band) {
+                bands[band.band] = {
+                    freq: raw[band.key].freq,
+                    gain: raw[band.key].gain,
+                    q: raw[band.key].q
+                };
+            });
+            sendAction({
+                type: "engineRawYamahaEqIntent",
+                target: rawEqTarget(owner, isMaster),
+                state: { bands: bands }
+            });
+        }
+
         function midiFaderValue(value) {
             var parsed = parseInt(value, 10);
             if (isNaN(parsed)) return 0;
@@ -3698,21 +4730,27 @@
         function setMode(mode) {
             state.mode = mode;
             state.view = "mixer";
+            selectMixerMasterBus(mode);
             render();
         }
 
-        function openMasterPage(mode) {
+        function openMasterPage(mode, sendHardwareSelect) {
             state.mode = mode;
             state.view = "masterStrip";
             state.selectedId = "master:" + mode;
             state.selectedLabel = masterByMode[mode].label;
+            if (sendHardwareSelect !== false) selectMixerMasterBus(mode);
             render();
         }
 
         function topModeTap(mode) {
             if (isMeterDelegationMode()) {
                 if (isMeterDoubleTap("mode:" + mode)) {
-                    exitMeterModeToMaster(mode);
+                    exitMeterModeToBus(mode);
+                    return;
+                }
+                if (isOnlyMeterModeTarget(mode)) {
+                    toggleMeterMasterDetail(mode);
                     return;
                 }
                 meterSelectMasterMode(mode);
@@ -3728,6 +4766,14 @@
                 cycleBusCopyTarget(mode);
                 return;
             }
+            if (state.view === "strip") {
+                resetNormalMasterTap();
+                state.mode = mode;
+                state.view = "mixer";
+                selectMixerMasterBus(mode);
+                render();
+                return;
+            }
             if (isNormalMasterDoubleTap(mode)) {
                 enterMeterModeWithSingleMasterSolo(mode);
                 return;
@@ -3737,7 +4783,7 @@
                     state.view = "mixer";
                     render();
                 } else {
-                    openMasterPage(mode);
+                    openMasterPage(mode, false);
                 }
                 return;
             }
@@ -3801,16 +4847,11 @@
                 return;
             }
             if (bank.page === "meter") {
-                if (state.view === "meter") {
-                    state.view = "mixer";
-                    state.previousViewBeforeMeter = null;
+                if (isMeterDelegationMode()) {
+                    exitMeterMode();
                 } else {
-                    state.previousViewBeforeMeter = {
-                        view: state.view,
-                        selectedId: state.selectedId,
-                        selectedLabel: state.selectedLabel
-                    };
-                    state.view = "meter";
+                    enterMeterModeWithCurrentSolo();
+                    return;
                 }
                 state.previousViewBeforeScenes = null;
                 render();
@@ -3848,6 +4889,13 @@
             state.view = "strip";
             state.selectedId = next.id;
             state.selectedLabel = next.label;
+            if (isMeterDelegationMode()) {
+                clearChannelSolos();
+                clearMasterSoloState(null);
+                setChannelSoloState(next.id, true);
+                setChannelSolo(next.soloKey, true);
+                syncSoloRouting();
+            }
             selectMixerChannel(next);
             render();
         }
@@ -3857,13 +4905,11 @@
             if (isMeterDelegationMode()) {
                 if (isMeterDoubleTap("channel:" + channel.id)) {
                     exitMeterMode();
-                    keepOnlyMeterExitChannelSolo(channel);
-                    state.view = "strip";
-                    state.selectedId = channel.id;
-                    state.selectedLabel = channel.label;
-                    selectMixerChannel(channel);
-                    sendChannelEqBundle(channel);
                     render();
+                    return;
+                }
+                if (isOnlyMeterChannelTarget(channel)) {
+                    toggleMeterChannelDetail(channel);
                     return;
                 }
                 meterToggleChannelSolo(channel);
@@ -3905,10 +4951,11 @@
             if (suppressStripClick) return;
             var next = !state.solo[channel.id];
             if (next) clearMasterSoloState(null);
-            state.solo[channel.id] = next;
+            setChannelSoloState(channel.id, next);
             setChannelSolo(channel.soloKey, next);
             syncSoloRouting();
             renderButtonsOnly();
+            updateAudioMeterDom();
         }
 
         function applyOnState(channel, enabled) {
@@ -3920,7 +4967,7 @@
         function applySoloState(channel, enabled) {
             if (!!state.solo[channel.id] === enabled) return;
             if (enabled) clearMasterSoloState(null);
-            state.solo[channel.id] = enabled;
+            setChannelSoloState(channel.id, enabled);
             setChannelSolo(channel.soloKey, enabled);
             syncSoloRouting();
         }
@@ -3929,7 +4976,7 @@
             if (!channel || !channel.soloKey) return;
             var next = !state.solo[channel.id];
             if (next) clearMasterSoloState(null);
-            state.solo[channel.id] = next;
+            setChannelSoloState(channel.id, next);
             setChannelSolo(channel.soloKey, next);
             syncSoloRouting();
             renderButtonsOnly();
@@ -3939,20 +4986,8 @@
         function setMeterChannelSolo(channel, enabled) {
             if (!channel || !channel.soloKey || !!state.solo[channel.id] === enabled) return;
             if (enabled) clearMasterSoloState(null);
-            state.solo[channel.id] = enabled;
+            setChannelSoloState(channel.id, enabled);
             setChannelSolo(channel.soloKey, enabled);
-            syncSoloRouting();
-        }
-
-        function keepOnlyMeterExitChannelSolo(channel) {
-            if (!channel || !channel.soloKey) return;
-            clearMasterSoloState(null);
-            allChannels().forEach(function(candidate) {
-                var enabled = candidate.id === channel.id;
-                if (!!state.solo[candidate.id] === enabled) return;
-                state.solo[candidate.id] = enabled;
-                setChannelSolo(candidate.soloKey, enabled);
-            });
             syncSoloRouting();
         }
 
@@ -3966,9 +5001,10 @@
                 clearChannelSolos();
                 clearMasterSoloState(null);
                 if (returnChannel) {
-                    state.solo[returnChannel.id] = true;
+                    setChannelSoloState(returnChannel.id, true);
                     setChannelSolo(returnChannel.soloKey, true);
                 }
+                updateRawEqSnapshotCache();
                 syncSoloRouting();
                 render();
                 return;
@@ -3976,6 +5012,7 @@
             clearChannelSolos();
             clearMasterSoloState(master.id);
             state.masterSolo[master.id] = true;
+            updateRawEqSnapshotCache();
             syncSoloRouting();
             render();
         }
@@ -4102,6 +5139,20 @@
                     effectReturnAir: "air"
                 }[knob.dataset.effectReturnEq], stepped);
             }
+            if (knob.dataset.rawEqQ) {
+                var rawIsMaster = knob.dataset.rawEqOwner === "master";
+                var rawOwner = rawIsMaster ? masterByMode[state.mode] : selectedChannel();
+                var raw = rawEqState(rawOwner, rawIsMaster);
+                var bandKey = knob.dataset.rawEqQ;
+                raw[bandKey].q = stepped;
+                if (!silent) sendRawEq(rawOwner, rawIsMaster);
+            }
+            if (knob.dataset.channelAtt) {
+                var attChannel = selectedChannel();
+                var attControls = channelControls(attChannel);
+                attControls.eqAtt = stepped;
+                if (!silent) sendChannelAttenuation(attChannel, stepped);
+            }
             if (knob.dataset.masterComp) {
                 var masterForComp = masterByMode[state.mode];
                 var masterCompControls = masterEqControls(masterForComp);
@@ -4214,7 +5265,8 @@
             });
         }
 
-        function panCellHtml(channel, controls) {
+        function panCellHtml(channel, controls, extraClass) {
+            var className = "control-cell" + (extraClass ? " " + extraClass : "");
             if (isStereoWidthSource(channel)) {
                 var mode = controls.stereoSpreadMode || "Stereo";
                 var config = stereoSpreadConfig[mode] || stereoSpreadConfig.Stereo;
@@ -4226,13 +5278,13 @@
                     "<div class='knob disabled'>0</div>" :
                     "<div class='knob' data-control='stereoPan' data-min='" + min + "' data-max='" + max + "' data-center='0' data-detent='center' data-value='" + controls.stereoPan + "' data-unit=''>0</div>";
                 return [
-                    "<div class='control-cell'><div class='control-label'>PAN</div><div class='pan-stereo-stack'>",
+                    "<div class='" + className + "'><div class='control-label'>PAN</div><div class='pan-stereo-stack'>",
                     "<div class='mini-row'><div class='value-box swipe-value' data-stereo-spread='1'>" + mode + "</div></div>",
                     panControl,
                     "</div></div>"
                 ].join("");
             }
-            return "<div class='control-cell'><div class='control-label'>PAN</div><div class='knob' data-control='pan' data-min='-16' data-max='16' data-center='0' data-detent='center' data-value='" + controls.pan + "' data-unit=''>0</div></div>";
+            return "<div class='" + className + "'><div class='control-label'>PAN</div><div class='knob' data-control='pan' data-min='-16' data-max='16' data-center='0' data-detent='center' data-value='" + controls.pan + "' data-unit=''>0</div></div>";
         }
 
         function bindStripButtons(root, channel) {
@@ -4363,33 +5415,6 @@
                     stepCompPreset(valueBox, dir);
                 });
             });
-        }
-
-        function bindStripSwipe(page) {
-            var startX = null;
-            var startY = null;
-            page.onpointerdown = function(event) {
-                if (
-                    event.target.tagName === "INPUT" ||
-                    event.target.closest(".knob") ||
-                    event.target.closest(".swipe-value") ||
-                    event.target.closest("[data-send]") ||
-                    event.target.closest(".mini-row") ||
-                    event.target.closest("button")
-                ) return;
-                startX = event.clientX;
-                startY = event.clientY;
-            };
-            page.onpointerup = function(event) {
-                if (startX === null || startY === null) return;
-                var dx = event.clientX - startX;
-                var dy = event.clientY - startY;
-                startX = null;
-                startY = null;
-                if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-                    selectChannelByOffset(dx < 0 ? 1 : -1);
-                }
-            };
         }
 
         function renderRatioSelector(eq) {
@@ -4606,6 +5631,180 @@
             });
         }
 
+        function rawEqPercentFromFreq(raw) {
+            return Math.max(6, Math.min(94, (Math.max(0, Math.min(120, raw)) / 120) * 100));
+        }
+
+        function rawEqPercentFromGain(raw) {
+            var db = rawEqGainToDb(raw);
+            return Math.max(8, Math.min(92, 100 - ((db + 18) / 36 * 100)));
+        }
+
+        function renderRawEqPad(owner, isMaster) {
+            var raw = rawEqState(owner, isMaster);
+            var snapshotActive = rawEqOwnerHasSnapshot(owner, isMaster);
+            var snapshotImage = snapshotActive ? "<img class='raw-eq-snapshot-image' alt='' draggable='false' src='" + escapeHtml(state.rawEqSnapshotCache.dataUrl) + "'>" : "";
+            return "<div class='raw-eq-pad" + (snapshotActive ? " snapshot-active" : "") + "' data-raw-eq-pad='" + (isMaster ? "master" : "channel") + "'>" + snapshotImage + rawEqBands.map(function(band) {
+                var item = raw[band.key];
+                var left = rawEqPercentFromFreq(item.freq);
+                var top = rawEqPercentFromGain(item.gain);
+                var hz = rawEqFreqToHz(item.freq);
+                var hzLabel = hz >= 1000 ? Math.round(hz / 100) / 10 + "k" : hz;
+                return "<div class='raw-eq-gridline' data-raw-eq-line='" + band.key + "' style='left:" + left + "%'></div><div class='raw-eq-node' data-raw-eq-node='" + band.key + "' style='left:" + left + "%;top:" + top + "%'></div><div class='raw-eq-band-label' data-raw-eq-band-label='" + band.key + "' style='left:" + left + "%'>" + band.label + "</div><div class='raw-eq-freq-label' data-raw-eq-freq-label='" + band.key + "' style='left:" + left + "%'>" + hzLabel + "Hz</div>";
+            }).join("") + "</div>";
+        }
+
+        function renderRawEqQRow(owner, isMaster) {
+            var raw = rawEqState(owner, isMaster);
+            return "<div class='raw-eq-q-row'>" + rawEqBands.map(function(band) {
+                return "<div class='control-cell raw-eq-q-cell'><div class='control-label'>" + band.label + " Q</div><div class='value-box swipe-value' data-raw-eq-owner='" + (isMaster ? "master" : "channel") + "' data-raw-eq-q='" + band.key + "'>" + rawEqQDisplay(band.key, raw[band.key].q) + "</div></div>";
+            }).join("") + "</div>";
+        }
+
+        function bindRawEqPad(page, owner, isMaster) {
+            var pad = page.querySelector("[data-raw-eq-pad]");
+            if (!pad) return;
+            var raw = rawEqState(owner, isMaster);
+            var activeRawEqBand = null;
+            function refreshPad() {
+                rawEqBands.forEach(function(band) {
+                    var item = raw[band.key];
+                    var left = rawEqPercentFromFreq(item.freq);
+                    var top = rawEqPercentFromGain(item.gain);
+                    var line = pad.querySelector("[data-raw-eq-line='" + band.key + "']");
+                    var node = pad.querySelector("[data-raw-eq-node='" + band.key + "']");
+                    var bandLabel = pad.querySelector("[data-raw-eq-band-label='" + band.key + "']");
+                    var freqLabel = pad.querySelector("[data-raw-eq-freq-label='" + band.key + "']");
+                    if (line) line.style.left = left + "%";
+                    if (node) {
+                        node.style.left = left + "%";
+                        node.style.top = top + "%";
+                    }
+                    if (bandLabel) bandLabel.style.left = left + "%";
+                    if (freqLabel) {
+                        var hz = rawEqFreqToHz(item.freq);
+                        freqLabel.textContent = (hz >= 1000 ? Math.round(hz / 100) / 10 + "k" : hz) + "Hz";
+                        freqLabel.style.left = left + "%";
+                    }
+                });
+            }
+            function bandFromPoint(clientX) {
+                var rect = pad.getBoundingClientRect();
+                var xPercent = ((clientX - rect.left) / rect.width) * 100;
+                var winner = rawEqBands[0];
+                var best = Infinity;
+                rawEqBands.forEach(function(band) {
+                    var distance = Math.abs(rawEqPercentFromFreq(raw[band.key].freq) - xPercent);
+                    if (distance < best) {
+                        best = distance;
+                        winner = band;
+                    }
+                });
+                return winner;
+            }
+            function updateFromPointer(event, band) {
+                var rect = pad.getBoundingClientRect();
+                band = band || activeRawEqBand || bandFromPoint(event.clientX);
+                var x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+                var y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+                raw[band.key].freq = Math.round(x * 120);
+                if (isRawEqPassFilter(band.key, raw[band.key].q)) {
+                    raw[band.key].gain = y < 0.5 ? rawEqDbToGain(18) : rawEqDbToGain(-18);
+                } else {
+                    raw[band.key].gain = rawEqDbToGain(18 - y * 36);
+                }
+                sendRawEq(owner, isMaster);
+                refreshPad();
+            }
+            pad.onpointerdown = function(event) {
+                event.preventDefault();
+                pad.setPointerCapture(event.pointerId);
+                activeRawEqBand = bandFromPoint(event.clientX);
+                updateFromPointer(event, activeRawEqBand);
+            };
+            pad.onpointermove = function(event) {
+                if (!pad.hasPointerCapture(event.pointerId)) return;
+                event.preventDefault();
+                updateFromPointer(event, activeRawEqBand);
+            };
+            pad.onpointerup = pad.onpointercancel = function(event) {
+                if (pad.hasPointerCapture && pad.hasPointerCapture(event.pointerId)) {
+                    pad.releasePointerCapture(event.pointerId);
+                }
+                activeRawEqBand = null;
+            };
+        }
+
+        function bindRawEqQRow(page, owner, isMaster) {
+            var raw = rawEqState(owner, isMaster);
+            Array.prototype.forEach.call(page.querySelectorAll("[data-raw-eq-q]"), function(valueBox) {
+                var swipe = null;
+                function stepQ(step) {
+                    var bandKey = valueBox.dataset.rawEqQ;
+                    if (!raw[bandKey]) return;
+                    var next = rawEqNextQValue(bandKey, raw[bandKey].q, step);
+                    if (!applyRawEqQValue(raw, bandKey, next)) return;
+                    valueBox.textContent = rawEqQDisplay(bandKey, next);
+                    sendRawEq(owner, isMaster);
+                    var node = page.querySelector("[data-raw-eq-node='" + bandKey + "']");
+                    if (node) node.style.top = rawEqPercentFromGain(raw[bandKey].gain) + "%";
+                }
+                valueBox.onpointerdown = function(event) {
+                    event.preventDefault();
+                    valueBox.setPointerCapture(event.pointerId);
+                    swipe = {
+                        pointerId: event.pointerId,
+                        lastX: event.clientX,
+                        lastY: event.clientY
+                    };
+                };
+                valueBox.onpointermove = function(event) {
+                    if (!swipe || event.pointerId !== swipe.pointerId) return;
+                    var dx = event.clientX - swipe.lastX;
+                    var dy = swipe.lastY - event.clientY;
+                    var amount = Math.abs(dx) > Math.abs(dy) ? dx : dy;
+                    if (Math.abs(amount) < 24) return;
+                    swipe.lastX = event.clientX;
+                    swipe.lastY = event.clientY;
+                    stepQ(amount > 0 ? 1 : -1);
+                };
+                valueBox.onpointerup = valueBox.onpointercancel = function(event) {
+                    if (valueBox.hasPointerCapture && valueBox.hasPointerCapture(event.pointerId)) {
+                        valueBox.releasePointerCapture(event.pointerId);
+                    }
+                    swipe = null;
+                };
+            });
+        }
+
+        function renderAssistSendCell(id, value, disabled, extraClass) {
+            return "<div class='control-cell assist-send-cell " + (extraClass || "") + "'><div class='control-label'>" + id.toUpperCase() + "</div><div class='send-row" + (disabled ? " disabled" : "") + "' data-send='" + id + "' data-disabled='" + (disabled ? "1" : "0") + "'><div class='value-box swipe-value' data-swipe-send='" + id + "'>" + value + "</div></div></div>";
+        }
+
+        function renderAssistAttCell(channel, controls) {
+            var disabled = !channelAttenuatorParameters(channel).length;
+            return "<div class='control-cell assist-att-cell" + (disabled ? " disabled" : "") + "'><div class='control-label'>EQ ATT</div><div class='knob' data-channel-att='1' data-min='-96' data-max='0' data-center='0' data-detent='center' data-value='" + (controls.eqAtt || 0) + "' data-unit=' dB'>0 dB</div></div>";
+        }
+
+        function renderAssistPhaseCell(channel, controls) {
+            var disabled = !phaseCapable(channel);
+            return "<div class='control-cell assist-phase-cell" + (disabled ? " disabled" : "") + "'><button class='btn-hw" + (controls.phase ? " active" : "") + (disabled ? " disabled" : "") + "' data-phase='1'" + (disabled ? " disabled" : "") + ">PHASE</button></div>";
+        }
+
+        function renderAssistStereoSpreadCell(channel, controls) {
+            if (!isStereoWidthSource(channel)) return "<div class='control-cell empty-module-slot'></div>";
+            var mode = controls.stereoSpreadMode || "Stereo";
+            return "<div class='control-cell assist-send-cell assist-spread-cell'><div class='control-label'>MODE</div><div class='send-row'><div class='value-box swipe-value' data-stereo-spread='1'>" + mode + "</div></div></div>";
+        }
+
+        function renderAssistChannelPage(channel, controls) {
+            return "<div class='assist-eq-body'><div class='assist-eq-left'>" + renderRawEqPad(channel, false) + renderRawEqQRow(channel, false) + "</div><div class='raw-eq-side'>" + renderAssistSendCell("aux1", controls.aux1) + renderAssistSendCell("aux2", controls.aux2) + renderAssistSendCell("aux3", controls.aux3) + renderAssistSendCell("aux4", controls.aux4) + renderAssistSendCell("eff1", controls.eff1, channel.id === "RTN1") + renderAssistSendCell("eff2", controls.eff2, channel.id === "RTN2") + renderAssistStereoSpreadCell(channel, controls) + "<div class='control-cell assist-master-fader'><div class='control-label'>MIX</div><input class='v-fader' data-assist-channel-fader='1' type='range' min='0' max='127' step='1' value='" + (state.faders[channel.id] || 0) + "'></div>" + renderAssistAttCell(channel, controls) + renderAssistPhaseCell(channel, controls) + "</div></div>";
+        }
+
+        function renderAssistMasterPage(master, eq) {
+            return "<div class='assist-eq-body'><div class='assist-eq-left'>" + renderRawEqPad(master, true) + renderRawEqQRow(master, true) + "</div><div class='assist-master-comp-column'><div class='control-cell'><div class='control-label'>DYNAMICS</div><div class='button-stack'><button class='btn-hw" + (eq.compPreset === "glue" ? " active" : "") + "' data-master-comp-preset='glue'>GLUE</button><button class='btn-hw" + (eq.compPreset === "limiter" ? " active" : "") + "' data-master-comp-preset='limiter'>LIMITER</button></div></div><div class='control-cell'><div class='control-label'>THRESHOLD</div><div class='knob' data-master-comp='threshold' data-min='-54' data-max='0' data-value='" + eq.threshold + "' data-unit=' dB'>0 dB</div></div><div class='control-cell'><div class='control-label'>RATIO</div>" + renderRatioSelector(eq) + "</div><div class='control-cell'><div class='control-label'>OUT GAIN</div><div class='knob' data-master-comp='outGain' data-min='0' data-max='18' data-value='" + eq.outGain + "' data-unit=' dB'>0 dB</div></div></div></div>";
+        }
+
         function bindMasterToneEq(page, master) {
             var eq = masterEqControls(master);
             Array.prototype.forEach.call(page.querySelectorAll("[data-master-eq-freq]"), function(valueBox) {
@@ -4677,7 +5876,7 @@
                 if (drag.action === "solo") {
                     var nextSolo = !state.solo[channel.id];
                     if (nextSolo) clearMasterSoloState(null);
-                    state.solo[channel.id] = nextSolo;
+                    setChannelSoloState(channel.id, nextSolo);
                     setChannelSolo(channel.soloKey, nextSolo);
                     syncSoloRouting();
                 }
@@ -4755,6 +5954,7 @@
                     }
                 }
                 var activeClass = state.copy.phase === "idle" ? (state.mode === mode ? " active" : "") : "";
+                if (isMeterDelegationMode()) activeClass = isModeMeterSelectorOn(mode) ? " solo on" : " solo";
                 button.className = "btn-hw" + activeClass + copyClass + (isAuxModeLinked(mode) ? " linked" : "");
                 button.textContent = copyText;
                 button.dataset.mode = mode;
@@ -4798,6 +5998,7 @@
                 var button = document.createElement("button");
                 var freeOnlyLocked = isFreeOnlyBank(bank) && !isFreeMode();
                 var active = bank.page ? state.view === bank.page : state.bankId === bank.id && state.view !== "scenes" && state.view !== "meter";
+                if (bank.page === "meter") active = isMeterDelegationMode();
                 if (state.view === "meter" && !bank.page) active = state.bankId === bank.id;
                 if (bank.page === "copy") active = false;
                 if (freeOnlyLocked) active = false;
@@ -4829,6 +6030,40 @@
             shell.innerHTML = "<div class='channel-fader-meter'><div class='channel-fader-meter-fill' data-inline-meter-fill='" + meterId + "'></div><div class='channel-fader-meter-hold' data-inline-meter-hold='" + meterId + "'></div></div>";
             shell.appendChild(fader);
             faderBox.appendChild(shell);
+        }
+
+        function createStripPanFader(channel) {
+            var controls = channelControls(channel);
+            var pan = document.createElement("input");
+            pan.className = "strip-pan-fader";
+            pan.type = "range";
+            pan.step = "1";
+            pan.setAttribute("aria-label", "Pan");
+            if (isStereoWidthSource(channel)) {
+                var mode = controls.stereoSpreadMode || "Stereo";
+                var config = stereoSpreadConfig[mode] || stereoSpreadConfig.Stereo;
+                var range = config.panRange || [0, 0];
+                pan.min = String(range[0]);
+                pan.max = String(range[1]);
+                controls.stereoPan = Math.max(range[0], Math.min(range[1], controls.stereoPan || 0));
+                pan.value = controls.stereoPan;
+                pan.disabled = !!config.panDisabled;
+                pan.oninput = function(event) {
+                    var next = parseInt(event.target.value, 10) || 0;
+                    controls.stereoPan = Math.max(range[0], Math.min(range[1], next));
+                    sendStereoSpreadControl(channel, mode, controls.stereoPan);
+                };
+                return pan;
+            }
+            pan.min = "-16";
+            pan.max = "16";
+            pan.value = controls.pan || 0;
+            pan.disabled = !channel.midiKey;
+            pan.oninput = function(event) {
+                controls.pan = Math.max(-16, Math.min(16, parseInt(event.target.value, 10) || 0));
+                sendPanControl(channel, controls.pan);
+            };
+            return pan;
         }
 
         function renderStrip(channel) {
@@ -4864,11 +6099,15 @@
                     if (group) sendParameter(group + "." + channel.midiKey, midiValue);
                 }
             };
+            var faderMain = document.createElement("div");
+            faderMain.className = "strip-fader-main";
             if (hasSoloMeter) {
-                appendMeterFader(faderBox, fader, "channel:" + channel.id);
+                appendMeterFader(faderMain, fader, "channel:" + channel.id);
             } else {
-                faderBox.appendChild(fader);
+                faderMain.appendChild(fader);
             }
+            faderBox.appendChild(faderMain);
+            faderBox.appendChild(createStripPanFader(channel));
 
             var on = document.createElement("button");
             on.className = "btn-hw on-btn " + (channelOnState(channel) ? "on" : "off");
@@ -4896,6 +6135,7 @@
             var effectBlock = "<div class='control-cell'><div class='control-label'>EFFECT</div><div class='send-grid'>" + renderSendRow("eff1", controls.eff1, channel.id === "RTN1") + renderSendRow("eff2", controls.eff2, channel.id === "RTN2") + "</div></div>";
             var phaseDisabled = !phaseCapable(channel);
             var isReturnChannel = channel.id === "RTN1" || channel.id === "RTN2";
+            var useAssistEq = isExpertEqChannel(channel);
             var eqBody = isReturnChannel ? [
                 "<div class='strip-section eq-section'>",
                 "<div class='control-cell phase-hpf'><div class='hpf-stack'><div class='control-label'>HPF</div><button class='btn-hw" + (controls.effectReturnHpf === "100" ? " active" : "") + "' data-effect-return-hpf='100'>100</button><button class='btn-hw" + (controls.effectReturnHpf === "175" ? " active" : "") + "' data-effect-return-hpf='175'>175</button><button class='btn-hw" + (controls.effectReturnHpf === "250" ? " active" : "") + "' data-effect-return-hpf='250'>250</button><button class='btn-hw" + (controls.effectReturnHpf === "500" ? " active" : "") + "' data-effect-return-hpf='500'>500</button></div></div>",
@@ -4911,7 +6151,7 @@
                 "<div class='control-cell'><div class='control-label'>HIGH</div><div class='knob' data-control='highGain' data-eq='1' data-min='-18' data-max='18' data-center='0' data-detent='center' data-value='" + controls.highGain + "' data-unit=' dB'>0 dB</div></div>",
                 "</div>"
             ].join("");
-            var channelBody = [
+            var channelBody = useAssistEq ? renderAssistChannelPage(channel, controls) : [
                 "<div class='strip-body'>",
                 eqBody,
                 "<div class='strip-section utility-section'>",
@@ -4929,25 +6169,34 @@
                 channelBody,
                 "<div class='strip-page-nav'>",
                 "<button class='btn-hw' id='stripPrev'>&lt; PREV</button>",
-                "<div class='strip-channel-name'><span>" + escapeHtml(baseLabel(channel)) + "</span><input id='stripNameInput' maxlength='15' value='" + escapeHtml(suffix) + "' placeholder=' NAME'></div>",
+                "<div class='strip-channel-name'><span>" + escapeHtml(baseLabel(channel)) + "</span><input id='stripNameInput' value='" + escapeHtml(suffix) + "' placeholder=' NAME'></div>",
                 "<button class='btn-hw' id='stripNext'>NEXT &gt;</button>",
                 "</div>"
             ].join("");
             root.appendChild(page);
             bindKnobs(page);
             bindStripButtons(page, channel);
+            if (useAssistEq) {
+                bindRawEqPad(page, channel, false);
+                bindRawEqQRow(page, channel, false);
+                var assistFader = page.querySelector("[data-assist-channel-fader]");
+                if (assistFader) {
+                    assistFader.oninput = function(event) {
+                        state.faders[channel.id] = parseInt(event.target.value, 10) || 0;
+                        if (channel.midiKey) sendParameter("channelFader." + channel.midiKey, state.faders[channel.id]);
+                    };
+                }
+            }
             if (isReturnChannel) bindEffectReturnEq(page, channel);
             document.getElementById("stripPrev").onclick = function() { selectChannelByOffset(-1); };
             document.getElementById("stripNext").onclick = function() { selectChannelByOffset(1); };
             document.getElementById("stripNameInput").oninput = function(event) {
-                var value = event.target.value.slice(0, 15);
+                var value = event.target.value;
                 if (value && value[0] !== " ") value = " " + value;
-                value = value.slice(0, 15);
                 event.target.value = value;
                 sceneDraft(state.loadedScene)[channel.id] = value;
                 persistScenes();
             };
-            bindStripSwipe(page);
         }
 
         function renderMasterStripPage() {
@@ -4957,6 +6206,7 @@
             var eq = masterEqControls(master);
             var isEffectMaster = state.mode === "EFF1" || state.mode === "EFF2";
             var isAuxMaster = state.mode.indexOf("AUX") === 0;
+            var useAssistEq = false;
             var masterPage = activeMasterPage(master);
             var masterTabs = "";
             var presetIndex = effectPresetIndex(master);
@@ -4977,7 +6227,9 @@
             ].join("");
             var page = document.createElement("div");
             page.className = "strip-page";
-            if (isEffectMaster) {
+            if (useAssistEq) {
+                page.innerHTML = renderAssistMasterPage(master, eq);
+            } else if (isEffectMaster) {
                 page.innerHTML = [
                     "<div class='strip-body'>",
                     "<div class='strip-section empty-module-slot'></div>",
@@ -5016,6 +6268,10 @@
             root.appendChild(page);
             bindMasterPageTabs(page, master);
             bindKnobs(page);
+            if (useAssistEq) {
+                bindRawEqPad(page, master, true);
+                bindRawEqQRow(page, master, true);
+            }
             if (isAuxMaster) bindAuxMasterEq(page, master);
             if (!isAuxMaster && !isEffectMaster) bindMasterToneEq(page, master);
             if (isEffectMaster) bindEffectPreset(page, master);
@@ -5044,9 +6300,9 @@
             page.className = "strip-page";
             var draft = sceneDraft();
             var sceneNameValue = state.sceneNameDrafts[state.selectedScene] || sceneTitle(state.selectedScene);
-            var sceneNameRow = "<div class='label-row scene-title-row'><div>SCENE</div><input id='sceneTitleInput' maxlength='15' value='" + escapeHtml(sceneNameValue) + "' placeholder=' SCENE NAME'></div>";
+            var sceneNameRow = "<div class='label-row scene-title-row'><div>SCENE</div><input id='sceneTitleInput' value='" + escapeHtml(sceneNameValue) + "' placeholder=' SCENE NAME'></div>";
             var labelRows = allChannels().map(function(channel) {
-                return "<div class='label-row'><div>" + escapeHtml(baseLabel(channel)) + "</div><input data-label-channel='" + channel.id + "' maxlength='15' value='" + escapeHtml(draft[channel.id] || "") + "' placeholder=' NAME'></div>";
+                return "<div class='label-row'><div>" + escapeHtml(baseLabel(channel)) + "</div><input data-label-channel='" + channel.id + "' value='" + escapeHtml(draft[channel.id] || "") + "' placeholder=' NAME'></div>";
             }).join("");
             var scenes = sceneIds.map(function(scene) {
                 var draftName = state.sceneNameDrafts[scene] || sceneTitle(scene);
@@ -5092,16 +6348,14 @@
             });
             var sceneTitleInput = document.getElementById("sceneTitleInput");
             sceneTitleInput.oninput = function(event) {
-                event.target.value = event.target.value.slice(0, 15);
                 state.sceneNameDrafts[state.selectedScene] = event.target.value;
                 persistScenes();
                 renderSceneListOnly(page);
             };
             Array.prototype.forEach.call(page.querySelectorAll("[data-label-channel]"), function(input) {
                 input.oninput = function(event) {
-                    var value = event.target.value.slice(0, 15);
+                    var value = event.target.value;
                     if (value && value[0] !== " ") value = " " + value;
-                    value = value.slice(0, 15);
                     event.target.value = value;
                     sceneDraft()[input.dataset.labelChannel] = value;
                     persistScenes();
@@ -5185,92 +6439,19 @@
                     copyClass = " copy-target";
                     copyModeLabel = (copyTarget.copyMode || "mix").toUpperCase();
                 }
-                var channelActive = state.view === "meter" ? !!state.solo[channel.id] : (state.view === "strip" && state.selectedId === channel.id);
+                var meterDelegation = isMeterDelegationMode();
+                var channelActive = meterDelegation ? !!state.solo[channel.id] : (state.view === "strip" && state.selectedId === channel.id);
                 var activeClass = state.copy.phase === "idle" ? (channelActive ? " active" : "") : "";
-                button.className = "btn-hw" + (state.view === "meter" ? " solo" : "") + activeClass + copyClass + (state.view === "meter" && channelActive ? " on" : "");
+                button.className = "btn-hw" + (meterDelegation ? " solo" : "") + activeClass + copyClass + (meterDelegation && channelActive ? " on" : "");
                 var suffix = (state.sceneSaved[state.loadedScene] || {})[channel.id] || "";
                 button.innerHTML = "<div class='channel-button-main'>" + escapeHtml(baseLabel(channel)) + "</div><div class='channel-button-name'>" + escapeHtml(copyModeLabel || suffix.trim()) + "</div>";
                 button.dataset.meterChannel = channel.id;
                 button.onpointerup = function(event) {
                     event.preventDefault();
-                    if (isMeterDelegationMode()) return;
                     channelButton(channel);
                 };
                 root.appendChild(button);
             });
-            if (isMeterDelegationMode()) bindMeterChannelRowSwipe(root);
-        }
-
-        function bindMeterChannelRowSwipe(root) {
-            var drag = null;
-            function buttonFromPoint(event) {
-                var element = document.elementFromPoint(event.clientX, event.clientY);
-                var button = element && element.closest ? element.closest("[data-meter-channel]") : null;
-                if (!button || !drag) return null;
-                return button;
-            }
-            function channelFromButton(button) {
-                return currentChannels().find(function(channel) { return channel.id === button.dataset.meterChannel; });
-            }
-            function touchButton(button) {
-                if (!button || !drag || drag.touched[button.dataset.meterChannel]) return;
-                var channel = channelFromButton(button);
-                if (!channel) return;
-                drag.touched[button.dataset.meterChannel] = true;
-                setMeterChannelSolo(channel, drag.targetState);
-                button.classList.toggle("active", drag.targetState);
-            }
-            root.onpointerdown = function(event) {
-                var button = event.target.closest("[data-meter-channel]");
-                if (!button) return;
-                var channel = channelFromButton(button);
-                if (!channel) return;
-                event.preventDefault();
-                root.setPointerCapture(event.pointerId);
-                drag = {
-                    pointerId: event.pointerId,
-                    startButton: button,
-                    startX: event.clientX,
-                    startY: event.clientY,
-                    targetState: !state.solo[channel.id],
-                    active: false,
-                    touched: {}
-                };
-            };
-            root.onpointermove = function(event) {
-                if (!drag || event.pointerId !== drag.pointerId) return;
-                if (!drag.active && Math.abs(event.clientX - drag.startX) + Math.abs(event.clientY - drag.startY) > 18) {
-                    drag.active = true;
-                    suppressStripClick = true;
-                    touchButton(drag.startButton);
-                }
-                if (!drag.active) return;
-                touchButton(buttonFromPoint(event));
-            };
-            root.onpointerover = function(event) {
-                if (!drag || !drag.active) return;
-                touchButton(buttonFromPoint(event));
-            };
-            function finishDrag(event) {
-                if (drag && event.pointerId !== drag.pointerId) return;
-                if (drag && root.hasPointerCapture && root.hasPointerCapture(event.pointerId)) {
-                    root.releasePointerCapture(event.pointerId);
-                }
-                if (drag && drag.active) {
-                    setTimeout(function() { suppressStripClick = false; }, 120);
-                    renderButtonsOnly();
-                    updateAudioMeterDom();
-                } else if (drag) {
-                    suppressStripClick = false;
-                    var channel = channelFromButton(drag.startButton);
-                    if (channel) channelButton(channel);
-                } else {
-                    suppressStripClick = false;
-                }
-                drag = null;
-            }
-            root.onpointerup = finishDrag;
-            root.onpointercancel = finishDrag;
         }
 
         function renderMaster() {
@@ -5292,6 +6473,7 @@
                     clearMasterSoloState(master.id);
                 }
                 state.masterSolo[master.id] = next;
+                updateRawEqSnapshotCache();
                 syncSoloRouting();
                 render();
             };
@@ -5339,12 +6521,17 @@
             var masterCopyClass = "";
             if (state.copy.source && state.copy.source.type === "masterSettings" && state.copy.source.mode === state.mode) masterCopyClass = " copy-source";
             if (copyTargetSelected("masterSettings", state.mode)) masterCopyClass = " copy-target";
-            select.className = "btn-hw master-select" + (state.view === "masterStrip" ? " active" : "") + masterCopyClass;
+            var masterSelectClass = isMeterDelegationMode() ? " solo" : (state.view === "masterStrip" ? " active" : "");
+            select.className = "btn-hw master-select" + masterSelectClass + masterCopyClass;
             select.textContent = master.label;
             select.onclick = function() {
                 if (isMeterDelegationMode()) {
                     if (isMeterDoubleTap("master-select:" + state.mode)) {
-                        exitMeterModeToMaster(state.mode);
+                        exitMeterModeToBus(state.mode);
+                        return;
+                    }
+                    if (isOnlyMeterModeTarget(state.mode)) {
+                        toggleMeterMasterDetail(state.mode);
                         return;
                     }
                     meterSelectCurrentMaster();
@@ -5365,6 +6552,7 @@
                 state.view = state.view === "masterStrip" ? "mixer" : "masterStrip";
                 state.selectedId = "master:" + state.mode;
                 state.selectedLabel = master.label;
+                selectMixerMasterBus(state.mode);
                 render();
             };
 
@@ -5377,6 +6565,7 @@
         }
 
         function renderButtonsOnly() {
+            renderTopBar();
             renderChannelRow();
             renderMaster();
             if (state.view === "mixer") renderMixer();
@@ -5395,6 +6584,7 @@
             else renderMixer();
             syncSoloRouting();
             positionModeOverlay();
+            scheduleRawEqSpectrumDraw();
         }
 
         document.addEventListener("pointerdown", guardPermissionEvent, true);
@@ -5406,10 +6596,12 @@
         window.addEventListener("resize", positionModeOverlay);
         bindModeOverlay();
         loadScenes();
+        socket.on("app mode", applyAppMode);
         socket.on("scene store", applySceneStore);
         socket.on("meter config", applyMeterConfig);
         socket.on("audio meter frame", applyAudioMeterFrame);
         socket.on("audio meter request", handleAudioMeterRequest);
+        socket.on("midi incoming", applyMidiIncoming);
         render();
     </script>
 </body>

@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$startScript = Join-Path $projectRoot "Start-Yamaha01V.bat"
+$startScript = Join-Path $projectRoot "Start-Festimix.bat"
 $iconPath = Join-Path $projectRoot "assets\homescreen512.ico"
 
 $shell = New-Object -ComObject WScript.Shell
@@ -9,8 +9,8 @@ $desktopPath = [Environment]::GetFolderPath("Desktop")
 $startMenuPath = Join-Path ([Environment]::GetFolderPath("StartMenu")) "Programs"
 
 $shortcuts = @(
-    (Join-Path $desktopPath "01vv2.lnk"),
-    (Join-Path $startMenuPath "01vv2.lnk")
+    (Join-Path $desktopPath "Festimix v3.lnk"),
+    (Join-Path $startMenuPath "Festimix v3.lnk")
 )
 
 foreach ($shortcutPath in $shortcuts) {

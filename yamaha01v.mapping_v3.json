@@ -5,7 +5,7 @@
     "protocol": "MIDI + SysEx",
     "mappingVersion": "2.1-preliminary",
     "status": "reverse-engineered",
-    "lastUpdated": "2026-05-12"
+    "lastUpdated": "2026-05-28"
   },
   "midi": {
     "defaultChannel": 1,
@@ -163,8 +163,8 @@
       "BUS2": 22,
       "BUS3": 23,
       "BUS4": 24,
-      "EFFECT1": 25,
-      "EFFECT2": 26,
+      "EFFECT1": 26,
+      "EFFECT2": 25,
       "STEREO": 27
     },
     "channelOn": {
@@ -659,11 +659,16 @@
     ]
   },
   "channelSelectRemote": {
-    "source": "D:\\Yamaha 01v sysex\\select buttons 1 to 15-16 and then master and eff1 eff2 RTN.log",
-    "status": "observed_select_sysex",
-    "family": "F0 43 10 3E 04 23 01 channelCode 01 04 F7",
+    "source": "D:\\Github-hatterinfok\\Yamaha 01v sysex\\ch select 1-15-16 and eff RTN.log",
+    "status": "tablet_only_outgoing_select_page_reference",
+    "sendToConsole": true,
+    "receiveFromConsole": false,
+    "sendFamily": "channelSelectRemote",
+    "family": "F0 43 10 3E 04 23 01 channelCode 03 00 F7",
     "notes": [
-      "Use the direct select SysEx captured from the Yamaha 01V select buttons.",
+      "Runtime validation 2026-05-31: assist mode must not send or receive Yamaha channel select; tablet-only mode may send this family because the Yamaha screen is not the active UI.",
+      "23 01 channelCode 10 xx reports HOME/fader-mode pages and 23 01 channelCode 01 xx reports MIDI pages. These packets can include the currently selected channelCode, but they are not reliable Yamaha-to-tablet channel-select events.",
+      "Outgoing uses the observed desired screen family 03 00 rather than HOME 10 00 or MIDI 01 04.",
       "Capture order is CH1 through CH15/16, then master, EFF RTN1, EFF RTN2.",
       "This replaces the earlier key-remote press/release experiment, which did not reliably select the channel on the console."
     ],
@@ -685,6 +690,70 @@
       "RTN1": { "channelCode": "0x0E" },
       "RTN2": { "channelCode": "0x0F" },
       "STEREO": { "channelCode": "0x16" }
+    }
+  },
+  "masterBusSelectRemote": {
+    "source": "D:\\Github-hatterinfok\\Yamaha 01v sysex\\busmasterselect_sequences_for_tabletonlymode_busslect,masteronbusselect, viewselect - for all master, aux1-4 eff 1-2.log",
+    "status": "reference_only_do_not_send_from_bus_selectors",
+    "sendToConsole": false,
+    "receiveFromConsole": false,
+    "notes": [
+      "Reference only: tablet bus selectors must not send these sequences.",
+      "Assist mode must not send these; the tablet and Yamaha surface remain independent.",
+      "Tablet-only bus selectors only change the tablet UI association to MIX/AUX/EFF.",
+      "The captured bus select packets also pull the Yamaha into fader/home/master views and can yank motor faders; do not send them from UI navigation.",
+      "Master fader values still send through masterFader.* when the user actually moves a fader."
+    ],
+    "sequences": {
+      "MIX": [
+        "F043303E04254FF7",
+        "F043103E042301161003F7",
+        "F043303E042542F7",
+        "F043103E042301160300F7",
+        "F043303E042573F7"
+      ],
+      "AUX1": [
+        "F043303E042573F7",
+        "F043103E042301160C00F7",
+        "F043303E042502F7",
+        "F043103E042301100C00F7",
+        "F043103E042301100300F7"
+      ],
+      "AUX2": [
+        "F043303E042571F7",
+        "F043103E042301100D00F7",
+        "F043303E042502F7",
+        "F043103E042301110D00F7",
+        "F043103E042301110300F7"
+      ],
+      "AUX3": [
+        "F043303E042571F7",
+        "F043103E042301110E00F7",
+        "F043303E042502F7",
+        "F043103E042301120E00F7",
+        "F043103E042301120300F7"
+      ],
+      "AUX4": [
+        "F043303E042572F7",
+        "F043103E042301120F00F7",
+        "F043303E042502F7",
+        "F043103E042301130F00F7",
+        "F043103E042301130300F7"
+      ],
+      "EFF1": [
+        "F043303E042572F7",
+        "F043103E042301130800F7",
+        "F043303E04254FF7",
+        "F043103E042301140800F7",
+        "F043103E042301140300F7"
+      ],
+      "EFF2": [
+        "F043303E042574F7",
+        "F043103E042301140900F7",
+        "F043303E042550F7",
+        "F043103E042301150900F7",
+        "F043103E042301150300F7"
+      ]
     }
   },
   "returns": {
@@ -728,6 +797,18 @@
   },
   "sysexParameters": {
     "pan": {
+      "CH1": "0x0360",
+      "CH2": "0x0361",
+      "CH3": "0x0362",
+      "CH4": "0x0363",
+      "CH5": "0x0364",
+      "CH6": "0x0365",
+      "CH7": "0x0366",
+      "CH8": "0x0367",
+      "CH9": "0x0368",
+      "CH10": "0x0369",
+      "CH11": "0x036A",
+      "CH12": "0x036B",
       "CH13_L": "0x0374",
       "CH13_R": "0x0375",
       "CH15_L": "0x0376",
@@ -736,19 +817,52 @@
       "RTN1_R": "0x0379",
       "RTN2_L": "0x037A",
       "RTN2_R": "0x037B",
-      "validated": "from stereo 1314, 1516, eff1 ret, eff2 ret pan es csatornavaltasok.log"
+      "validated": "from D:\\Github-hatterinfok\\Yamaha 01v sysex\\pan 1-eff2.log"
     },
     "attenuator": {
-      "notes": "0x5D is the sniffed -3 dB mono attenuation value. Address sequence is kept for future level/trim logic.",
+      "notes": "EQ ATT channel attenuation. Log source: D:\\Github-hatterinfok\\Yamaha 01v sysex\\eq att button ch1-16.log. 0x60 = 0 dB, 0x00 = -96 dB.",
       "monoStereoMinus3dbValue": "0x5D",
       "unityValue": "0x60",
+      "CH1": { "level": "0x03D6" },
+      "CH2": { "level": "0x03D7" },
+      "CH3": { "level": "0x03D8" },
+      "CH4": { "level": "0x03D9" },
+      "CH5": { "level": "0x03DA" },
+      "CH6": { "level": "0x03DB" },
+      "CH7": { "level": "0x03DC" },
+      "CH8": { "level": "0x03DD" },
+      "CH9": { "level": "0x03DE" },
+      "CH10": { "level": "0x03DF" },
+      "CH11": { "level": "0x03E0" },
+      "CH12": { "level": "0x03E1" },
       "CH13_14": {
         "left": "0x03E2",
-        "right": "0x03E3"
+        "right": "0x03E3",
+        "level": "0x03E2"
       },
       "CH15_16": {
-        "left": "0x03E3"
+        "left": "0x03E3",
+        "right": "0x03E3",
+        "level": "0x03E3"
       }
+    },
+    "channelFader": {
+      "validated": "inferred_from_mix_bus_fader_block_before_existing_return_and_master_fader_addresses",
+      "transport": "F0 43 10 3E 04 30 aaH aaL value F7",
+      "CH1": "0x000C",
+      "CH2": "0x000D",
+      "CH3": "0x000E",
+      "CH4": "0x000F",
+      "CH5": "0x0010",
+      "CH6": "0x0011",
+      "CH7": "0x0012",
+      "CH8": "0x0013",
+      "CH9": "0x0014",
+      "CH10": "0x0015",
+      "CH11": "0x0016",
+      "CH12": "0x0017",
+      "CH13_14": "0x0018",
+      "CH15_16": "0x0019"
     },
     "masterFader": {
       "STEREO": "0x0024",
@@ -906,6 +1020,45 @@
         "CH12": "0x0056",
         "CH13_14": "0x0075",
         "CH15_16": "0x0076"
+      }
+    }
+  },
+  "effectSends": {
+    "status": "derived_from_contiguous_edit_buffer_send_block_after_aux_1-4_channel_sends",
+    "messageFamily": "editBufferParameter7bitObserved",
+    "sendPreferred": "use editBuffer7bitWrite for tablet-to-Yamaha writes; keep CC input mapping for Yamaha feedback",
+    "sends": {
+      "fx2Send": {
+        "CH1": "0x0057",
+        "CH2": "0x0058",
+        "CH3": "0x0059",
+        "CH4": "0x005A",
+        "CH5": "0x005B",
+        "CH6": "0x005C",
+        "CH7": "0x005D",
+        "CH8": "0x005E",
+        "CH9": "0x005F",
+        "CH10": "0x0060",
+        "CH11": "0x0061",
+        "CH12": "0x0062",
+        "CH13_14": "0x0077",
+        "CH15_16": "0x0078"
+      },
+      "fx1Send": {
+        "CH1": "0x0063",
+        "CH2": "0x0064",
+        "CH3": "0x0065",
+        "CH4": "0x0066",
+        "CH5": "0x0067",
+        "CH6": "0x0068",
+        "CH7": "0x0069",
+        "CH8": "0x006A",
+        "CH9": "0x006B",
+        "CH10": "0x006C",
+        "CH11": "0x006D",
+        "CH12": "0x006E",
+        "CH13_14": "0x0079",
+        "CH15_16": "0x007A"
       }
     }
   },
@@ -1335,26 +1488,26 @@
       }
     },
     "selectObserved": {
-      "family": "F0 43 10 3E 04 23 01 channelCode 09 02 F7",
+      "family": "F0 43 10 3E 04 23 01 channelCode 10 00 F7",
       "CH1": {
         "channelCode": "0x00",
-        "bytes": "F0 43 10 3E 04 23 01 00 09 02 F7"
+        "bytes": "F0 43 10 3E 04 23 01 00 10 00 F7"
       },
       "CH13_14": {
         "channelCode": "0x0C",
-        "bytes": "F0 43 10 3E 04 23 01 0C 09 02 F7"
+        "bytes": "F0 43 10 3E 04 23 01 0C 10 00 F7"
       },
       "CH15_16": {
         "channelCode": "0x0D",
-        "bytes": "F0 43 10 3E 04 23 01 0D 09 02 F7"
+        "bytes": "F0 43 10 3E 04 23 01 0D 10 00 F7"
       },
       "RTN1": {
         "channelCode": "0x0E",
-        "bytes": "F0 43 10 3E 04 23 01 0E 09 02 F7"
+        "bytes": "F0 43 10 3E 04 23 01 0E 10 00 F7"
       },
       "RTN2": {
         "channelCode": "0x0F",
-        "bytes": "F0 43 10 3E 04 23 01 0F 09 02 F7"
+        "bytes": "F0 43 10 3E 04 23 01 0F 10 00 F7"
       }
     },
     "soloObserved": {
