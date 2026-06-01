@@ -841,9 +841,9 @@
         "level": "0x03E2"
       },
       "CH15_16": {
-        "left": "0x03E4",
-        "right": "0x03E5",
-        "level": "0x03E4"
+        "left": "0x03E3",
+        "right": "0x03E3",
+        "level": "0x03E3"
       }
     },
     "channelFader": {

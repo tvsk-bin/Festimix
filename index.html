@@ -940,7 +940,23 @@
         }
 
         .assist-att-cell {
-            grid-column: span 3;
+            grid-column: span 2;
+        }
+
+        .assist-phase-cell {
+            min-height: 0;
+        }
+
+        .assist-phase-cell .btn-hw {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            padding: 6px 4px;
+            border-radius: 6px;
+            font-size: clamp(10px, 1.05vw, 13px);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
         }
 
         .assist-spread-cell .swipe-value {
@@ -1182,6 +1198,10 @@
             stroke: var(--on);
         }
 
+        .mode-overlay line[data-mode-line="expert"] {
+            stroke: #2f8cff;
+        }
+
         .mode-choice {
             position: absolute;
             width: clamp(70px, 8.5vw, 94px);
@@ -1212,6 +1232,13 @@
             border-color: var(--on);
             color: #06140d;
             box-shadow: 0 0 18px rgba(31, 185, 107, 0.48), inset 0 0 0 2px rgba(255,255,255,0.08);
+        }
+
+        .mode-choice[data-mode-choice="expert"] {
+            background: #2f8cff;
+            border-color: #2f8cff;
+            color: #031326;
+            box-shadow: 0 0 18px rgba(47, 140, 255, 0.48), inset 0 0 0 2px rgba(255,255,255,0.08);
         }
 
         .mode-choice.active,
@@ -1453,10 +1480,12 @@
                 <line data-mode-line="view" x1="0" y1="0" x2="0" y2="0"></line>
                 <line data-mode-line="mix" x1="0" y1="0" x2="0" y2="0"></line>
                 <line data-mode-line="all" x1="0" y1="0" x2="0" y2="0"></line>
+                <line data-mode-line="expert" x1="0" y1="0" x2="0" y2="0"></line>
             </svg>
             <button class="mode-choice" data-mode-choice="view" aria-label="View only"></button>
             <button class="mode-choice" data-mode-choice="mix" aria-label="Mix"></button>
             <button class="mode-choice" data-mode-choice="all" aria-label="All"></button>
+            <button class="mode-choice" data-mode-choice="expert" aria-label="Expert EQ"></button>
         </div>
     </div>
 
@@ -1532,7 +1561,7 @@
             }
         ];
 
-        // Assist mode keeps tablet and console channel selection independent; tablet-only may drive Yamaha select.
+        // Assist mode keeps tablet and console channel selection independent; master mode may drive Yamaha select.
         var sendHardwareChannelSelectFromUi = true;
 
         var state = {
@@ -1580,7 +1609,8 @@
             meterDelegationActive: false,
             permissionMode: "all",
             modeMenuOpen: false,
-            appMode: "tablet-only",
+            appMode: "assist",
+            expertEqMode: false,
             audioMeter: {
                 running: false,
                 requesting: false,
@@ -1712,7 +1742,9 @@
         };
 
         try {
-            if (new URLSearchParams(window.location.search || "").get("appMode") === "assist") state.appMode = "assist";
+            var appModeParam = String(new URLSearchParams(window.location.search || "").get("appMode") || "").toLowerCase();
+            if (appModeParam === "master" || appModeParam === "tablet-only" || appModeParam === "tablet") state.appMode = "tablet-only";
+            if (appModeParam === "assist") state.appMode = "assist";
         } catch (error) {}
 
         var permissionModes = {
@@ -1884,9 +1916,23 @@
         function selectPermissionMode(mode) {
             if (!permissionModes[mode]) return;
             state.permissionMode = mode;
+            if (mode === "all") state.expertEqMode = false;
             closeModeMenu();
             renderTopBar();
             renderBankBar();
+            if (state.view === "strip") renderStripPage();
+        }
+
+        function selectModeChoice(mode) {
+            if (mode === "expert") {
+                state.expertEqMode = true;
+                closeModeMenu();
+                renderTopBar();
+                renderBankBar();
+                if (state.view === "strip") renderStripPage();
+                return;
+            }
+            selectPermissionMode(mode);
         }
 
         function nearestModeChoice(clientX, clientY) {
@@ -1931,10 +1977,13 @@
             var allLeft = modeTargetFromFader(4, 0.20);
             var allRight = modeTargetFromFader(5, 0.20);
             if (viewTarget && mixTarget && allLeft && allRight) {
+                var allX = (allLeft.x + allRight.x) / 2;
+                var allY = (allLeft.y + allRight.y) / 2;
                 return [
                     { mode: "view", x: viewTarget.x, y: viewTarget.y },
                     { mode: "mix", x: mixTarget.x, y: mixTarget.y },
-                    { mode: "all", x: (allLeft.x + allRight.x) / 2, y: (allLeft.y + allRight.y) / 2 }
+                    { mode: "all", x: allX, y: allY },
+                    { mode: "expert", x: allX + 92, y: allY - 92 }
                 ];
             }
             var radiusX = Math.max(360, Math.min(620, appRect.width * 0.72));
@@ -1942,7 +1991,8 @@
             return [
                 { mode: "view", angle: 62, rx: radiusX * 0.18, ry: radiusY * 0.98 },
                 { mode: "mix", angle: 47, rx: radiusX * 0.42, ry: radiusY * 0.72 },
-                { mode: "all", angle: 30, rx: radiusX * 0.64, ry: radiusY * 0.42 }
+                { mode: "all", angle: 30, rx: radiusX * 0.64, ry: radiusY * 0.42 },
+                { mode: "expert", angle: 18, rx: radiusX * 0.78, ry: radiusY * 0.26 }
             ].map(function(item) {
                 var radians = item.angle * Math.PI / 180;
                 return {
@@ -1980,7 +2030,9 @@
                 if (choice) {
                     choice.style.left = x + "px";
                     choice.style.top = y + "px";
-                    choice.classList.toggle("active", state.permissionMode === item.mode);
+                    var isActiveChoice = item.mode === "expert" ? state.expertEqMode : state.permissionMode === item.mode;
+                    if (item.mode === "all" && state.expertEqMode) isActiveChoice = false;
+                    choice.classList.toggle("active", isActiveChoice);
                 }
                 if (line) {
                     line.setAttribute("x1", origin.x);
@@ -2007,7 +2059,7 @@
             }
             updateModeGesture(event);
             if (modeGesture.moved && modeGesture.target) {
-                selectPermissionMode(modeGesture.target);
+                selectModeChoice(modeGesture.target);
             } else if (!modeGesture.moved && modeGesture.wasOpen) {
                 closeModeMenu();
                 renderTopBar();
@@ -2221,6 +2273,10 @@
 
         function isAssistMode() {
             return state.appMode === "assist";
+        }
+
+        function isExpertEqChannel(channel) {
+            return !!(state.expertEqMode && channel && eqSupportedChannel(channel) && channel.id !== "RTN1" && channel.id !== "RTN2");
         }
 
         function shouldSendHardwareChannelSelect() {
@@ -2553,8 +2609,8 @@
             var panValue = config.panDisabled ? 0 : Math.max(panRange[0], Math.min(panRange[1], parseInt(pan, 10) || 0));
             sendParameter("pan." + keys[0], config.left + panValue + 16);
             sendParameter("pan." + keys[1], config.right + panValue + 16);
-            if (channel.id === "13_14") sendParameter("attenuator.CH13_14.left", 0x60);
-            if (channel.id === "15_16") sendParameter("attenuator.CH15_16.left", 0x60);
+            if (channel.id === "13_14") sendParameter("attenuator.CH13_14.level", 0x60);
+            if (channel.id === "15_16") sendParameter("attenuator.CH15_16.level", 0x60);
         }
 
         function channelAttenuatorParameters(channel) {
@@ -2563,8 +2619,8 @@
                 var number = parseInt(channel.midiKey, 10);
                 return number >= 1 && number <= 16 ? ["attenuator." + channel.midiKey + ".level"] : [];
             }
-            if (channel.id === "13_14") return ["attenuator.CH13_14.left", "attenuator.CH13_14.right"];
-            if (channel.id === "15_16") return ["attenuator.CH15_16.left", "attenuator.CH15_16.right"];
+            if (channel.id === "13_14") return ["attenuator.CH13_14.level"];
+            if (channel.id === "15_16") return ["attenuator.CH15_16.level"];
             return [];
         }
 
@@ -2603,7 +2659,7 @@
         }
 
         function applyAutomaticEqAttenuation(channel) {
-            if (isAssistMode() || !channelAttenuatorParameters(channel).length) return;
+            if (!channelAttenuatorParameters(channel).length) return;
             var controls = channelControls(channel);
             var attenuation = autoAttenuationDb({
                 bassGain: controls.lowGain,
@@ -4111,6 +4167,7 @@
         }
 
         function applyIncomingChannelSelect(event) {
+            if (isAssistMode()) return false;
             var channel = channelByMidiTarget(event.target || event.channelId);
             if (!channel) return false;
             yamahaSelectedChannelId = channel.id;
@@ -5643,6 +5700,11 @@
             return "<div class='control-cell assist-att-cell" + (disabled ? " disabled" : "") + "'><div class='control-label'>EQ ATT</div><div class='knob' data-channel-att='1' data-min='-96' data-max='0' data-center='0' data-detent='center' data-value='" + (controls.eqAtt || 0) + "' data-unit=' dB'>0 dB</div></div>";
         }
 
+        function renderAssistPhaseCell(channel, controls) {
+            var disabled = !phaseCapable(channel);
+            return "<div class='control-cell assist-phase-cell" + (disabled ? " disabled" : "") + "'><button class='btn-hw" + (controls.phase ? " active" : "") + (disabled ? " disabled" : "") + "' data-phase='1'" + (disabled ? " disabled" : "") + ">PHASE</button></div>";
+        }
+
         function renderAssistStereoSpreadCell(channel, controls) {
             if (!isStereoWidthSource(channel)) return "<div class='control-cell empty-module-slot'></div>";
             var mode = controls.stereoSpreadMode || "Stereo";
@@ -5650,7 +5712,7 @@
         }
 
         function renderAssistChannelPage(channel, controls) {
-            return "<div class='assist-eq-body'><div class='assist-eq-left'>" + renderRawEqPad(channel, false) + renderRawEqQRow(channel, false) + "</div><div class='raw-eq-side'>" + renderAssistSendCell("aux1", controls.aux1) + renderAssistSendCell("aux2", controls.aux2) + renderAssistSendCell("aux3", controls.aux3) + renderAssistSendCell("aux4", controls.aux4) + renderAssistSendCell("eff1", controls.eff1, channel.id === "RTN1") + renderAssistSendCell("eff2", controls.eff2, channel.id === "RTN2") + renderAssistStereoSpreadCell(channel, controls) + "<div class='control-cell assist-master-fader'><div class='control-label'>MIX</div><input class='v-fader' data-assist-channel-fader='1' type='range' min='0' max='127' step='1' value='" + (state.faders[channel.id] || 0) + "'></div>" + renderAssistAttCell(channel, controls) + "</div></div>";
+            return "<div class='assist-eq-body'><div class='assist-eq-left'>" + renderRawEqPad(channel, false) + renderRawEqQRow(channel, false) + "</div><div class='raw-eq-side'>" + renderAssistSendCell("aux1", controls.aux1) + renderAssistSendCell("aux2", controls.aux2) + renderAssistSendCell("aux3", controls.aux3) + renderAssistSendCell("aux4", controls.aux4) + renderAssistSendCell("eff1", controls.eff1, channel.id === "RTN1") + renderAssistSendCell("eff2", controls.eff2, channel.id === "RTN2") + renderAssistStereoSpreadCell(channel, controls) + "<div class='control-cell assist-master-fader'><div class='control-label'>MIX</div><input class='v-fader' data-assist-channel-fader='1' type='range' min='0' max='127' step='1' value='" + (state.faders[channel.id] || 0) + "'></div>" + renderAssistAttCell(channel, controls) + renderAssistPhaseCell(channel, controls) + "</div></div>";
         }
 
         function renderAssistMasterPage(master, eq) {
@@ -5987,7 +6049,7 @@
             var effectBlock = "<div class='control-cell'><div class='control-label'>EFFECT</div><div class='send-grid'>" + renderSendRow("eff1", controls.eff1, channel.id === "RTN1") + renderSendRow("eff2", controls.eff2, channel.id === "RTN2") + "</div></div>";
             var phaseDisabled = !phaseCapable(channel);
             var isReturnChannel = channel.id === "RTN1" || channel.id === "RTN2";
-            var useAssistEq = isAssistMode() && !isReturnChannel;
+            var useAssistEq = isExpertEqChannel(channel);
             var eqBody = isReturnChannel ? [
                 "<div class='strip-section eq-section'>",
                 "<div class='control-cell phase-hpf'><div class='hpf-stack'><div class='control-label'>HPF</div><button class='btn-hw" + (controls.effectReturnHpf === "100" ? " active" : "") + "' data-effect-return-hpf='100'>100</button><button class='btn-hw" + (controls.effectReturnHpf === "175" ? " active" : "") + "' data-effect-return-hpf='175'>175</button><button class='btn-hw" + (controls.effectReturnHpf === "250" ? " active" : "") + "' data-effect-return-hpf='250'>250</button><button class='btn-hw" + (controls.effectReturnHpf === "500" ? " active" : "") + "' data-effect-return-hpf='500'>500</button></div></div>",
@@ -6058,7 +6120,7 @@
             var eq = masterEqControls(master);
             var isEffectMaster = state.mode === "EFF1" || state.mode === "EFF2";
             var isAuxMaster = state.mode.indexOf("AUX") === 0;
-            var useAssistEq = isAssistMode() && !isEffectMaster;
+            var useAssistEq = false;
             var masterPage = activeMasterPage(master);
             var masterTabs = "";
             var presetIndex = effectPresetIndex(master);

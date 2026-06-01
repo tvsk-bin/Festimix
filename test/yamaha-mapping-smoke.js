@@ -89,8 +89,8 @@ assert.strictEqual(engine.ccForParameter("masterFader.effect2"), 25, "EFF1 logic
 assert.strictEqual(engine.ccForParameter("masterFader.effect1"), 26, "EFF2 logical master CC");
 assertParameter("attenuator.1.level", 0x60, "F0 43 10 3E 04 30 07 56 60 F7");
 assertParameter("attenuator.1.level", 0x00, "F0 43 10 3E 04 30 07 56 00 F7");
-assertParameter("attenuator.CH13_14.right", 0x60, "F0 43 10 3E 04 30 07 63 60 F7");
-assertParameter("attenuator.CH15_16.right", 0x60, "F0 43 10 3E 04 30 07 65 60 F7");
+assertParameter("attenuator.CH13_14.level", 0x60, "F0 43 10 3E 04 30 07 62 60 F7");
+assertParameter("attenuator.CH15_16.level", 0x60, "F0 43 10 3E 04 30 07 63 60 F7");
 assertParameter("fx2Send.1", 0x40, "F0 43 10 3E 04 30 00 57 40 F7");
 assertParameter("fx1Send.1", 0x40, "F0 43 10 3E 04 30 00 63 40 F7");
 assertEqWrite(1, "LOW", "Q_OR_TYPE", 0x28, "F0 43 10 3E 04 30 03 50 28 F7");

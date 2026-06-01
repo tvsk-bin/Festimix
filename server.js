@@ -212,7 +212,7 @@ function mixerProfileById(id) {
 function summarizeLastRunSettings(settings) {
     if (!settings) return;
     console.log("\nLast run settings:");
-    console.log("  app mode:", settings.appMode || "tablet-only");
+    console.log("  app mode:", settings.appMode || "assist");
     console.log("  mixer:", (settings.mixerProfile && settings.mixerProfile.label) || settings.mixerProfileId || "unknown");
     console.log("  midi input:", settings.midiInput || "default");
     console.log("  midi output:", settings.midiOutput || "default");
@@ -245,23 +245,23 @@ function logStartupSettings(settings, heading) {
 }
 
 function parseAppModeAnswer(answer, defaultValue) {
-    var fallback = defaultValue || "tablet-only";
+    var fallback = defaultValue || "assist";
     var text = String(answer || "").trim().toLowerCase();
     if (!text) return fallback;
     if (text === "a" || text === "assist" || text === "assistant" || text === "assziszt" || text === "asist") return "assist";
-    if (text === "t" || text === "tablet" || text === "tablet-only" || text === "tablet only" || text === "tabletonly") return "tablet-only";
+    if (text === "m" || text === "master" || text === "t" || text === "tablet" || text === "tablet-only" || text === "tablet only" || text === "tabletonly") return "tablet-only";
     return fallback;
 }
 
 async function askAppMode(rl, defaultValue) {
     var envMode = process.env.FESTIMIX_APP_MODE || process.env.O1V_APP_MODE || "";
-    if (envMode) return parseAppModeAnswer(envMode, defaultValue || "tablet-only");
-    if (!process.stdin.isTTY) return defaultValue || "tablet-only";
+    if (envMode) return parseAppModeAnswer(envMode, defaultValue || "assist");
+    if (!process.stdin.isTTY) return defaultValue || "assist";
     console.log("\nFestimix inditasi mod:");
-    console.log("  [t] tablet only: ismert V3 felulet duplex funkciokkal");
-    console.log("  [a] assist: V3 plusz assistant/raw Yamaha EQ modulok");
-    var answer = await question(rl, "Valassz modot [tablet only]: ");
-    return parseAppModeAnswer(answer, defaultValue || "tablet-only");
+    console.log("  [a] assist: a tablet es a Yamaha felulet fuggetlen, nincs Yamaha channel/display select");
+    console.log("  [m] master: channel/display select parancsokat is kuld a pultnak");
+    var answer = await question(rl, "Valassz modot [assist]: ");
+    return parseAppModeAnswer(answer, defaultValue || "assist");
 }
 
 async function askLoadLastRunSettings(rl) {
@@ -394,7 +394,7 @@ async function main() {
     var optionalInputBankEnabled = parseYesNoAnswer(process.env.O1V_OPTIONAL_INPUT_BANK || "", false);
     var auxPrePost = defaultAuxPrePostModes();
     var mixerProfile = MIXER_PROFILES[0];
-    var appMode = "tablet-only";
+    var appMode = "assist";
 
     try {
         var acceptedStartup = false;
@@ -407,7 +407,7 @@ async function main() {
             optionalInputBankEnabled = parseYesNoAnswer(process.env.O1V_OPTIONAL_INPUT_BANK || "", false);
             auxPrePost = defaultAuxPrePostModes();
             mixerProfile = MIXER_PROFILES[0];
-            appMode = "tablet-only";
+            appMode = "assist";
 
         var lastRunSettings = await askLoadLastRunSettings(rl);
         if (lastRunSettings) {
@@ -419,8 +419,7 @@ async function main() {
             meterAudioDeviceName = lastRunSettings.meterAudioDeviceName || "";
             optionalInputBankEnabled = !!lastRunSettings.optionalInputBankEnabled;
             auxPrePost = lastRunSettings.auxPrePost || auxPrePost;
-            appMode = lastRunSettings.appMode || appMode;
-            appMode = await askAppMode(rl, appMode);
+            appMode = await askAppMode(rl, "assist");
         } else {
             appMode = await askAppMode(rl, appMode);
             mixerProfile = await pickMixerProfile(rl);

@@ -62,7 +62,7 @@ function connectOutport(input, output, port, options) {
     var meterAudioChannels = options.meterAudioChannels || { left: 0, right: 1, label: "1-2" };
     var meterAudioDeviceName = options.meterAudioDeviceName || "";
     var optionalInputBankEnabled = !!options.optionalInputBankEnabled;
-    var appMode = options.appMode === "assist" ? "assist" : "tablet-only";
+    var appMode = options.appMode === "tablet-only" ? "tablet-only" : "assist";
 
     function executeEngineCommands(commands) {
         return (commands || []).map(function(command) {
