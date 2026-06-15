@@ -1166,6 +1166,13 @@
             box-shadow: 0 0 16px rgba(31, 185, 107, 0.5);
         }
 
+        .mode-button.mode-expert {
+            background: #2f8cff;
+            color: transparent;
+            border-color: #8fc2ff;
+            box-shadow: 0 0 16px rgba(47, 140, 255, 0.5);
+        }
+
         .mode-overlay {
             position: absolute;
             inset: 0;
@@ -1611,6 +1618,7 @@
             modeMenuOpen: false,
             appMode: "assist",
             expertEqMode: false,
+            mixerCapabilities: {},
             audioMeter: {
                 running: false,
                 requesting: false,
@@ -1718,6 +1726,7 @@
         var lastNormalMasterTap = { mode: null, time: 0 };
         var lastSceneButtonTap = { scene: null, time: 0 };
         var lastMeterButtonTap = { key: null, time: 0 };
+        var meterSingleTapTimers = {};
         var copyTimer = null;
 
         var masterByMode = {
@@ -1779,6 +1788,9 @@
         }
 
         function canSendAction(action) {
+            if (action && (action.type === "setChannelSolo" || action.type === "setMasterSolo")) {
+                return canInvokeSolo();
+            }
             if (isFreeMode()) return true;
             if (state.permissionMode === "mix") return isMixAction(action);
             return false;
@@ -1884,6 +1896,7 @@
         }
 
         function setMasterSoloRoute(target) {
+            if (!canInvokeSolo()) return;
             var normalized = target || null;
             if (state.activeMasterSoloTarget === normalized) return;
             state.activeMasterSoloTarget = normalized;
@@ -1894,11 +1907,13 @@
         var modeGesture = null;
 
         function modeButtonLabel() {
+            if (state.expertEqMode) return "Expert EQ";
             var mode = permissionModes[state.permissionMode] || permissionModes.all;
             return mode.label;
         }
 
         function modeButtonClass() {
+            if (state.expertEqMode) return "btn-hw mode-button mode-expert";
             var mode = permissionModes[state.permissionMode] || permissionModes.all;
             return "btn-hw mode-button " + mode.className;
         }
@@ -1916,7 +1931,7 @@
         function selectPermissionMode(mode) {
             if (!permissionModes[mode]) return;
             state.permissionMode = mode;
-            if (mode === "all") state.expertEqMode = false;
+            state.expertEqMode = false;
             closeModeMenu();
             renderTopBar();
             renderBankBar();
@@ -1925,6 +1940,7 @@
 
         function selectModeChoice(mode) {
             if (mode === "expert") {
+                state.permissionMode = "all";
                 state.expertEqMode = true;
                 closeModeMenu();
                 renderTopBar();
@@ -2112,11 +2128,60 @@
             return state.meterDelegationActive || state.view === "meter";
         }
 
+        function soloPolicy() {
+            return state.mixerCapabilities && state.mixerCapabilities.solo || {};
+        }
+
+        function canInvokeSolo() {
+            var permissions = soloPolicy().permissionModes || {};
+            return permissions[state.permissionMode] === true;
+        }
+
+        function soloGroupsAreExclusive() {
+            return soloPolicy().groupSelection === "exclusive";
+        }
+
+        function hasSingleSoloBus() {
+            return soloPolicy().busCount === 1;
+        }
+
+        function prepareChannelSoloSelection(channel, enabled) {
+            if (!enabled) return;
+            if (soloPolicy().channelSelection === "single") {
+                allChannels().forEach(function(other) {
+                    if (other.id !== channel.id && state.solo[other.id]) {
+                        setChannelSoloState(other.id, false);
+                        setChannelSolo(other.soloKey, false);
+                    }
+                });
+            }
+            if (soloGroupsAreExclusive()) clearMasterSoloState(null);
+        }
+
+        function prepareMasterSoloSelection(masterId) {
+            if (soloGroupsAreExclusive()) clearChannelSolos();
+            if (soloPolicy().masterSelection === "radio") clearMasterSoloState(masterId);
+        }
+
         function isMeterDoubleTap(key) {
             var now = Date.now();
             var isDouble = lastMeterButtonTap.key === key && now - lastMeterButtonTap.time < 430;
             lastMeterButtonTap = isDouble ? { key: null, time: 0 } : { key: key, time: now };
             return isDouble;
+        }
+
+        function cancelMeterSingleTap(key) {
+            if (!meterSingleTapTimers[key]) return;
+            clearTimeout(meterSingleTapTimers[key]);
+            delete meterSingleTapTimers[key];
+        }
+
+        function scheduleMeterSingleTap(key, callback) {
+            cancelMeterSingleTap(key);
+            meterSingleTapTimers[key] = setTimeout(function() {
+                delete meterSingleTapTimers[key];
+                callback();
+            }, 430);
         }
 
         function isNormalChannelDoubleTap(channel) {
@@ -2144,44 +2209,6 @@
             state.previousViewBeforeMeter = null;
         }
 
-        function clearAllSoloSelections() {
-            clearChannelSolos();
-            clearMasterSoloState(null);
-            syncSoloRouting();
-        }
-
-        function enterMeterModeWithSingleChannelSolo(channel) {
-            if (!channel || !channel.soloKey) return;
-            state.previousViewBeforeMeter = {
-                view: state.view,
-                selectedId: state.selectedId,
-                selectedLabel: state.selectedLabel
-            };
-            clearChannelSolos();
-            clearMasterSoloState(null);
-            setChannelSoloState(channel.id, true);
-            setChannelSolo(channel.soloKey, true);
-            state.meterDelegationActive = true;
-            state.view = "meter";
-            state.selectedId = channel.id;
-            state.selectedLabel = channel.label;
-            syncSoloRouting();
-            render();
-        }
-
-        function enterMeterModeWithSingleMasterSolo(mode) {
-            var master = masterByMode[mode];
-            if (!master) return;
-            state.previousViewBeforeMeter = {
-                view: state.view,
-                selectedId: state.selectedId,
-                selectedLabel: state.selectedLabel
-            };
-            state.meterDelegationActive = true;
-            state.view = "meter";
-            meterSelectMasterMode(mode);
-        }
-
         function exitMeterModeToMaster(mode) {
             var master = masterByMode[mode] || masterByMode.MIX;
             state.meterDelegationActive = false;
@@ -2193,7 +2220,7 @@
             render();
         }
 
-        function enterMeterModeWithCurrentSolo() {
+        function beginMeterMode() {
             state.previousViewBeforeMeter = {
                 view: state.view,
                 selectedId: state.selectedId,
@@ -2201,6 +2228,33 @@
             };
             state.meterDelegationActive = true;
             state.view = "meter";
+        }
+
+        function enterMeterModeWithCurrentSolo() {
+            beginMeterMode();
+            syncSoloRouting();
+            render();
+        }
+
+        function enterMeterModeWithChannel(channel) {
+            beginMeterMode();
+            if (canInvokeSolo() && channel && channel.soloKey) {
+                prepareChannelSoloSelection(channel, true);
+                setChannelSoloState(channel.id, true);
+                setChannelSolo(channel.soloKey, true);
+                state.selectedId = channel.id;
+                state.selectedLabel = channel.label;
+            }
+            syncSoloRouting();
+            render();
+        }
+
+        function enterMeterModeWithMaster(mode) {
+            beginMeterMode();
+            if (canInvokeSolo()) {
+                meterSelectMasterMode(mode);
+                return;
+            }
             syncSoloRouting();
             render();
         }
@@ -2292,6 +2346,11 @@
             if (state.appMode === mode) return;
             state.appMode = mode;
             render();
+        }
+
+        function applyMidiStatus(payload) {
+            state.mixerCapabilities = payload && payload.capabilities ? payload.capabilities : {};
+            syncSoloRouting();
         }
 
         function eqGainDbToByte(value) {
@@ -3304,8 +3363,12 @@
         }
 
         function syncSoloRouting() {
+            if (!hasSingleSoloBus()) {
+                syncAudioMeterService();
+                return;
+            }
             if (hasChannelSolo()) {
-                clearMasterSoloState(null);
+                if (soloGroupsAreExclusive()) clearMasterSoloState(null);
                 clearActiveEffectMasterReturnIfNeeded();
                 setMasterSoloRoute(null);
             } else {
@@ -4181,7 +4244,12 @@
             if (!channel) return false;
             if (event.release) return false;
             var enabled = event.toggle ? !state.solo[channel.id] : !!event.enabled;
-            if (enabled) clearMasterSoloState(null);
+            if (enabled && soloPolicy().channelSelection === "single") {
+                allChannels().forEach(function(other) {
+                    if (other.id !== channel.id) setChannelSoloState(other.id, false);
+                });
+            }
+            if (enabled && soloGroupsAreExclusive()) clearMasterSoloState(null);
             setChannelSoloState(channel.id, enabled);
             if (enabled) state.activeMasterSoloTarget = null;
             return true;
@@ -4191,8 +4259,8 @@
             var masterId = event.masterId || masterIdFromIncoming(event.target);
             if (!masterId) return false;
             if (event.enabled) {
-                clearChannelSoloState();
-                clearMasterSoloState(masterId);
+                if (soloGroupsAreExclusive()) clearChannelSoloState();
+                if (soloPolicy().masterSelection === "radio") clearMasterSoloState(masterId);
                 state.masterSolo[masterId] = true;
                 state.activeMasterSoloTarget = masterId;
             } else {
@@ -4659,15 +4727,20 @@
 
         function topModeTap(mode) {
             if (isMeterDelegationMode()) {
-                if (isMeterDoubleTap("mode:" + mode)) {
+                var meterTapKey = "mode:" + mode;
+                if (isMeterDoubleTap(meterTapKey)) {
+                    cancelMeterSingleTap(meterTapKey);
                     exitMeterModeToBus(mode);
                     return;
                 }
-                if (isOnlyMeterModeTarget(mode)) {
-                    toggleMeterMasterDetail(mode);
-                    return;
-                }
-                meterSelectMasterMode(mode);
+                scheduleMeterSingleTap(meterTapKey, function() {
+                    if (!isMeterDelegationMode() || !canInvokeSolo()) return;
+                    if (isOnlyMeterModeTarget(mode)) {
+                        toggleMeterMasterDetail(mode);
+                        return;
+                    }
+                    meterSelectMasterMode(mode);
+                });
                 return;
             }
             if (state.copy.phase === "source") {
@@ -4689,7 +4762,7 @@
                 return;
             }
             if (isNormalMasterDoubleTap(mode)) {
-                enterMeterModeWithSingleMasterSolo(mode);
+                enterMeterModeWithMaster(mode);
                 return;
             }
             if (state.mode === mode) {
@@ -4803,9 +4876,8 @@
             state.view = "strip";
             state.selectedId = next.id;
             state.selectedLabel = next.label;
-            if (isMeterDelegationMode()) {
-                clearChannelSolos();
-                clearMasterSoloState(null);
+            if (isMeterDelegationMode() && canInvokeSolo()) {
+                prepareChannelSoloSelection(next, true);
                 setChannelSoloState(next.id, true);
                 setChannelSolo(next.soloKey, true);
                 syncSoloRouting();
@@ -4817,16 +4889,22 @@
         function channelButton(channel) {
             if (suppressStripClick) return;
             if (isMeterDelegationMode()) {
-                if (isMeterDoubleTap("channel:" + channel.id)) {
+                var meterTapKey = "channel:" + channel.id;
+                if (isMeterDoubleTap(meterTapKey)) {
+                    cancelMeterSingleTap(meterTapKey);
                     exitMeterMode();
                     render();
                     return;
                 }
-                if (isOnlyMeterChannelTarget(channel)) {
-                    toggleMeterChannelDetail(channel);
-                    return;
-                }
-                meterToggleChannelSolo(channel);
+                scheduleMeterSingleTap(meterTapKey, function() {
+                    if (!isMeterDelegationMode()) return;
+                    if (!canInvokeSolo()) return;
+                    if (isOnlyMeterChannelTarget(channel)) {
+                        toggleMeterChannelDetail(channel);
+                        return;
+                    }
+                    meterToggleChannelSolo(channel);
+                });
                 return;
             }
             if (state.copy.phase === "source") {
@@ -4838,7 +4916,7 @@
                 return;
             }
             if (isNormalChannelDoubleTap(channel)) {
-                enterMeterModeWithSingleChannelSolo(channel);
+                enterMeterModeWithChannel(channel);
                 return;
             }
             if (state.view === "strip" && state.selectedId === channel.id) {
@@ -4862,9 +4940,9 @@
         }
 
         function toggleSolo(channel) {
-            if (suppressStripClick) return;
+            if (suppressStripClick || !canInvokeSolo()) return;
             var next = !state.solo[channel.id];
-            if (next) clearMasterSoloState(null);
+            prepareChannelSoloSelection(channel, next);
             setChannelSoloState(channel.id, next);
             setChannelSolo(channel.soloKey, next);
             syncSoloRouting();
@@ -4880,16 +4958,16 @@
 
         function applySoloState(channel, enabled) {
             if (!!state.solo[channel.id] === enabled) return;
-            if (enabled) clearMasterSoloState(null);
+            prepareChannelSoloSelection(channel, enabled);
             setChannelSoloState(channel.id, enabled);
             setChannelSolo(channel.soloKey, enabled);
             syncSoloRouting();
         }
 
         function meterToggleChannelSolo(channel) {
-            if (!channel || !channel.soloKey) return;
+            if (!channel || !channel.soloKey || !canInvokeSolo()) return;
             var next = !state.solo[channel.id];
-            if (next) clearMasterSoloState(null);
+            prepareChannelSoloSelection(channel, next);
             setChannelSoloState(channel.id, next);
             setChannelSolo(channel.soloKey, next);
             syncSoloRouting();
@@ -4898,8 +4976,8 @@
         }
 
         function setMeterChannelSolo(channel, enabled) {
-            if (!channel || !channel.soloKey || !!state.solo[channel.id] === enabled) return;
-            if (enabled) clearMasterSoloState(null);
+            if (!channel || !channel.soloKey || !canInvokeSolo() || !!state.solo[channel.id] === enabled) return;
+            prepareChannelSoloSelection(channel, enabled);
             setChannelSoloState(channel.id, enabled);
             setChannelSolo(channel.soloKey, enabled);
             syncSoloRouting();
@@ -4907,14 +4985,13 @@
 
         function meterSelectMasterMode(mode) {
             var master = masterByMode[mode];
-            if (!master) return;
+            if (!master || !canInvokeSolo()) return;
             state.mode = mode;
             if (mode === "EFF1" || mode === "EFF2") {
                 var returnId = mode === "EFF1" ? "RTN1" : "RTN2";
                 var returnChannel = allChannels().find(function(channel) { return channel.id === returnId; });
-                clearChannelSolos();
-                clearMasterSoloState(null);
                 if (returnChannel) {
+                    prepareChannelSoloSelection(returnChannel, true);
                     setChannelSoloState(returnChannel.id, true);
                     setChannelSolo(returnChannel.soloKey, true);
                 }
@@ -4923,8 +5000,7 @@
                 render();
                 return;
             }
-            clearChannelSolos();
-            clearMasterSoloState(master.id);
+            prepareMasterSoloSelection(master.id);
             state.masterSolo[master.id] = true;
             updateRawEqSnapshotCache();
             syncSoloRouting();
@@ -5788,8 +5864,9 @@
                     setChannelOn(channel.midiKey, state.on[channel.id]);
                 }
                 if (drag.action === "solo") {
+                    if (!canInvokeSolo()) return;
                     var nextSolo = !state.solo[channel.id];
-                    if (nextSolo) clearMasterSoloState(null);
+                    prepareChannelSoloSelection(channel, nextSolo);
                     setChannelSoloState(channel.id, nextSolo);
                     setChannelSolo(channel.soloKey, nextSolo);
                     syncSoloRouting();
@@ -6380,12 +6457,9 @@
             solo.className = "btn-hw solo" + (masterMeterActive ? " on" : "");
             solo.textContent = "SOLO";
             solo.onclick = function() {
-                if (autoMixMasterSolo) return;
+                if (autoMixMasterSolo || !canInvokeSolo()) return;
                 var next = !state.masterSolo[master.id];
-                if (next) {
-                    clearChannelSolos();
-                    clearMasterSoloState(master.id);
-                }
+                if (next) prepareMasterSoloSelection(master.id);
                 state.masterSolo[master.id] = next;
                 updateRawEqSnapshotCache();
                 syncSoloRouting();
@@ -6440,15 +6514,20 @@
             select.textContent = master.label;
             select.onclick = function() {
                 if (isMeterDelegationMode()) {
-                    if (isMeterDoubleTap("master-select:" + state.mode)) {
+                    var meterTapKey = "master-select:" + state.mode;
+                    if (isMeterDoubleTap(meterTapKey)) {
+                        cancelMeterSingleTap(meterTapKey);
                         exitMeterModeToBus(state.mode);
                         return;
                     }
-                    if (isOnlyMeterModeTarget(state.mode)) {
-                        toggleMeterMasterDetail(state.mode);
-                        return;
-                    }
-                    meterSelectCurrentMaster();
+                    scheduleMeterSingleTap(meterTapKey, function() {
+                        if (!isMeterDelegationMode() || !canInvokeSolo()) return;
+                        if (isOnlyMeterModeTarget(state.mode)) {
+                            toggleMeterMasterDetail(state.mode);
+                            return;
+                        }
+                        meterSelectCurrentMaster();
+                    });
                     return;
                 }
                 if (state.copy.phase === "source" && state.mode !== "MIX") {
@@ -6460,7 +6539,7 @@
                     return;
                 }
                 if (isNormalMasterDoubleTap(state.mode)) {
-                    enterMeterModeWithSingleMasterSolo(state.mode);
+                    enterMeterModeWithMaster(state.mode);
                     return;
                 }
                 state.view = state.view === "masterStrip" ? "mixer" : "masterStrip";
@@ -6511,6 +6590,7 @@
         bindModeOverlay();
         loadScenes();
         socket.on("app mode", applyAppMode);
+        socket.on("midi status", applyMidiStatus);
         socket.on("scene store", applySceneStore);
         socket.on("meter config", applyMeterConfig);
         socket.on("audio meter frame", applyAudioMeterFrame);

@@ -2,9 +2,21 @@
 
 var assert = require("assert");
 var mappingModule = require("../lib/midi/mappingEngine");
+var profileRegistry = require("../lib/midi/profiles");
 var mapping = require("../yamaha01v.mapping_v3.json");
 
 var engine = new mappingModule.MappingEngine(mapping);
+var yamahaProfile = profileRegistry.getProfile("yamaha01vDefault");
+
+assert.strictEqual(
+    yamahaProfile.capabilities.solo.permissionModes.view,
+    false,
+    "Yamaha 01V view mode must not allow solo"
+);
+assert.strictEqual(yamahaProfile.capabilities.solo.channelSelection, "additive");
+assert.strictEqual(yamahaProfile.capabilities.solo.masterSelection, "radio");
+assert.strictEqual(yamahaProfile.capabilities.solo.groupSelection, "exclusive");
+assert.strictEqual(yamahaProfile.capabilities.solo.busCount, 1);
 
 function hex(message) {
     return message.bytes.map(function(byte) {
