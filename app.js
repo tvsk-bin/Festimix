@@ -64,6 +64,15 @@ function connectOutport(input, output, port, options) {
     var optionalInputBankEnabled = !!options.optionalInputBankEnabled;
     var appMode = options.appMode === "tablet-only" ? "tablet-only" : "assist";
 
+    function midiStatus() {
+        return {
+            profile: midi.profile.id,
+            profileName: midi.profile.name,
+            channel: midi.channel,
+            capabilities: midi.profile.capabilities || {}
+        };
+    }
+
     function executeEngineCommands(commands) {
         return (commands || []).map(function(command) {
             if (command.type === "moduleIntent") {
@@ -299,12 +308,12 @@ function connectOutport(input, output, port, options) {
             }
         });
         socket.on("midi profile", (profileId) => {
-            var profile = midi.setProfile(profileId);
-            io.emit("midi status", { profile: profile.id, profileName: profile.name, channel: midi.channel });
+            midi.setProfile(profileId);
+            io.emit("midi status", midiStatus());
         });
         socket.on("midi channel", (channel) => {
-            var nextChannel = midi.setChannel(channel);
-            io.emit("midi status", { profile: midi.profile.id, profileName: midi.profile.name, channel: nextChannel });
+            midi.setChannel(channel);
+            io.emit("midi status", midiStatus());
         });
         socket.on("eq test ch1 himid gain", (gainDb) => {
             var result = midi.sendCh1HiMidGain(gainDb);
@@ -332,7 +341,7 @@ function connectOutport(input, output, port, options) {
                 socket.emit("eq prototype status", result);
             }
         });
-        socket.emit("midi status", { profile: midi.profile.id, profileName: midi.profile.name, channel: midi.channel });
+        socket.emit("midi status", midiStatus());
     });
 
     http.listen(port);
