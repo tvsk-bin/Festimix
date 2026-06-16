@@ -1736,6 +1736,7 @@
         var lastSceneButtonTap = { scene: null, time: 0 };
         var lastMeterButtonTap = { key: null, time: 0 };
         var meterSingleTapTimers = {};
+        var doubleTapWindowMs = 280;
         var copyTimer = null;
 
         var masterByMode = {
@@ -2174,7 +2175,7 @@
 
         function isMeterDoubleTap(key) {
             var now = Date.now();
-            var isDouble = lastMeterButtonTap.key === key && now - lastMeterButtonTap.time < 430;
+            var isDouble = lastMeterButtonTap.key === key && now - lastMeterButtonTap.time < doubleTapWindowMs;
             lastMeterButtonTap = isDouble ? { key: null, time: 0 } : { key: key, time: now };
             return isDouble;
         }
@@ -2190,20 +2191,20 @@
             meterSingleTapTimers[key] = setTimeout(function() {
                 delete meterSingleTapTimers[key];
                 callback();
-            }, 430);
+            }, doubleTapWindowMs);
         }
 
         function isNormalChannelDoubleTap(channel) {
             var now = Date.now();
             var id = channel && channel.id;
-            var isDouble = id && lastNormalChannelTap.id === id && now - lastNormalChannelTap.time < 430;
+            var isDouble = id && lastNormalChannelTap.id === id && now - lastNormalChannelTap.time < doubleTapWindowMs;
             lastNormalChannelTap = isDouble ? { id: null, time: 0 } : { id: id, time: now };
             return isDouble;
         }
 
         function isNormalMasterDoubleTap(mode) {
             var now = Date.now();
-            var isDouble = mode && lastNormalMasterTap.mode === mode && now - lastNormalMasterTap.time < 430;
+            var isDouble = mode && lastNormalMasterTap.mode === mode && now - lastNormalMasterTap.time < doubleTapWindowMs;
             lastNormalMasterTap = isDouble ? { mode: null, time: 0 } : { mode: mode, time: now };
             return isDouble;
         }
