@@ -331,6 +331,11 @@
             filter: grayscale(1);
         }
 
+        .permission-locked {
+            opacity: 0.45;
+            pointer-events: none;
+        }
+
         .channel-meter-fader-shell {
             position: relative;
             width: clamp(42px, 4.6vw, 58px);
@@ -1909,6 +1914,27 @@
             if (event.stopImmediatePropagation) event.stopImmediatePropagation();
         }
 
+        function setPermissionLocked(element, locked) {
+            if (!element) return;
+            element.classList.toggle("permission-locked", !!locked);
+            if ("disabled" in element) {
+                if (locked) {
+                    if (!element.disabled) element.dataset.permissionLocked = "1";
+                    element.disabled = true;
+                } else if (element.dataset.permissionLocked === "1") {
+                    element.disabled = false;
+                    delete element.dataset.permissionLocked;
+                }
+            }
+        }
+
+        function applyPermissionLocks(root) {
+            var scope = root || document;
+            Array.prototype.forEach.call(scope.querySelectorAll("button, input, select, textarea, .knob, .swipe-value, [data-aux-notch-gain]"), function(element) {
+                setPermissionLocked(element, !isInteractionAllowed(element));
+            });
+        }
+
         function sendAction(action) {
             if (!canSendAction(action)) return;
             socket.emit("midi action", action);
@@ -1998,9 +2024,7 @@
             state.permissionMode = mode;
             state.expertEqMode = false;
             closeModeMenu();
-            renderTopBar();
-            renderBankBar();
-            if (state.view === "strip") renderStripPage();
+            render();
         }
 
         function selectModeChoice(mode) {
@@ -2008,9 +2032,7 @@
                 state.permissionMode = "all";
                 state.expertEqMode = true;
                 closeModeMenu();
-                renderTopBar();
-                renderBankBar();
-                if (state.view === "strip") renderStripPage();
+                render();
                 return;
             }
             selectPermissionMode(mode);
@@ -2176,9 +2198,15 @@
                     event.preventDefault();
                     event.stopPropagation();
                 };
+                choice.onpointerup = function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    selectModeChoice(choice.dataset.modeChoice);
+                };
                 choice.onclick = function(event) {
                     event.preventDefault();
                     event.stopPropagation();
+                    selectModeChoice(choice.dataset.modeChoice);
                 };
             });
             overlay.onpointerdown = function(event) {
@@ -4884,6 +4912,7 @@
         }
 
         function topModeSwipe(fromMode, toMode) {
+            if (!isFreeMode()) return false;
             if (fromMode === "AUX1" && toMode === "AUX2") {
                 setAuxLink("1-2", true);
                 return true;
@@ -6674,6 +6703,7 @@
             renderMaster();
             if (state.view === "mixer") renderMixer();
             syncSoloRouting();
+            applyPermissionLocks();
         }
 
         function render() {
@@ -6689,6 +6719,7 @@
             syncSoloRouting();
             positionModeOverlay();
             scheduleRawEqSpectrumDraw();
+            applyPermissionLocks();
         }
 
         document.addEventListener("pointerdown", guardPermissionEvent, true);
