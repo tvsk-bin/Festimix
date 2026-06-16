@@ -869,6 +869,15 @@
             transform: translate(-50%, -50%);
             z-index: 3;
             box-shadow: 0 0 20px rgba(214, 170, 33, 0.46);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #171100;
+            font-size: clamp(10px, 1vw, 13px);
+            font-weight: 900;
+            line-height: 1;
+            text-align: center;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.25);
         }
 
         .raw-eq-band-label,
@@ -1677,6 +1686,9 @@
                     masterSelection: "radio",
                     groupSelection: "exclusive",
                     busCount: 1
+                },
+                rawEq: {
+                    gainRangeDb: [-18, 18]
                 }
             },
             audioMeter: {
@@ -4719,12 +4731,29 @@
             return Math.round(minHz * Math.pow(maxHz / minHz, value / 120));
         }
 
+        function rawEqGainRange() {
+            var range = state.mixerCapabilities && state.mixerCapabilities.rawEq && state.mixerCapabilities.rawEq.gainRangeDb;
+            if (Array.isArray(range) && range.length === 2 && isFinite(range[0]) && isFinite(range[1]) && range[0] < range[1]) {
+                return [range[0], range[1]];
+            }
+            return [-18, 18];
+        }
+
         function rawEqGainToDb(raw) {
-            return Math.round((Math.max(0, Math.min(72, parseInt(raw, 10) || 0)) / 2) - 18);
+            var range = rawEqGainRange();
+            var value = Math.max(0, Math.min(72, parseInt(raw, 10) || 0));
+            return Math.round(range[0] + (value / 72) * (range[1] - range[0]));
+        }
+
+        function rawEqGainLabel(raw) {
+            var db = rawEqGainToDb(raw);
+            return (db > 0 ? "+" : "") + db;
         }
 
         function rawEqDbToGain(db) {
-            return eqGainDbToByte(db);
+            var range = rawEqGainRange();
+            var value = Math.max(range[0], Math.min(range[1], parseFloat(db) || 0));
+            return Math.round(((value - range[0]) / (range[1] - range[0])) * 72);
         }
 
         function rawEqTypeMode(bandKey) {
@@ -4782,7 +4811,7 @@
             var isPass = isRawEqPassFilter(bandKey, next);
             if (next === item.q) return false;
             item.q = next;
-            if (isPass && !wasPass) item.gain = rawEqDbToGain(18);
+            if (isPass && !wasPass) item.gain = rawEqDbToGain(rawEqGainRange()[1]);
             if (wasPass && !isPass) item.gain = rawEqDbToGain(0);
             return true;
         }
@@ -5761,8 +5790,9 @@
         }
 
         function rawEqPercentFromGain(raw) {
+            var range = rawEqGainRange();
             var db = rawEqGainToDb(raw);
-            return Math.max(8, Math.min(92, 100 - ((db + 18) / 36 * 100)));
+            return Math.max(8, Math.min(92, 100 - ((db - range[0]) / (range[1] - range[0]) * 100)));
         }
 
         function renderRawEqPad(owner, isMaster) {
@@ -5775,7 +5805,7 @@
                 var top = rawEqPercentFromGain(item.gain);
                 var hz = rawEqFreqToHz(item.freq);
                 var hzLabel = hz >= 1000 ? Math.round(hz / 100) / 10 + "k" : hz;
-                return "<div class='raw-eq-gridline' data-raw-eq-line='" + band.key + "' style='left:" + left + "%'></div><div class='raw-eq-node' data-raw-eq-node='" + band.key + "' style='left:" + left + "%;top:" + top + "%'></div><div class='raw-eq-band-label' data-raw-eq-band-label='" + band.key + "' style='left:" + left + "%'>" + band.label + "</div><div class='raw-eq-freq-label' data-raw-eq-freq-label='" + band.key + "' style='left:" + left + "%'>" + hzLabel + "Hz</div>";
+                return "<div class='raw-eq-gridline' data-raw-eq-line='" + band.key + "' style='left:" + left + "%'></div><div class='raw-eq-node' data-raw-eq-node='" + band.key + "' style='left:" + left + "%;top:" + top + "%'>" + rawEqGainLabel(item.gain) + "</div><div class='raw-eq-band-label' data-raw-eq-band-label='" + band.key + "' style='left:" + left + "%'>" + band.label + "</div><div class='raw-eq-freq-label' data-raw-eq-freq-label='" + band.key + "' style='left:" + left + "%'>" + hzLabel + "Hz</div>";
             }).join("") + "</div>";
         }
 
@@ -5804,6 +5834,7 @@
                     if (node) {
                         node.style.left = left + "%";
                         node.style.top = top + "%";
+                        node.textContent = rawEqGainLabel(item.gain);
                     }
                     if (bandLabel) bandLabel.style.left = left + "%";
                     if (freqLabel) {
@@ -5832,11 +5863,12 @@
                 band = band || activeRawEqBand || bandFromPoint(event.clientX);
                 var x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
                 var y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+                var gainRange = rawEqGainRange();
                 raw[band.key].freq = Math.round(x * 120);
                 if (isRawEqPassFilter(band.key, raw[band.key].q)) {
-                    raw[band.key].gain = y < 0.5 ? rawEqDbToGain(18) : rawEqDbToGain(-18);
+                    raw[band.key].gain = y < 0.5 ? rawEqDbToGain(gainRange[1]) : rawEqDbToGain(gainRange[0]);
                 } else {
-                    raw[band.key].gain = rawEqDbToGain(18 - y * 36);
+                    raw[band.key].gain = rawEqDbToGain(gainRange[1] - y * (gainRange[1] - gainRange[0]));
                 }
                 sendRawEq(owner, isMaster);
                 refreshPad();
