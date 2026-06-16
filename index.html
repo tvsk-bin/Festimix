@@ -1823,6 +1823,14 @@
             return state.permissionMode === "all";
         }
 
+        function isMixMode() {
+            return state.permissionMode === "mix";
+        }
+
+        function canEditMixControls() {
+            return isFreeMode() || isMixMode();
+        }
+
         function isFreeOnlyBank(bank) {
             return !!bank && (bank.page === "scenes" || bank.page === "copy");
         }
@@ -1868,7 +1876,7 @@
             if (target.closest("[data-meter-channel]")) return true;
             if (target.closest(".master-select")) return true;
             if (target.closest("#stripPrev") || target.closest("#stripNext")) return true;
-            if (target.closest("[data-master-page]") || target.closest("[data-effect-page]")) return true;
+            if (target.closest("[data-master-page]") || target.closest("[data-effect-page]")) return isFreeMode();
             if (target.closest("[data-scene-button]")) return isFreeMode();
             return false;
         }
@@ -1889,7 +1897,7 @@
         function isInteractionAllowed(target) {
             if (isFreeMode()) return true;
             if (isModeUiTarget(target) || isNavigationTarget(target)) return true;
-            if (state.permissionMode === "mix" && isMixEditableTarget(target)) return true;
+            if (isMixMode() && isMixEditableTarget(target)) return true;
             return false;
         }
 
@@ -6136,7 +6144,7 @@
                 pan.max = String(range[1]);
                 controls.stereoPan = Math.max(range[0], Math.min(range[1], controls.stereoPan || 0));
                 pan.value = controls.stereoPan;
-                pan.disabled = !!config.panDisabled;
+                pan.disabled = !!config.panDisabled || !canEditMixControls();
                 pan.oninput = function(event) {
                     var next = parseInt(event.target.value, 10) || 0;
                     controls.stereoPan = Math.max(range[0], Math.min(range[1], next));
@@ -6147,7 +6155,7 @@
             pan.min = "-16";
             pan.max = "16";
             pan.value = controls.pan || 0;
-            pan.disabled = !channel.midiKey;
+            pan.disabled = !channel.midiKey || !canEditMixControls();
             pan.oninput = function(event) {
                 controls.pan = Math.max(-16, Math.min(16, parseInt(event.target.value, 10) || 0));
                 sendPanControl(channel, controls.pan);
@@ -6164,7 +6172,7 @@
             solo.textContent = "SOLO";
             solo.dataset.stripAction = "solo";
             solo.dataset.channelId = channel.id;
-            solo.disabled = !channel.soloKey;
+            solo.disabled = !channel.soloKey || !canInvokeSolo();
             solo.onclick = function() { toggleSolo(channel); };
 
             var faderBox = document.createElement("div");
@@ -6178,7 +6186,7 @@
             fader.step = "1";
             fader.value = faderValue(channel);
             var parameter = faderParameter(channel);
-            fader.disabled = !parameter;
+            fader.disabled = !parameter || !canEditMixControls();
             fader.oninput = function(event) {
                 var midiValue = updateChannelFaderState(channel, event.target.value);
                 if (parameter) sendParameter(parameter, midiValue);
@@ -6203,7 +6211,7 @@
             on.textContent = "ON";
             on.dataset.stripAction = "on";
             on.dataset.channelId = channel.id;
-            on.disabled = !channel.midiKey;
+            on.disabled = !channel.midiKey || !canEditMixControls();
             on.onclick = function() { toggleOn(channel); };
 
             strip.appendChild(solo);
@@ -6270,6 +6278,7 @@
                 bindRawEqQRow(page, channel, false);
                 var assistFader = page.querySelector("[data-assist-channel-fader]");
                 if (assistFader) {
+                    assistFader.disabled = !canEditMixControls();
                     assistFader.oninput = function(event) {
                         state.faders[channel.id] = parseInt(event.target.value, 10) || 0;
                         if (channel.midiKey) sendParameter("channelFader." + channel.midiKey, state.faders[channel.id]);
@@ -6279,6 +6288,7 @@
             if (isReturnChannel) bindEffectReturnEq(page, channel);
             document.getElementById("stripPrev").onclick = function() { selectChannelByOffset(-1); };
             document.getElementById("stripNext").onclick = function() { selectChannelByOffset(1); };
+            document.getElementById("stripNameInput").disabled = !isFreeMode();
             document.getElementById("stripNameInput").oninput = function(event) {
                 var value = event.target.value;
                 if (value && value[0] !== " ") value = " " + value;
@@ -6554,6 +6564,7 @@
             var solo = document.createElement("button");
             solo.className = "btn-hw solo" + (masterMeterActive ? " on" : "");
             solo.textContent = "SOLO";
+            solo.disabled = autoMixMasterSolo || !canInvokeSolo();
             solo.onclick = function() {
                 if (autoMixMasterSolo || !canInvokeSolo()) return;
                 var next = !state.masterSolo[master.id];
@@ -6577,6 +6588,7 @@
             fader.max = "127";
             fader.step = "1";
             fader.value = midiFaderValue(state.master[key]);
+            fader.disabled = !canEditMixControls();
             fader.oninput = function(event) {
                 var value = setMasterFaderValue(key, event.target.value);
                 event.target.value = value;
@@ -6597,6 +6609,7 @@
             var on = document.createElement("button");
             on.className = "btn-hw on-btn " + (masterOnState(master) ? "on" : "off");
             on.textContent = "ON";
+            on.disabled = !canEditMixControls();
             on.onclick = function() {
                 var next = !masterOnState(master);
                 state.masterOn[master.id] = next;
