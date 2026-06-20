@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "mixerProfileId": "rmeBabyfaceProFs12",
+  "label": "Babyface Pro FS 12ch",
+  "channels": {
+    "1": {
+      "label": "CH1",
+      "input": 1,
+      "phantom": false,
+      "phase": false
+    },
+    "2": {
+      "label": "CH2",
+      "input": 2,
+      "phantom": false,
+      "phase": false
+    },
+    "3": {
+      "label": "CH3",
+      "input": 3,
+      "phantom": false,
+      "phase": false
+    },
+    "4": {
+      "label": "CH4",
+      "input": 4,
+      "phantom": false,
+      "phase": false
+    },
+    "5": {
+      "label": "CH5",
+      "input": 5,
+      "phantom": false,
+      "phase": false
+    },
+    "6": {
+      "label": "CH6",
+      "input": 6,
+      "phantom": false,
+      "phase": false
+    },
+    "7": {
+      "label": "CH7",
+      "input": 7,
+      "phantom": false,
+      "phase": false
+    },
+    "8": {
+      "label": "CH8",
+      "input": 8,
+      "phantom": false,
+      "phase": false
+    },
+    "9": {
+      "label": "CH9",
+      "input": 9,
+      "phantom": false,
+      "phase": false
+    },
+    "10": {
+      "label": "CH10",
+      "input": 10,
+      "phantom": false,
+      "phase": false
+    },
+    "11": {
+      "label": "CH11",
+      "input": 11,
+      "phantom": false,
+      "phase": false
+    },
+    "12": {
+      "label": "CH12",
+      "input": 12,
+      "phantom": false,
+      "phase": false
+    }
+  },
+  "buses": {
+    "mix": {
+      "label": "MIX"
+    },
+    "aux1": {
+      "label": "AUX1"
+    },
+    "aux2": {
+      "label": "AUX2"
+    },
+    "aux3": {
+      "label": "AUX3"
+    },
+    "aux4": {
+      "label": "AUX4"
+    },
+    "effect1": {
+      "label": "FX"
+    }
+  },
+  "effects": {
+    "reverb": {
+      "preset": "default"
+    },
+    "echo": {
+      "preset": "default"
+    }
+  }
+}

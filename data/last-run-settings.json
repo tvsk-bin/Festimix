@@ -1,17 +1,18 @@
 {
-  "mixerProfileId": "yamaha01vDefault",
+  "mixerProfileId": "rmeBabyfaceProFs12",
   "mixerProfile": {
-    "id": "yamaha01vDefault",
-    "label": "Yamaha 01V",
-    "integration": "midi"
+    "id": "rmeBabyfaceProFs12",
+    "label": "Babyface Pro FS 12ch",
+    "integration": "osc"
   },
-  "midiInput": "Babyface Midi Port 1",
-  "midiOutput": "Babyface Midi Port 1",
-  "meterAudioDeviceName": "Analog (1+2) (RME Babyface Pro)",
+  "midiInput": null,
+  "midiOutput": null,
+  "meterAudioDeviceName": "",
   "meterAudioChannels": {
-    "left": 0,
-    "right": 1,
-    "label": "1-2"
+    "left": 2,
+    "right": 3,
+    "label": "3-4",
+    "name": "Software Input 3-4"
   },
   "optionalInputBankEnabled": false,
   "auxPrePost": {
@@ -20,8 +21,9 @@
     "AUX3": "pre",
     "AUX4": "pre"
   },
-  "safeReset": true,
-  "appMode": "tablet-only",
-  "midiProfile": "yamaha01vDefault",
-  "midiChannel": 1
+  "safeReset": false,
+  "appMode": "assist",
+  "midiProfile": "rmeBabyfaceProFs12",
+  "midiChannel": 1,
+  "workspaceFile": "D:\\OneDrive\\Documents\\GitHub\\Festimix\\data\\festimix-babyface-pro-fs-12.json"
 }
