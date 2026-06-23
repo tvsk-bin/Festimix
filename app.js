@@ -336,20 +336,68 @@ TotalMixOscService.prototype.sendBabyfaceHpf = function(channelKey, value) {
     if (channelNumber < 1 || channelNumber > 12) {
         return this.pending("sendParameter", { parameterId: "hpf." + channelKey, value: value, reason: "hpf-only-on-input-1-12" });
     }
-    var enabled = !!parseInt(value, 10);
-    this.oscControlLog("WRITE", "hpf." + channelKey, { type: "absolute-toggle", selectedTrack: channelNumber, enabled: enabled, value: value });
+
+    var enabled = value !== null && value !== undefined && !!parseInt(value, 10);
+
+    if (!this.hpfState) this.hpfState = {};
+    var wasEnabled = !!this.hpfState[channelKey];
+
+    this.oscControlLog("WRITE", "hpf." + channelKey, {
+        type: "toggle-with-frequency-stateful",
+        selectedTrack: channelNumber,
+        wasEnabled: wasEnabled,
+        enabled: enabled,
+        value: value
+    });
+
     this.selectBusSection("input");
+
     if (this.selectedInputTrackNumber !== channelNumber) {
-        this.sendOsc("/1/track" + channelNumber, [1.0], { action: "registrySelectHpfTrack", parameterId: "hpf." + channelKey, channel: channelNumber });
+        this.sendOsc("/1/track" + channelNumber, [1.0], {
+            action: "registrySelectHpfTrack",
+            parameterId: "hpf." + channelKey,
+            channel: channelNumber
+        });
         this.selectedInputTrackNumber = channelNumber;
         this.selectedChannelNumber = channelNumber;
     }
-    this.sendOsc("/2/lowcutEnable", [enabled ? 1.0 : 0.0], { action: "sendParameter", parameterId: "hpf." + channelKey, value: value, oscRole: "registry-hpf-enable" });
-    if (enabled) {
-        this.sendOsc("/2/lowcutGrade", [0.6667], { action: "sendParameter", parameterId: "hpf." + channelKey, value: value, oscRole: "registry-hpf-grade-18db" });
-        this.sendOsc("/2/lowcutFreq", [this.lowcutFreqUnit(value)], { action: "sendParameter", parameterId: "hpf." + channelKey, value: value, oscRole: "registry-hpf-frequency" });
+
+    if (wasEnabled !== enabled) {
+        this.sendOsc("/2/lowcutEnable", [1.0], {
+            action: "sendParameter",
+            parameterId: "hpf." + channelKey,
+            value: value,
+            oscRole: "registry-hpf-enable-toggle"
+        });
     }
-    return { sent: true, integration: "osc", profile: this.profile.id, action: "sendParameter", parameterId: "hpf." + channelKey, value: value, oscRole: "registry-hpf" };
+
+    if (enabled) {
+        this.sendOsc("/2/lowcutGrade", [0.6667], {
+            action: "sendParameter",
+            parameterId: "hpf." + channelKey,
+            value: value,
+            oscRole: "registry-hpf-grade-18db"
+        });
+
+        this.sendOsc("/2/lowcutFreq", [this.lowcutFreqUnit(value)], {
+            action: "sendParameter",
+            parameterId: "hpf." + channelKey,
+            value: value,
+            oscRole: "registry-hpf-frequency"
+        });
+    }
+
+    this.hpfState[channelKey] = enabled;
+
+    return {
+        sent: true,
+        integration: "osc",
+        profile: this.profile.id,
+        action: "sendParameter",
+        parameterId: "hpf." + channelKey,
+        value: value,
+        oscRole: "registry-hpf"
+    };
 };
 
 TotalMixOscService.prototype.sendBabyfaceEffectOn = function(kind, value) {
@@ -668,15 +716,37 @@ TotalMixOscService.prototype.sendParameter = function(parameterId, value) {
         return this.sendOsc("/1/mastervolume", [midiToUnit(value)], { action: "sendParameter", parameterId: id, value: value });
     }
     if (parts[0] === "master" && parts[1] === "subsonic") {
-        this.selectOutputChannel(parts[2] || "stereo");
-        this.sendOsc("/2/lowcutEnable", [value ? 1.0 : 0.0], { action: "sendParameter", parameterId: id, value: value, oscRole: "subsonic-enable" });
-        if (value) {
-            this.sendOsc("/2/lowcutGrade", [1.0], { action: "sendParameter", parameterId: id, value: value, oscRole: "subsonic-grade-24db" });
-            this.sendOsc("/2/lowcutFreq", [value <= 25 ? 0.12 : 0.18], { action: "sendParameter", parameterId: id, value: value, oscRole: "subsonic-frequency" });
-        }
-        this.sendOsc("/1/busInput", [1.0], { action: "restoreInputBusAfterSubsonic", parameterId: id });
-        this.currentBankStart = null;
-        return { sent: true, integration: "osc", profile: this.profile.id, action: "sendParameter", parameterId: id, value: value, oscRole: "subsonic-output-lowcut" };
+        var masterId = parts[2] || "stereo";
+        var enabled = value !== null && value !== undefined && !!parseInt(value, 10);
+
+        if (!this.subsonicState) this.subsonicState = {};
+        var wasEnabled = !!this.subsonicState[masterId];
+
+        this.selectOutputChannel(masterId);
+
+        var self = this;
+
+        setTimeout(function() {
+            if (wasEnabled !== enabled) {
+                self.sendOsc("/2/lowcutEnable", [1.0], { action: "sendParameter", parameterId: id, value: value, oscRole: "subsonic-enable-toggle" });
+            }
+
+            if (enabled) {
+                self.sendOsc("/2/lowcutGrade", [1.0], { action: "sendParameter", parameterId: id, value: value, oscRole: "subsonic-grade-24db" });
+                self.sendOsc("/2/lowcutFreq", [value <= 25 ? 0.12 : 0.18], { action: "sendParameter", parameterId: id, value: value, oscRole: "subsonic-frequency" });
+            }
+
+            self.subsonicState[masterId] = enabled;
+            // 
+            // Disabled for Babyface.
+            // Restoring input bus causes subsequent HPF commands
+            // to target CH1 instead of the selected output/master.
+            //
+            // self.sendOsc("/1/busInput", [1.0], { action: "restoreInputBusAfterSubsonic", parameterId: id });
+            // self.currentBankStart = null;
+        }, 60);
+
+        return { sent: true, integration: "osc", profile: this.profile.id, action: "sendParameter", parameterId: id, value: value, oscRole: "subsonic-output-lowcut-delayed" };
     }
     if (parts[0] === "effect" && (parts[1] === "reverb" || parts[1] === "echo")) {
         var effectControlMap = {
@@ -770,8 +840,7 @@ TotalMixOscService.prototype.writeBabyfaceEqParameter = function(channel, band, 
     var self = this;
     function done(result) {
         if (outputTarget) {
-            self.sendOsc("/1/busInput", [1.0], { action: "restoreInputBusAfterEq", channel: channel, band: band, parameter: parameter });
-            self.currentBankStart = null;
+            self.scheduleInputBusRestore("restoreInputBusAfterEq", { channel: channel, band: band, parameter: parameter });
         }
         return result;
     }
@@ -782,11 +851,43 @@ TotalMixOscService.prototype.writeBabyfaceEqParameter = function(channel, band, 
     if (bandKey === "HPF") {
         if (paramKey === "Q_OR_TYPE") {
             var gradeIndex = Math.max(0, Math.min(4, parseInt(value, 10) || 0));
-            this.sendOsc("/2/lowcutEnable", [gradeIndex > 0 ? 1.0 : 0.0], { action: "writeEqParameter", channel: channel, band: band, parameter: "lowcutEnable", value: gradeIndex });
-            if (gradeIndex > 0) {
-                return done(this.sendOsc("/2/lowcutGrade", [(gradeIndex - 1) / 3], { action: "writeEqParameter", channel: channel, band: band, parameter: parameter, value: value }));
+
+            if (!this.rawHpfState) this.rawHpfState = {};
+            var key = String(channel);
+            var wasEnabled = !!this.rawHpfState[key];
+            var wantsEnabled = gradeIndex > 0;
+
+            if (wasEnabled !== wantsEnabled) {
+                this.sendOsc("/2/lowcutEnable", [1.0], {
+                    action: "writeEqParameter",
+                    channel: channel,
+                    band: band,
+                    parameter: "lowcutEnable",
+                    value: gradeIndex
+                });
             }
-            return done({ sent: true, integration: "osc", action: "writeEqParameter", channel: channel, band: band, parameter: parameter, value: value });
+
+            this.rawHpfState[key] = wantsEnabled;
+
+            if (gradeIndex > 0) {
+                return done(this.sendOsc("/2/lowcutGrade", [(gradeIndex - 1) / 3], {
+                    action: "writeEqParameter",
+                    channel: channel,
+                    band: band,
+                    parameter: parameter,
+                    value: value
+                }));
+            }
+
+            return done({
+                sent: true,
+                integration: "osc",
+                action: "writeEqParameter",
+                channel: channel,
+                band: band,
+                parameter: parameter,
+                value: value
+            });
         }
         if (paramKey === "FREQ") {
             address = "/2/lowcutFreq";

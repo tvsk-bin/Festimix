@@ -2930,14 +2930,14 @@
                     highMid: controls.highMid,
                     highMidFrequency: masterEqFrequencyPresets("highMid")[controls.highMidFreqIndex],
                     high: controls.high,
-                    highFrequency: masterEqFrequencyPresets("high")[controls.highFreqIndex]
+                    highFrequency: masterEqFrequencyPresets("high")[controls.highFreqIndex],
+                    hpf: controls.hpf
                 }
             });
         }
 
         function sendAuxEqControl(master, control, value) {
             if (!master || master.id.indexOf("aux") !== 0) return;
-            var controls = masterEqControls(master);
             sendAction({
                 type: "engineAuxEqIntent",
                 target: {
@@ -2950,14 +2950,13 @@
                 control: control,
                 value: value,
                 state: {
-                    hpf: controls.auxHpf,
-                    lowNotchFreq: controls.auxNotch1Freq,
-                    lowNotchGain: auxNotchGainPresets[controls.auxNotch1GainIndex],
-                    lowNotchInit: controls.auxNotch1Init,
-                    highNotchFreq: controls.auxNotch2Freq,
-                    highNotchGain: auxNotchGainPresets[controls.auxNotch2GainIndex],
-                    highNotchInit: controls.auxNotch2Init,
-                    presence: controls.auxPresence
+                    lowNotchFreq: masterEqControls(master).auxNotch1Freq,
+                    lowNotchGain: auxNotchGainPresets[masterEqControls(master).auxNotch1GainIndex],
+                    lowNotchInit: masterEqControls(master).auxNotch1Init,
+                    highNotchFreq: masterEqControls(master).auxNotch2Freq,
+                    highNotchGain: auxNotchGainPresets[masterEqControls(master).auxNotch2GainIndex],
+                    highNotchInit: masterEqControls(master).auxNotch2Init,
+                    presence: masterEqControls(master).auxPresence
                 }
             });
         }
@@ -3249,6 +3248,39 @@
                     }
                 }
             }
+        }
+
+        function toggleAuxHpf(master, next) {
+            var eq = masterEqControls(master);
+
+            eq.auxHpf = freqEquals(eq.auxHpf, next) ? null : next;
+
+            sendAuxEqControl(master, "hpf", eq.auxHpf);
+            renderMasterStripPage();
+        }
+
+        function toggleMasterHpf(master, next) {
+            var controls = masterEqControls(master);
+
+            controls.hpf = freqEquals(controls.hpf, next) ? null : next;
+
+            sendMasterEqControl(master, "hpf", controls.hpf);
+            renderMasterStripPage();
+        }
+
+        function toggleChannelHpf(channel, next) {
+            var controls = channelControls(channel);
+
+            controls.hpf = freqEquals(controls.hpf, next) ? null : next;
+
+            sendEqControl(channel, "hpf", controls.hpf);
+            renderStripPage();
+        }
+
+        function freqEquals(a, b) {
+            if (a === undefined || a === null) return (b === undefined || b === null);
+            if (b === undefined || b === null) return false;
+            return String(a) === String(b);
         }
 
         function computeSpectrum(monoSamples, sampleRate) {
@@ -3933,8 +3965,7 @@
             var key = channel ? channel.id : "default";
             if (!state.stripControls[key]) {
                 state.stripControls[key] = {
-                    hpf: "75",
-                    hpfOn: false,
+                    hpf: null,
                     phase: false,
                     phantom: false,
                     midFreqIndex: 0,
@@ -4320,7 +4351,7 @@
                 auxNotch2Freq: 2000,
                 auxNotch2GainIndex: 0,
                 auxNotch2Init: false,
-                auxHpf: "100",
+                auxHpf: null,
                 auxPresence: 0,
                 subsonicHpf: null,
                 effectHpf: null,
@@ -6302,40 +6333,10 @@
             }
 
             Array.prototype.forEach.call(root.querySelectorAll("[data-hpf]"), function(button) {
-                button.onpointerup = function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    controls.hpf = button.dataset.hpf;
-                    controls.hpfOn = true;
-                    if (isBabyfaceMode()) {
-                        sendParameter("hpf." + channel.midiKey, controls.hpf);
-                    } else {
-                        sendEqControl(channel, "hpf", controls.hpf);
-                    }
-                    renderStripPage();
-                };
-                button.onclick = function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                };
-            });
-            Array.prototype.forEach.call(root.querySelectorAll("[data-hpf-power]"), function(button) {
-                button.onpointerup = function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    controls.hpfOn = !controls.hpfOn;
-                    if (!controls.hpf) controls.hpf = "75";
-                    if (isBabyfaceMode()) {
-                        sendParameter("hpf." + channel.midiKey, controls.hpfOn ? controls.hpf : 0);
-                    } else {
-                        sendEqControl(channel, "hpf", controls.hpfOn ? controls.hpf : null);
-                    }
-                    renderStripPage();
-                };
-                button.onclick = function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                };
+                button.type = "button";
+                button.addEventListener("click", function() {
+                    toggleChannelHpf(channel, button.dataset.hpf);
+                });
             });
             var phase = root.querySelector("[data-phase]");
             if (phase) {
@@ -6495,11 +6496,10 @@
         function bindAuxMasterEq(page, master) {
             var eq = masterEqControls(master);
             Array.prototype.forEach.call(page.querySelectorAll("[data-aux-master-hpf]"), function(button) {
-                button.onclick = function() {
-                    eq.auxHpf = eq.auxHpf === button.dataset.auxMasterHpf ? null : button.dataset.auxMasterHpf;
-                    sendAuxEqControl(master, "hpf", eq.auxHpf);
-                    renderMasterStripPage();
-                };
+                button.type = "button";
+                button.addEventListener("click", function() {
+                    toggleAuxHpf(master, button.dataset.auxMasterHpf);
+                });
             });
             Array.prototype.forEach.call(page.querySelectorAll("[data-aux-notch-gain]"), function(valueBox) {
                 var swipe = null;
@@ -6702,6 +6702,9 @@
                 button.onclick = function() {
                     var value = button.dataset.masterSubsonic;
                     eq.subsonicHpf = eq.subsonicHpf === value ? null : value;
+
+                    console.log("MASTER SUBSONIC CLICK", value, eq.subsonicHpf);
+
                     sendAction({
                         type: "sendParameter",
                         parameterId: "master.subsonic." + (master && master.id ? master.id : "stereo"),
@@ -7322,7 +7325,7 @@
                 "</div>"
             ].join("") : [
                 "<div class='strip-section eq-section'>",
-                "<div class='control-cell phase-hpf'><div class='mini-row phase-phantom-row'><button class='btn-hw" + (controls.phase ? " active" : "") + (phaseDisabled ? " disabled" : "") + "' data-phase='1'" + (phaseDisabled ? " disabled" : "") + ">PHASE</button>" + (phantomCapable() ? "<button class='btn-hw" + (controls.phantom ? " active" : "") + (!channelPhantomCapable(channel) ? " disabled" : "") + "' data-phantom='1'" + (!channelPhantomCapable(channel) ? " disabled" : "") + ">+48V</button>" : "") + "</div><div class='hpf-stack'><div class='control-label'>HPF</div><button class='btn-hw" + (controls.hpfOn ? " active" : "") + "' data-hpf-power='1'>" + (controls.hpfOn ? "ON" : "OFF") + "</button><button class='btn-hw" + (controls.hpfOn && controls.hpf === "75" ? " active" : "") + "' data-hpf='75'>75</button><button class='btn-hw" + (controls.hpfOn && controls.hpf === "100" ? " active" : "") + "' data-hpf='100'>100</button></div></div>",
+                "<div class='control-cell phase-hpf'><div class='mini-row phase-phantom-row'><button class='btn-hw" + (controls.phase ? " active" : "") + (phaseDisabled ? " disabled" : "") + "' data-phase='1'" + (phaseDisabled ? " disabled" : "") + ">PHASE</button>" + (phantomCapable() ? "<button class='btn-hw" + (controls.phantom ? " active" : "") + (!channelPhantomCapable(channel) ? " disabled" : "") + "' data-phantom='1'" + (!channelPhantomCapable(channel) ? " disabled" : "") + ">+48V</button>" : "") + "</div><div class='hpf-stack'><div class='control-label'>HPF</div><button type='button' class='btn-hw" + (freqEquals(controls.hpf, '75') ? " active" : "") + "' data-hpf='75'>75</button><button type='button' class='btn-hw" + (freqEquals(controls.hpf, '100') ? " active" : "") + "' data-hpf='100'>100</button></div></div>",
                 "<div class='control-cell'><div class='control-label'>BASS</div><div class='knob' data-control='lowGain' data-eq='1' data-min='-18' data-max='18' data-center='0' data-detent='center' data-value='" + controls.lowGain + "' data-unit=' dB'>0 dB</div></div>",
                 "<div class='control-cell mid-cell'><div class='control-label'>MID</div><div class='mini-row'><div class='value-box swipe-value' data-midfreq='1'>" + midFreq + "</div></div><div class='knob' data-control='midGain' data-eq='1' data-min='-18' data-max='18' data-center='0' data-detent='center' data-value='" + controls.midGain + "' data-unit=' dB'>0 dB</div></div>",
                 "<div class='control-cell'><div class='control-label'>HIGH</div><div class='knob' data-control='highGain' data-eq='1' data-min='-18' data-max='18' data-center='0' data-detent='center' data-value='" + controls.highGain + "' data-unit=' dB'>0 dB</div></div>",
@@ -7456,7 +7459,7 @@
                 page.innerHTML = [
                     "<div class='strip-body'>",
                     "<div class='strip-section master-eq-grid'>",
-                    "<div class='control-cell phase-hpf'><div class='hpf-stack'><div class='control-label'>HPF</div><button class='btn-hw" + (eq.auxHpf === "75" ? " active" : "") + "' data-aux-master-hpf='75'>75</button><button class='btn-hw" + (eq.auxHpf === "100" ? " active" : "") + "' data-aux-master-hpf='100'>100</button><button class='btn-hw" + (eq.auxHpf === "175" ? " active" : "") + "' data-aux-master-hpf='175'>175</button><button class='btn-hw" + (eq.auxHpf === "250" ? " active" : "") + "' data-aux-master-hpf='250'>250</button></div></div>",
+                    "<div class='control-cell phase-hpf'><div class='hpf-stack'><div class='control-label'>HPF</div><button type='button' class='btn-hw" + (freqEquals(eq.auxHpf, '75') ? " active" : "") + "' data-aux-master-hpf='75'>75</button><button type='button' class='btn-hw" + (freqEquals(eq.auxHpf, '100') ? " active" : "") + "' data-aux-master-hpf='100'>100</button><button type='button' class='btn-hw" + (freqEquals(eq.auxHpf, '175') ? " active" : "") + "' data-aux-master-hpf='175'>175</button><button type='button' class='btn-hw" + (freqEquals(eq.auxHpf, '250') ? " active" : "") + "' data-aux-master-hpf='250'>250</button></div></div>",
                     renderAuxNotchCell(1, "LOW NOTCH", eq.auxNotch1Freq, eq.auxNotch1GainIndex, 100, 1000),
                     renderAuxNotchCell(2, "HIGH NOTCH", eq.auxNotch2Freq, eq.auxNotch2GainIndex, 800, 6000),
                     "<div class='control-cell'><div class='control-label'>PRESENCE</div><div class='knob' data-master-eq='auxPresence' data-min='-6' data-max='9' data-center='0' data-detent='center' data-value='" + eq.auxPresence + "' data-unit=' dB'>0 dB</div></div>",
