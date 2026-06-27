@@ -164,6 +164,57 @@ function effectFrequencyValue(value) {
     return clamp(numeric, 20, 20000) / 20000;
 }
 
+function effectLinearValue(value, min, max) {
+    return (clamp(value, min, max) - min) / (max - min);
+}
+
+function effectHzValue(value, min, max) {
+    var text = String(value || "").trim().toLowerCase();
+    if (text === "off") return 0;
+    var numeric = parseFloat(text) || 0;
+    if (text.indexOf("k") >= 0) numeric *= 1000;
+    numeric = clamp(numeric, min, max);
+    return Math.log(numeric / min) / Math.log(max / min);
+}
+
+function effectVolumeValue(value) {
+    var text = String(value || "").trim().toLowerCase();
+    if (!text || text === "-inf" || text === "-infinity" || text === "inf" || text === "off") return 0;
+    var db = parseFloat(text);
+    if (!isFinite(db)) return 0;
+    return effectLinearValue(db, -64.5, 6);
+}
+
+function echoDelayValue(value) {
+    var text = String(value || "").trim();
+    var first = text.split("/")[0];
+    var numeric = parseFloat(first);
+    if (!isFinite(numeric)) numeric = parseFloat(text) || 0;
+    if (numeric > 2 && numeric <= 200) numeric = numeric / 100;
+    var target = clamp(numeric, 0, 2);
+    if (target <= 0.12) return 0;
+    var a = 2.863026109875627;
+    var b = 1.3364467506795163;
+    var c = 0.1160200971913351;
+    var discriminant = b * b - 4 * a * (c - target);
+    if (discriminant < 0) return 0;
+    return clamp((-b + Math.sqrt(discriminant)) / (2 * a), 0, 1);
+}
+
+function echoHighCutValue(value) {
+    var text = String(value || "").trim().toLowerCase().replace(/\s+/g, "");
+    var values = ["off", "16k", "12k", "8k", "4k", "2k"];
+    var index = values.indexOf(text);
+    if (index < 0) {
+        var numeric = parseFloat(text) || 0;
+        if (text.indexOf("k") >= 0) numeric *= 1000;
+        var hzValues = [0, 16000, 12000, 8000, 4000, 2000];
+        index = hzValues.indexOf(Math.round(numeric));
+    }
+    if (index < 0) index = 0;
+    return values.length <= 1 ? 0 : index / (values.length - 1);
+}
+
 function TotalMixOscService(options) {
     options = options || {};
     this.profile = profileRegistry.getProfile(options.profile || "rmeBabyfaceProFs12");
@@ -403,8 +454,24 @@ TotalMixOscService.prototype.sendBabyfaceHpf = function(channelKey, value) {
 TotalMixOscService.prototype.sendBabyfaceEffectOn = function(kind, value) {
     var address = kind === "echo" ? "/3/echoEnable" : "/3/reverbEnable";
     var enabled = !!toggleToInt(value);
-    this.oscControlLog("WRITE", "effect." + kind + ".on", { type: "absolute-toggle", address: address, enabled: enabled });
-    return this.sendOsc(address, [enabled ? 1.0 : 0.0], { action: "sendParameter", parameterId: "effect." + kind + ".on", value: value, oscRole: "registry-effect-enable-absolute" });
+    if (!this.babyfaceEffectEnableState) this.babyfaceEffectEnableState = {};
+    var hasKnownState = Object.prototype.hasOwnProperty.call(this.babyfaceEffectEnableState, kind);
+    var wasEnabled = !!this.babyfaceEffectEnableState[kind];
+    if (hasKnownState && wasEnabled === enabled) {
+        return {
+            sent: true,
+            integration: "osc",
+            profile: this.profile.id,
+            action: "sendParameter",
+            parameterId: "effect." + kind + ".on",
+            value: value,
+            enabled: enabled,
+            oscRole: "registry-effect-enable-state-unchanged"
+        };
+    }
+    this.babyfaceEffectEnableState[kind] = enabled;
+    this.oscControlLog("WRITE", "effect." + kind + ".on", { type: "stateful-toggle", address: address, enabled: enabled });
+    return this.sendOsc(address, [1.0], { action: "sendParameter", parameterId: "effect." + kind + ".on", value: value, enabled: enabled, oscRole: "registry-effect-enable-toggle" });
 };
 
 TotalMixOscService.prototype.sendBabyfaceEffectReturn = function(bus, value) {
@@ -506,14 +573,7 @@ TotalMixOscService.prototype.sendChannelControl = function(channel, control, val
     var target = this.channelTarget(channel);
     if (!target) return this.pending("sendChannelControl", { channel: channel, control: control, value: value });
     if (control === "solo" && this.profile && this.profile.id === "rmeBabyfaceProFs12") {
-        this.selectChannelTarget(target);
-        return this.sendOsc("/2/solo", [value], Object.assign({
-            channel: channel,
-            oscControl: control,
-            oscPage: 2,
-            oscIndex: target.index,
-            oscRole: "pfl-selected-track"
-        }, payload || {}));
+        return this.setBabyfaceChannelPfl(channel, !!(payload && payload.enabled), payload);
     }
     var page1Address = null;
     if (control === "volume") page1Address = "/1/volume" + target.index;
@@ -557,6 +617,17 @@ TotalMixOscService.prototype.submixIndex = function(master) {
     return map[key] === undefined ? 0 : map[key];
 };
 
+TotalMixOscService.prototype.outputMasterFromIndex = function(index) {
+    var map = {
+        0: "stereo",
+        4: "aux1",
+        5: "aux2",
+        6: "aux3",
+        7: "aux4"
+    };
+    return map[index] || null;
+};
+
 TotalMixOscService.prototype.selectSubmix = function(master) {
     var next = String(master || "mix").toLowerCase();
     if (this.inputBusRestoreTimer) {
@@ -596,12 +667,10 @@ TotalMixOscService.prototype.scheduleInputBusRestore = function(action, payload)
 TotalMixOscService.prototype.initializeBabyfaceEqState = function() {
     for (var number = 1; number <= 12; number++) {
         this.selectChannelTarget(this.channelTarget("CH" + number));
-        this.sendOsc("/2/eqEnable", [1.0], { action: "startupEnableEq", channel: "CH" + number });
         this.sendOsc("/2/lowcutEnable", [0.0], { action: "startupResetLowcut", channel: "CH" + number });
     }
     ["stereo", "aux1", "aux2", "aux3", "aux4"].forEach(function(master) {
         this.selectOutputChannel(master);
-        this.sendOsc("/2/eqEnable", [1.0], { action: "startupEnableOutputEq", master: master });
         this.sendOsc("/1/busInput", [1.0], { action: "restoreInputBusAfterStartupEq", master: master });
         this.currentBankStart = null;
     }, this);
@@ -610,7 +679,7 @@ TotalMixOscService.prototype.initializeBabyfaceEqState = function() {
 
 TotalMixOscService.prototype.parameterValue = function(parameterId, value) {
     if (/^masterFader\.|^channelFader\.|^auxSend\.|^fx[12]Send\.|^effectReturnSend\./.test(parameterId)) return midiToUnit(value);
-    if (/^pan\./.test(parameterId)) return clamp(value, 0, 32) / 16 - 1;
+    if (/^pan\./.test(parameterId)) return clamp(value, 0, 32) / 32;
     if (/^gain\./.test(parameterId)) {
         var gainChannel = channelNumberFromKey(String(parameterId).split(".")[1]);
         if (gainChannel === 3 || gainChannel === 4) return clamp(value, 0, 9) / 9;
@@ -620,27 +689,68 @@ TotalMixOscService.prototype.parameterValue = function(parameterId, value) {
     if (/^inputLevel\./.test(parameterId)) return clamp(value, 0, 2) / 2;
     if (/^effect\./.test(parameterId)) {
         var effectParts = String(parameterId).split(".");
+        var effectKind = effectParts[1] || "";
         var effectParam = effectParts[2] || "";
-        if (effectParam === "volume") return dbToUnit(value);
-        if (effectParam === "width" || effectParam === "roomScale") return clamp(value, 0, 3) / 3;
-        if (effectParam === "lowCut" || effectParam === "highCut" || effectParam === "highDamp" || effectParam === "hc") return effectFrequencyValue(value);
+        if (effectParam === "volume") return effectVolumeValue(value);
+        if (effectParam === "width") return effectLinearValue(value, 0, 1);
+        if (effectParam === "roomScale") return effectLinearValue(value, 0.5, 3.0);
+        if (effectParam === "preDelay") return effectLinearValue(value, 0, 999);
+        if (effectParam === "lowCut") return effectHzValue(value, 20, 500);
+        if (effectParam === "highCut") return effectHzValue(value, 2000, 20000);
+        if (effectParam === "highDamp") return effectHzValue(value, 2000, 20000);
+        if (effectParam === "hc") return echoHighCutValue(value);
         if (effectParam === "delayTime") {
-            var delayText = String(value || "");
-            var delayMatch = delayText.match(/(\d+(?:\.\d+)?)\s*$/);
-            return clamp(delayMatch ? parseFloat(delayMatch[1]) : parseFloat(value), 0, 600) / 600;
+            return echoDelayValue(value);
         }
-        if (effectParam === "type") return this.effectTypeValue(effectParts[1], value);
-        return clamp(value, 0, 500) / 500;
+        if (effectParam === "attack") return effectLinearValue(value, 5, 400);
+        if (effectParam === "hold") return effectLinearValue(value, 5, 400);
+        if (effectParam === "release") return effectLinearValue(value, 5, 500);
+        if (effectParam === "feedback" || effectParam === "smooth") return effectLinearValue(value, 0, 100);
+        if (effectParam === "type") return this.effectTypeValue(effectKind, value);
+        return effectKind === "echo" ? effectLinearValue(value, 0, 100) : effectLinearValue(value, 0, 999);
     }
     if (/^phantom\.|^master\.subsonic\./.test(parameterId)) return toggleToInt(value);
     return value;
 };
 
 TotalMixOscService.prototype.effectTypeValue = function(kind, slug) {
-    var reverb = ["large-room", "envelope", "space", "thicker"];
-    var echo = ["pong-echo", "stereo-cross"];
-    var list = kind === "echo" ? echo : reverb;
     var normalized = String(slug || "").toLowerCase().replace(/\s+/g, "-");
+    if (kind === "echo") {
+        var echoMap = {
+            "stereo-echo": 0,
+            "stereo-cross": 0.5,
+            "pong-echo": 1
+        };
+        return echoMap[normalized] !== undefined ? echoMap[normalized] : 0;
+    }
+    if (normalized === "envelope" || normalized === "gated" || normalized === "space") {
+        return null;
+    }
+    var reverbMap = {
+        "small-room": 0,
+        "medium-room": 1 / 14,
+        "large-room": 2 / 14,
+        "thicker": 14 / 14
+    };
+    if (reverbMap[normalized] !== undefined) return reverbMap[normalized];
+    var reverb = [
+        "small-room",
+        "medium-room",
+        "large-room",
+        "walls",
+        "shorty",
+        "attack",
+        "swagger",
+        "old-school",
+        "echolistic",
+        "8plus9",
+        "grand-wide",
+        "thicker",
+        "envelope",
+        "gated",
+        "space"
+    ];
+    var list = reverb;
     var index = list.indexOf(normalized);
     if (index < 0) index = 0;
     return list.length <= 1 ? 0 : index / (list.length - 1);
@@ -683,6 +793,7 @@ TotalMixOscService.prototype.sendParameter = function(parameterId, value) {
     var registered = this.sendBabyfaceRegisteredParameter(id, value);
     if (registered) return registered;
     if (parts[0] === "channelFader") {
+        if (this.profile && this.profile.id === "rmeBabyfaceProFs12") this.selectSubmix("mix");
         return this.sendChannelControl(parts[1], "volume", midiToUnit(value), { action: "sendParameter", parameterId: id, value: value });
     }
     if (parts[0] === "pan") {
@@ -750,12 +861,12 @@ TotalMixOscService.prototype.sendParameter = function(parameterId, value) {
     }
     if (parts[0] === "effect" && (parts[1] === "reverb" || parts[1] === "echo")) {
         var effectControlMap = {
-            preDelay: "PreDelay",
-            lowCut: "LowCut",
-            highCut: "HighCut",
-            roomScale: "RoomScale",
-            reverbTime: "ReverbTime",
-            highDamp: "HighDamp",
+            preDelay: "Predelay",
+            lowCut: "Lowcut",
+            highCut: "Highcut",
+            roomScale: "Roomscale",
+            reverbTime: "Time",
+            highDamp: "Highdamp",
             attack: "Attack",
             hold: "Hold",
             release: "Release",
@@ -763,14 +874,18 @@ TotalMixOscService.prototype.sendParameter = function(parameterId, value) {
             width: "Width",
             volume: "Volume",
             type: "Type",
-            delayTime: "DelayTime",
+            delayTime: "Delaytime",
             feedback: "Feedback",
             hc: "HC"
         };
         var effectControl = effectControlMap[parts[2]] || parts.slice(2).map(function(part) {
             return part.charAt(0).toUpperCase() + part.slice(1);
         }).join("");
-        return this.sendOsc("/3/" + parts[1] + effectControl, [this.parameterValue(id, value)], { action: "sendParameter", parameterId: id, value: value });
+        var effectValue = this.parameterValue(id, value);
+        if (parts[2] === "type" && effectValue === null) {
+            return this.pending("sendParameter", { parameterId: id, value: value, reason: "unsupported-reverb-type-over-osc" });
+        }
+        return this.sendOsc("/3/" + parts[1] + effectControl, [effectValue], { action: "sendParameter", parameterId: id, value: value });
     }
     return this.pending("sendParameter", { parameterId: parameterId, value: value });
 };
@@ -783,6 +898,95 @@ TotalMixOscService.prototype.setChannelOn = function(channel, enabled) {
 
 TotalMixOscService.prototype.setChannelSolo = function(channel, enabled) {
     return this.sendChannelControl(channel, "solo", enabled ? 1.0 : 0.0, { action: "setChannelSolo", enabled: !!enabled, oscRole: "pfl-exclusive" });
+};
+
+TotalMixOscService.prototype.setBabyfaceChannelPfl = function(channel, enabled, payload) {
+    var target = this.channelTarget(channel);
+    if (!target) return this.pending("setBabyfaceChannelPfl", { channel: channel, enabled: !!enabled });
+    var key = "CH" + target.number;
+    if (!this.babyfacePflState) this.babyfacePflState = {};
+    var hasKnownState = Object.prototype.hasOwnProperty.call(this.babyfacePflState, key);
+    var wasEnabled = !!this.babyfacePflState[key];
+    if (wasEnabled === !!enabled && (enabled || hasKnownState)) {
+        return Object.assign({
+            sent: true,
+            integration: "osc",
+            profile: this.profile.id,
+            action: "setChannelSolo",
+            channel: channel,
+            enabled: !!enabled,
+            oscRole: "pfl-state-unchanged"
+        }, payload || {});
+    }
+    this.selectChannelTarget(target);
+    if (enabled) {
+        Object.keys(this.babyfacePflState).forEach(function(stateKey) {
+            this.babyfacePflState[stateKey] = false;
+        }, this);
+    }
+    this.babyfacePflState[key] = !!enabled;
+    if (!enabled) {
+        this.ensureBank(target);
+        return this.sendOsc("/1/solo/1/" + target.index, [0.0], Object.assign({
+            channel: channel,
+            oscControl: "solo",
+            oscPage: 1,
+            oscIndex: target.index,
+            enabled: false,
+            oscRole: "pfl-page-solo-off"
+        }, payload || {}));
+    }
+    return this.sendOsc("/2/solo", [1.0], Object.assign({
+        channel: channel,
+        oscControl: "solo",
+        oscPage: 2,
+        oscIndex: target.index,
+        enabled: true,
+        oscRole: "pfl-selected-track-toggle-on"
+    }, payload || {}));
+};
+
+TotalMixOscService.prototype.setBabyfaceOutputCue = function(master, enabled, payload) {
+    var output = String(master || "stereo").toLowerCase();
+    if (output === "mix") output = "stereo";
+    if (output !== "stereo" && output !== "aux1" && output !== "aux2" && output !== "aux3" && output !== "aux4") {
+        return this.pending("setBabyfaceOutputCue", { master: master, enabled: !!enabled, reason: "unsupported-output-cue" });
+    }
+    if (!this.babyfaceOutputCueState) this.babyfaceOutputCueState = {};
+    var wasEnabled = !!this.babyfaceOutputCueState[output];
+    if (wasEnabled === !!enabled) {
+        return Object.assign({
+            sent: true,
+            integration: "osc",
+            profile: this.profile.id,
+            action: "setMasterSolo",
+            master: output,
+            enabled: !!enabled,
+            oscRole: "cue-output-state-unchanged"
+        }, payload || {});
+    }
+    this.selectOutputChannel(output);
+    this.babyfaceOutputCueState[output] = !!enabled;
+    var self = this;
+    setTimeout(function() {
+        self.selectOutputChannel(output);
+        self.sendOsc("/2/cue", [1.0], Object.assign({
+            action: "setMasterSolo",
+            master: output,
+            enabled: !!enabled,
+            oscRole: enabled ? "cue-output-toggle-on" : "cue-output-toggle-off"
+        }, payload || {}));
+    }, 80);
+    return {
+        sent: true,
+        integration: "osc",
+        profile: this.profile.id,
+        action: (payload && payload.action) || "setMasterSolo",
+        master: output,
+        enabled: !!enabled,
+        delayed: true,
+        oscRole: enabled ? "cue-output-toggle-on" : "cue-output-toggle-off"
+    };
 };
 
 TotalMixOscService.prototype.setChannelPhase = function(channel, enabled) {
@@ -804,6 +1008,38 @@ TotalMixOscService.prototype.setMasterOn = function(master, enabled) {
     if (master === "effect2") {
         return this.sendBabyfaceEffectOn("echo", enabled ? 127 : 0);
     }
+    if (this.profile && this.profile.id === "rmeBabyfaceProFs12") {
+        var output = String(master || "stereo").toLowerCase();
+        if (output === "mix") output = "stereo";
+        if (output !== "stereo" && output !== "aux1" && output !== "aux2" && output !== "aux3" && output !== "aux4") {
+            return this.pending("setMasterOn", { master: master, enabled: !!enabled, reason: "unsupported-output-mute" });
+        }
+        if (!this.babyfaceOutputMuteState) this.babyfaceOutputMuteState = {};
+        var muted = !enabled;
+        var hasKnownState = Object.prototype.hasOwnProperty.call(this.babyfaceOutputMuteState, output);
+        var wasMuted = !!this.babyfaceOutputMuteState[output];
+        if (hasKnownState && wasMuted === muted) {
+            return {
+                sent: true,
+                integration: "osc",
+                profile: this.profile.id,
+                action: "setMasterOn",
+                master: output,
+                enabled: !!enabled,
+                muted: muted,
+                oscRole: "output-mute-state-unchanged"
+            };
+        }
+        this.selectOutputChannel(output);
+        this.babyfaceOutputMuteState[output] = muted;
+        return this.sendOsc("/2/mute", [1.0], {
+            action: "setMasterOn",
+            master: output,
+            enabled: !!enabled,
+            muted: muted,
+            oscRole: muted ? "output-mute-toggle-on" : "output-mute-toggle-off"
+        });
+    }
     this.selectSubmix(master);
     return this.sendOsc("/1/globalMute", [enabled ? 0.0 : 1.0], { action: "setMasterOn", master: master, enabled: !!enabled, oscRole: "mute-inverted-from-on" });
 };
@@ -811,6 +1047,9 @@ TotalMixOscService.prototype.setMasterOn = function(master, enabled) {
 TotalMixOscService.prototype.setMasterOnCc = TotalMixOscService.prototype.setMasterOn;
 
 TotalMixOscService.prototype.setMasterSolo = function(master, enabled) {
+    if (this.profile && this.profile.id === "rmeBabyfaceProFs12") {
+        return this.setBabyfaceOutputCue(master, !!enabled, { action: "setMasterSolo", master: master, enabled: !!enabled, oscRole: "cue-output-toggle" });
+    }
     this.selectSubmix(master);
     return this.sendOsc("/1/globalSolo", [enabled ? 1.0 : 0.0], { action: "setMasterSolo", master: master, enabled: !!enabled, oscRole: "pfl" });
 };
@@ -1082,8 +1321,16 @@ TotalMixOscService.prototype.mapIncomingToUi = function(message) {
         this.selectedChannelNumber = this.currentBankStart + 1;
         return events;
     }
-    if (address === "/3/reverbEnable") events.push({ group: "effectState", effect: "reverb", enabled: !!toggleToInt(value) });
-    else if (address === "/3/echoEnable") events.push({ group: "effectState", effect: "echo", enabled: !!toggleToInt(value) });
+    if (address === "/3/reverbEnable") {
+        if (!this.babyfaceEffectEnableState) this.babyfaceEffectEnableState = {};
+        this.babyfaceEffectEnableState.reverb = !!toggleToInt(value);
+        events.push({ group: "effectState", effect: "reverb", enabled: this.babyfaceEffectEnableState.reverb });
+    }
+    else if (address === "/3/echoEnable") {
+        if (!this.babyfaceEffectEnableState) this.babyfaceEffectEnableState = {};
+        this.babyfaceEffectEnableState.echo = !!toggleToInt(value);
+        events.push({ group: "effectState", effect: "echo", enabled: this.babyfaceEffectEnableState.echo });
+    }
     if (events.length) {
         this.logMappedIncomingEvents(address, events);
         return events;
@@ -1098,7 +1345,19 @@ TotalMixOscService.prototype.mapIncomingToUi = function(message) {
         }
     }
     else if (address === "/2/pan") events.push({ group: "pan", target: this.selectedChannelKey(), value: unitToMidi(value), valueMax: 127 });
-    else if (address === "/2/mute") events.push({ group: "channelOn", target: this.selectedChannelKey(), enabled: !toggleToInt(value) });
+    else if (address === "/2/mute") {
+        if (this.currentBusSection === "output") {
+            var muted = !!toggleToInt(value);
+            var outputMaster = this.outputMasterFromIndex(this.currentBankStart);
+            if (outputMaster) {
+                if (!this.babyfaceOutputMuteState) this.babyfaceOutputMuteState = {};
+                this.babyfaceOutputMuteState[outputMaster] = muted;
+                events.push({ group: "masterOn", target: outputMaster, masterId: outputMaster, enabled: !muted });
+            }
+        } else {
+            events.push({ group: "channelOn", target: this.selectedChannelKey(), enabled: !toggleToInt(value) });
+        }
+    }
     else if (address === "/2/solo") events.push({ group: "channelSolo", target: this.selectedChannelKey(), enabled: !!toggleToInt(value) });
     else if (address === "/2/phase") events.push({ group: "phase", target: this.selectedChannelKey(), enabled: !!toggleToInt(value) });
     else if (address === "/2/phantom") events.push({ group: "phantom", target: this.selectedChannelKey(), enabled: !!toggleToInt(value) });

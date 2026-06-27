@@ -498,6 +498,35 @@
             padding: 4px 2px;
         }
 
+        .babyface-effect-master-block {
+            flex: 1 1 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
+            padding: 2px 0;
+        }
+
+        .babyface-effect-master-label {
+            flex: 0 0 auto;
+            text-align: center;
+            font-size: clamp(9px, 0.95vw, 12px);
+            font-weight: 900;
+            color: var(--text);
+        }
+
+        .babyface-effect-master-block .fader-box {
+            flex: 1 1 auto;
+            min-height: 72px;
+            padding: 0;
+        }
+
+        .babyface-effect-master-block input[type="range"].v-fader {
+            height: 100%;
+            min-height: 72px;
+        }
+
         .strip-page {
             height: 100%;
             display: flex;
@@ -832,6 +861,10 @@
         }
 
         .master-return-grid {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .master-return-grid.single-return-grid {
             grid-template-columns: minmax(130px, 180px) minmax(0, 1fr);
         }
 
@@ -839,15 +872,8 @@
             align-items: stretch;
         }
 
-        .effect-return-master-cell .vertical-fader-wrap {
-            min-height: 120px;
-            display: grid;
-            place-items: center;
-        }
-
-        .effect-return-master-cell .v-fader {
-            width: 100%;
-            height: 120px;
+        .effect-return-master-cell {
+            min-height: 0;
         }
 
         .master-comp-preset-grid {
@@ -876,7 +902,7 @@
 
         .babyface-effect-selectors {
             display: grid;
-            grid-template-rows: minmax(0, 1fr);
+            grid-template-rows: auto minmax(0, 1fr);
             gap: 8px;
             min-height: 0;
             overflow: hidden;
@@ -1954,15 +1980,15 @@
         ];
         var babyfaceReverbPresets = [
             { label: "Vocal Heaven", values: { type: "Large Room", preDelay: 100, lowCut: 100, highCut: "20k", roomScale: "3.00", smooth: 100, width: "0.90", volume: "-3.0" } },
-            { label: "Smooth Echo", values: { type: "Envelope", preDelay: 300, lowCut: 50, highCut: "20k", attack: 100, hold: 100, release: 50, smooth: 100, width: "0.77", volume: "-10.0" } },
-            { label: "Smooth Reflection", values: { type: "Envelope", preDelay: 499, lowCut: 100, highCut: "20k", attack: 200, hold: 5, release: 492, smooth: 100, width: "0.77", volume: "-9.0" } },
-            { label: "Big Hall", values: { type: "Space", preDelay: 40, lowCut: 100, reverbTime: 40, highDamp: "15.9k", smooth: 49, width: "1.00", volume: "-3.0" } },
+            { label: "Smooth Echo", values: { type: "Medium Room", preDelay: 300, lowCut: 50, highCut: "20k", attack: 100, hold: 100, release: 50, smooth: 100, width: "0.77", volume: "-10.0" } },
+            { label: "Smooth Reflection", values: { type: "Small Room", preDelay: 499, lowCut: 100, highCut: "20k", attack: 200, hold: 5, release: 492, smooth: 100, width: "0.77", volume: "-9.0" } },
+            { label: "Big Hall", values: { type: "Large Room", preDelay: 40, lowCut: 100, reverbTime: 40, highDamp: "15.9k", smooth: 49, width: "1.00", volume: "-3.0" } },
             { label: "Stereo Enhancer", values: { type: "Thicker", preDelay: 24, lowCut: 100, highCut: "16.0k", roomScale: "0.50", smooth: 50, width: "1.00", volume: "-6.0" } }
         ];
         var babyfaceEchoPresets = [
-            { label: "Vocal Heaven", values: { type: "Pong Echo", delayTime: "100 / 60", feedback: 15, width: "0.75", volume: "-15.0", hc: "8k", fxIn: "0", fxOut: "0" } },
-            { label: "Six Across", values: { type: "Pong Echo", delayTime: "0.29 / 207", feedback: 25, width: "0.70", volume: "-9.0", hc: "8k", fxIn: "0", fxOut: "0" } },
-            { label: "Doubler", values: { type: "Stereo Cross", delayTime: "0.10 / 600", feedback: 20, width: "0.50", volume: "-9.0", hc: "8k", fxIn: "0", fxOut: "0" } }
+            { label: "Vocal Heaven", values: { type: "Pong Echo", delayTime: "1.00 / 60", feedback: 15, width: "0.75", volume: "-15.0", hc: "8k" } },
+            { label: "Six Across", values: { type: "Pong Echo", delayTime: "0.29 / 207", feedback: 25, width: "0.70", volume: "-9.0", hc: "8k" } },
+            { label: "Doubler", values: { type: "Stereo Cross", delayTime: "0.10 / 600", feedback: 20, width: "0.50", volume: "-9.0", hc: "8k" } }
         ];
         var compressorPresets = ["OFF", "COMP", "KICK", "SNARE", "BASS", "FUNKY", "GUITAR", "VOCAL", "GLUE"];
         var suppressStripClick = false;
@@ -2057,13 +2083,14 @@
             resetMixerModel();
             if (typeof defaultRawEqBands !== "undefined" && defaultRawEqBands) rawEqBands = JSON.parse(JSON.stringify(defaultRawEqBands));
             if (!isBabyfaceMode()) return;
-            modes = ["MIX", "AUX1", "AUX2", "AUX3", "AUX4", "EFF1", "EFF2", "MIX"];
-            modeIds = ["MIX", "AUX1", "AUX2", "AUX3", "AUX4", "EFF1", "EFF2", "MIX"];
-            masterByMode.EFF1 = { id: "effect1", label: "REVERB MASTER", parameter: "masterFader.effect1" };
-            masterByMode.EFF2 = { id: "effect2", label: "ECHO MASTER", parameter: "masterFader.effect2" };
-            masterSoloTargetIds = ["stereo", "aux1", "aux2", "aux3", "aux4", "effect1", "effect2"];
+            modes = ["MIX", "AUX1", "AUX2", "AUX3", "AUX4", "FX", "MIX"];
+            modeIds = ["MIX", "AUX1", "AUX2", "AUX3", "AUX4", "EFF1", "MIX"];
+            masterByMode.EFF1 = { id: "effects", label: "EFFECTS", parameter: "masterFader.effect1" };
+            delete masterByMode.EFF2;
+            masterSoloTargetIds = ["stereo", "aux1", "aux2", "aux3", "aux4"];
             faderGroupByMode.EFF1 = "fx1Send";
-            faderGroupByMode.EFF2 = "fx1Send";
+            delete faderGroupByMode.EFF2;
+            if (state.mode === "EFF2") state.mode = "EFF1";
             banks.forEach(function(bank) {
                 if (bank.id === "9-16") {
                     bank.label = "CH9-12";
@@ -2184,6 +2211,8 @@
             if (target.closest(".btn-hw.solo")) return true;
             if (target.closest("[data-strip-action='on']") || target.closest("[data-strip-action='solo']")) return true;
             if (target.closest("[data-send]") || target.closest("[data-swipe-send]")) return true;
+            if (target.closest("[data-effect-return-master]")) return true;
+            if (target.closest("[data-effect-return-master-value]")) return true;
             var knob = target.closest(".knob");
             if (knob && (knob.dataset.control === "pan" || knob.dataset.control === "stereoPan")) return true;
             return false;
@@ -2534,7 +2563,7 @@
                 allChannels().forEach(function(other) {
                     if (other.id !== channel.id && state.solo[other.id]) {
                         setChannelSoloState(other.id, false);
-                        setChannelSolo(other.soloKey, false);
+                        if (!isBabyfaceMode()) setChannelSolo(other.soloKey, false);
                     }
                 });
             }
@@ -3768,7 +3797,10 @@
 
         function clearMasterSoloState(exceptId) {
             masterSoloTargetIds.forEach(function(id) {
-                if (id !== exceptId) state.masterSolo[id] = false;
+                if (id !== exceptId && state.masterSolo[id]) {
+                    state.masterSolo[id] = false;
+                    if (isBabyfaceMode()) setMasterSolo(id, false);
+                }
             });
             updateRawEqSnapshotCache();
         }
@@ -3793,6 +3825,10 @@
                 syncAudioMeterService();
                 return;
             }
+            if (isBabyfaceMode()) {
+                syncAudioMeterService();
+                return;
+            }
             if (hasChannelSolo()) {
                 if (soloGroupsAreExclusive()) clearMasterSoloState(null);
                 clearActiveEffectMasterReturnIfNeeded();
@@ -3807,7 +3843,7 @@
         function clearActiveEffectMasterReturnIfNeeded() {
             var returnId = state.activeMasterSoloTarget === "effect1" ? "RTN1" :
                 state.activeMasterSoloTarget === "effect2" ? "RTN2" : null;
-            if (returnId && !state.solo[returnId]) setChannelSolo(returnId, false);
+            if (returnId && !state.solo[returnId] && !isBabyfaceMode()) setChannelSolo(returnId, false);
         }
 
         function hasAnySoloSelection() {
@@ -3815,6 +3851,7 @@
         }
 
         function isAutoMixMasterSolo(master) {
+            if (isBabyfaceMode()) return false;
             return master && master.id === "stereo" && state.mode === "MIX" && !hasAnySoloSelection();
         }
 
@@ -4390,14 +4427,36 @@
 
         function applyBabyfaceEffectPreset(kind, preset) {
             if (!preset || !preset.values) return;
-            Object.keys(preset.values).forEach(function(key) {
-                if (key === "fxIn" || key === "fxOut") return;
-                sendAction({
-                    type: "sendParameter",
-                    parameterId: "effect." + kind + "." + key,
-                    value: preset.values[key]
-                });
+            var order = kind === "echo" ?
+                ["type", "delayTime", "feedback", "width", "hc"] :
+                ["type", "preDelay", "lowCut", "highCut", "reverbTime", "highDamp", "roomScale", "attack", "hold", "release", "smooth", "width"];
+            var keys = order.filter(function(key) {
+                return preset.values[key] !== undefined;
             });
+            function sendEffectPresetKeys(selectedKeys) {
+                selectedKeys.forEach(function(key) {
+                    sendAction({
+                        type: "sendParameter",
+                        parameterId: "effect." + kind + "." + key,
+                        value: preset.values[key]
+                    });
+                });
+            }
+            var typeKeys = keys.filter(function(key) { return key === "type"; });
+            var valueKeys = keys.filter(function(key) { return key !== "type"; });
+            sendEffectPresetKeys(typeKeys);
+            window.setTimeout(function() {
+                sendEffectPresetKeys(valueKeys);
+            }, typeKeys.length ? 140 : 0);
+            if (preset.values.volume !== undefined) {
+                var volumeParameter = kind === "echo" ? "masterFader.effect2" : "masterFader.effect1";
+                var volumeValue = effectMasterVolumeToMidi(preset.values.volume);
+                window.setTimeout(function() {
+                    setMasterFaderValue(volumeParameter, volumeValue);
+                    updateEffectMasterFaderControl(volumeParameter, volumeValue);
+                    sendParameter(volumeParameter, volumeValue);
+                }, typeKeys.length ? 140 : 0);
+            }
         }
 
         function babyfaceEffectValueHtml(label, value, disabled) {
@@ -4460,25 +4519,48 @@
             return state.effectReturnMaster[key];
         }
 
-        function renderEffectReturnMasterCell(master) {
+        function renderEffectReturnMasterCell(master, label) {
             var parameter = effectReturnParameterForMaster(master);
             if (!parameter) return "";
             var value = effectReturnMasterValue(master);
             return [
-                "<div class='control-cell effect-return-master-cell'>",
-                "<div class='control-label'>FX RETURN</div>",
-                "<div class='vertical-fader-wrap'>",
-                "<input class='v-fader' type='range' min='0' max='127' step='1' value='" + value + "' data-effect-return-master='" + master.id + "'>",
+                "<div class='control-cell effect-return-master-cell normal-send-cell'>",
+                "<div class='control-label'>" + escapeHtml(label || "RETURN") + "</div>",
+                "<div class='send-row' data-effect-return-master='" + master.id + "'>",
+                "<div class='value-box swipe-value' data-effect-return-master-value='" + master.id + "'>" + midiToDb(value) + "</div>",
                 "</div>",
-                "<div class='value-box'>" + midiToDb(value) + " dB</div>",
                 "</div>"
             ].join("");
         }
 
+        function effectReturnMasterTargets() {
+            return [
+                { master: { id: "stereo" }, label: "MASTER" },
+                { master: { id: "aux1" }, label: "AUX1" },
+                { master: { id: "aux2" }, label: "AUX2" },
+                { master: { id: "aux3" }, label: "AUX3" },
+                { master: { id: "aux4" }, label: "AUX4" }
+            ];
+        }
+
+        function effectReturnMasterById(id) {
+            return effectReturnMasterTargets().map(function(item) { return item.master; }).find(function(master) {
+                return master.id === id;
+            }) || null;
+        }
+
+        function renderAllEffectReturnMasterRow() {
+            return "<div class='strip-section master-return-grid'>" + effectReturnMasterTargets().map(function(item) {
+                return renderEffectReturnMasterCell(item.master, item.label);
+            }).join("") + "</div>";
+        }
+
         function renderEffectReturnMasterRow(master) {
-            var cell = renderEffectReturnMasterCell(master);
+            var label = master && master.id === "stereo" ? "MASTER" :
+                master && master.id ? master.id.toUpperCase() : "RETURN";
+            var cell = renderEffectReturnMasterCell(master, label);
             if (!cell) return "";
-            return "<div class='strip-section master-return-grid'>" + cell + "</div>";
+            return "<div class='strip-section master-return-grid single-return-grid'>" + cell + "</div>";
         }
 
         function renderSubsonicFilterCell(eq) {
@@ -4507,7 +4589,6 @@
                 babyfaceEffectValueHtml("DELAY TIME", values.delayTime, false),
                 babyfaceEffectValueHtml("FEEDBACK", values.feedback, false),
                 babyfaceEffectValueHtml("WIDTH", values.width, false),
-                babyfaceEffectValueHtml("VOL.", values.volume, false),
                 babyfaceEffectValueHtml("HC", values.hc, false)
             ] : Object.keys({
                 type: 1,
@@ -4521,8 +4602,7 @@
                 hold: 1,
                 release: 1,
                 smooth: 1,
-                width: 1,
-                volume: 1
+                width: 1
             }).filter(function(key) {
                 return values[key] !== undefined;
             }).map(function(key) {
@@ -4541,7 +4621,9 @@
                     width: "WIDTH",
                     volume: "VOLUME"
                 };
-                return babyfaceEffectValueHtml(labels[key] || key.toUpperCase(), values[key], false);
+                var displayValue = key === "type" && ["Envelope", "Gated", "Space"].indexOf(values[key]) !== -1 ?
+                    values[key] + " (manual)" : values[key];
+                return babyfaceEffectValueHtml(labels[key] || key.toUpperCase(), displayValue, false);
             });
             return [
                 "<div class='babyface-effect-row'>",
@@ -5258,6 +5340,35 @@
             return Math.round(Math.pow(normalized, 1.8) * 127);
         }
 
+        function effectMasterVolumeToMidi(db) {
+            var parsed = parseFloat(db);
+            if (!isFinite(parsed)) return 0;
+            var points = [
+                { send: -10, actual: -11.5 },
+                { send: -9, actual: -10 },
+                { send: -6, actual: -4.5 },
+                { send: -3, actual: 0.5 }
+            ];
+            var target = Math.max(-64.5, Math.min(6, parsed));
+            var sendDb = target;
+            if (target <= points[0].actual) {
+                sendDb = points[0].send + (target - points[0].actual) / 1.5;
+            } else if (target >= points[points.length - 1].actual) {
+                sendDb = points[points.length - 1].send + (target - points[points.length - 1].actual) / (5 / 3);
+            } else {
+                for (var i = 0; i < points.length - 1; i++) {
+                    var low = points[i];
+                    var high = points[i + 1];
+                    if (target >= low.actual && target <= high.actual) {
+                        var ratio = (target - low.actual) / (high.actual - low.actual);
+                        sendDb = low.send + ratio * (high.send - low.send);
+                        break;
+                    }
+                }
+            }
+            return dbToMidi(sendDb);
+        }
+
         function midiToDb(value) {
             var normalized = Math.max(0, Math.min(127, parseInt(value, 10))) / 127;
             return Math.round(Math.pow(normalized, 1 / 1.8) * 70 - 70);
@@ -5545,6 +5656,21 @@
                 queue.dirty = false;
                 sendParameter(parameter, queue.value);
             }, 35);
+        }
+
+        function sendEffectMasterFader(parameter, value) {
+            if (!parameter) return;
+            var safeValue = setMasterFaderValue(parameter, value);
+            localMasterFaderHold[parameter] = { value: safeValue, until: Date.now() + 500 };
+            sendParameter(parameter, safeValue);
+            return safeValue;
+        }
+
+        function updateEffectMasterFaderControl(parameter, value) {
+            var selector = "[data-effect-master-fader='" + parameter + "']";
+            Array.prototype.forEach.call(document.querySelectorAll(selector), function(fader) {
+                fader.value = midiFaderValue(value);
+            });
         }
 
         function setMode(mode) {
@@ -6639,7 +6765,7 @@
                     var index = parseInt(button.dataset.presetIndex, 10);
                     state.effectPreset[kind] = index;
                     var preset = babyfaceEffectPresetList(kind)[index];
-                    if (babyfaceEffectOn(kind)) applyBabyfaceEffectPreset(kind, preset);
+                    applyBabyfaceEffectPreset(kind, preset);
                     renderMasterStripPage();
                 };
             });
@@ -6673,17 +6799,53 @@
         }
 
         function bindEffectReturnMaster(page, master) {
-            var fader = page.querySelector("[data-effect-return-master]");
-            if (!fader) return;
-            fader.oninput = function(event) {
-                var value = setEffectReturnMasterValue(master, event.target.value);
-                event.target.value = value;
-                var parameter = effectReturnParameterForMaster(master);
-                if (parameter) sendParameter(parameter, value);
-                var cell = fader.closest(".effect-return-master-cell");
-                var valueBox = cell && cell.querySelector(".value-box");
-                if (valueBox) valueBox.textContent = midiToDb(value) + " dB";
-            };
+            Array.prototype.forEach.call(page.querySelectorAll("[data-effect-return-master]"), function(row) {
+                var targetMaster = effectReturnMasterById(row.dataset.effectReturnMaster);
+                var valueBox = row.querySelector("[data-effect-return-master-value]");
+                if (!targetMaster || !valueBox) return;
+                valueBox.dataset.dbValue = valueBox.textContent;
+                var swipe = null;
+                function stepEffectReturn(step) {
+                    var currentDb = parseFloat(valueBox.dataset.dbValue);
+                    if (isNaN(currentDb)) currentDb = midiToDb(effectReturnMasterValue(targetMaster));
+                    var nextDb = Math.max(-70, Math.min(0, currentDb + step));
+                    if (nextDb === currentDb) return;
+                    var value = setEffectReturnMasterValue(targetMaster, dbToMidi(nextDb));
+                    var parameter = effectReturnParameterForMaster(targetMaster);
+                    if (parameter) sendParameter(parameter, value);
+                    valueBox.dataset.dbValue = nextDb;
+                    valueBox.textContent = nextDb;
+                }
+                function direction(event) {
+                    var dx = event.clientX - swipe.lastX;
+                    var dy = swipe.lastY - event.clientY;
+                    var amount = Math.abs(dx) > Math.abs(dy) ? dx : dy;
+                    if (Math.abs(amount) < 26) return 0;
+                    swipe.lastX = event.clientX;
+                    swipe.lastY = event.clientY;
+                    return amount > 0 ? 1 : -1;
+                }
+                row.onpointerdown = function(event) {
+                    event.preventDefault();
+                    row.setPointerCapture(event.pointerId);
+                    swipe = {
+                        pointerId: event.pointerId,
+                        lastX: event.clientX,
+                        lastY: event.clientY
+                    };
+                };
+                row.onpointermove = function(event) {
+                    if (!swipe || event.pointerId !== swipe.pointerId) return;
+                    var dir = direction(event);
+                    if (dir) stepEffectReturn(dir * 2);
+                };
+                row.onpointerup = row.onpointercancel = function(event) {
+                    if (row.hasPointerCapture && row.hasPointerCapture(event.pointerId)) {
+                        row.releasePointerCapture(event.pointerId);
+                    }
+                    swipe = null;
+                };
+            });
         }
 
         function bindEffectMasterEq(page, master) {
@@ -7069,6 +7231,7 @@
         function renderTopBar() {
             var root = document.getElementById("topBar");
             root.innerHTML = "";
+            root.style.gridTemplateColumns = "repeat(" + modes.length + ", minmax(0, 1fr))";
             modes.forEach(function(label, index) {
                 var mode = modeIds[index];
                 var button = document.createElement("button");
@@ -7315,8 +7478,16 @@
             }).join("") + "</div></div>";
             var phaseDisabled = !phaseCapable(channel);
             var isReturnChannel = isReturnChannelId(channel.id);
+            var isBabyfaceReturnPage = isBabyfaceMode() && isReturnChannel;
             var useAssistEq = isExpertEqChannel(channel);
-            var eqBody = isReturnChannel ? [
+            var eqBody = isBabyfaceReturnPage ? [
+                "<div class='strip-section eq-section'>",
+                "<div class='control-cell empty-module-slot'></div>",
+                "<div class='control-cell empty-module-slot'></div>",
+                "<div class='control-cell empty-module-slot'></div>",
+                "<div class='control-cell empty-module-slot'></div>",
+                "</div>"
+            ].join("") : isReturnChannel ? [
                 "<div class='strip-section eq-section'>",
                 "<div class='control-cell phase-hpf'><div class='hpf-stack'><button class='btn-hw" + (controls.effectReturnHpf === "100" ? " active" : "") + "' data-effect-return-hpf='100'>100</button><button class='btn-hw" + (controls.effectReturnHpf === "175" ? " active" : "") + "' data-effect-return-hpf='175'>175</button><button class='btn-hw" + (controls.effectReturnHpf === "250" ? " active" : "") + "' data-effect-return-hpf='250'>250</button><button class='btn-hw" + (controls.effectReturnHpf === "500" ? " active" : "") + "' data-effect-return-hpf='500'>500</button></div></div>",
                 "<div class='control-cell'><div class='control-label'>LOW</div><div class='knob' data-effect-return-eq='effectReturnLow' data-min='-12' data-max='12' data-center='0' data-detent='center' data-value='" + controls.effectReturnLow + "' data-unit=' dB'>0 dB</div></div>",
@@ -7331,7 +7502,7 @@
                 "<div class='control-cell'><div class='control-label'>HIGH</div><div class='knob' data-control='highGain' data-eq='1' data-min='-18' data-max='18' data-center='0' data-detent='center' data-value='" + controls.highGain + "' data-unit=' dB'>0 dB</div></div>",
                 "</div>"
             ].join("");
-            var utilityBody = isBabyfaceMode() && !isReturnChannel ? [
+            var utilityBody = isBabyfaceReturnPage ? renderAllEffectReturnMasterRow() : isBabyfaceMode() && !isReturnChannel ? [
                 "<div class='strip-section utility-section babyface-channel-controls'>",
                 renderInputGainCell(controls, "", channel),
                 panCellHtml(channel, controls),
@@ -7372,6 +7543,7 @@
             root.appendChild(page);
             bindKnobs(page);
             bindStripButtons(page, channel);
+            if (isBabyfaceReturnPage) bindEffectReturnMaster(page, null);
             if (useAssistEq) {
                 bindRawEqPad(page, channel, false);
                 bindRawEqQRow(page, channel, false);
@@ -7384,7 +7556,7 @@
                     };
                 }
             }
-            if (isReturnChannel) bindEffectReturnEq(page, channel);
+            if (isReturnChannel && !isBabyfaceReturnPage) bindEffectReturnEq(page, channel);
             document.getElementById("stripPrev").onclick = function() { selectChannelByOffset(-1); };
             document.getElementById("stripNext").onclick = function() { selectChannelByOffset(1); };
             document.getElementById("stripNameInput").disabled = !isFreeMode();
@@ -7432,11 +7604,10 @@
             if (useAssistEq) {
                 page.innerHTML = renderAssistMasterPage(master, eq);
             } else if (isEffectMaster) {
-                var babyfaceEffectKind = state.mode === "EFF2" ? "echo" : "reverb";
-                var babyfaceEffectTitle = state.mode === "EFF2" ? "Echo" : "Reverb";
                 var effectSelectorHtml = isBabyfaceMode() ? [
                     "<div class='strip-section babyface-effect-grid'>",
-                    renderBabyfaceEffectRow(babyfaceEffectKind, babyfaceEffectTitle),
+                    renderBabyfaceEffectRow("reverb", "Reverb"),
+                    renderBabyfaceEffectRow("echo", "Echo"),
                     "</div>"
                 ].join("") : [
                     "<div class='strip-section effect-selector-grid'>",
@@ -7679,11 +7850,96 @@
             });
         }
 
+        function renderBabyfaceEffectsMaster(root, master) {
+            function appendEffectBlock(label, kind, masterId, parameter) {
+                var block = document.createElement("div");
+                block.className = "babyface-effect-master-block";
+
+                var title = document.createElement("div");
+                title.className = "babyface-effect-master-label";
+                title.textContent = label;
+
+                var faderBox = document.createElement("div");
+                faderBox.className = "fader-box";
+                var fader = document.createElement("input");
+                fader.className = "v-fader";
+                fader.type = "range";
+                fader.min = "0";
+                fader.max = "127";
+                fader.step = "1";
+                fader.value = midiFaderValue(state.master[parameter]);
+                fader.dataset.effectMasterFader = parameter;
+                fader.disabled = !canEditMixControls();
+                fader.oninput = function(event) {
+                    var value = sendEffectMasterFader(parameter, event.target.value);
+                    event.target.value = value;
+                    updateEffectMasterFaderControl(parameter, value);
+                };
+                fader.onchange = fader.oninput;
+                fader.onpointerup = function(event) {
+                    var value = sendEffectMasterFader(parameter, event.target.value);
+                    updateEffectMasterFaderControl(parameter, value);
+                };
+                faderBox.appendChild(fader);
+
+                var on = document.createElement("button");
+                on.className = "btn-hw on-btn " + (masterOnState({ id: masterId }) ? "on" : "off");
+                on.textContent = "ON";
+                on.disabled = !canEditMixControls();
+                on.onclick = function() {
+                    var next = !masterOnState({ id: masterId });
+                    if (!state.effectOn) state.effectOn = {};
+                    state.effectOn[kind] = next;
+                    state.pendingEffectState[kind] = { value: next, until: Date.now() + 1200 };
+                    if (next) applyBabyfaceEffectPreset(kind, babyfaceEffectPresetList(kind)[babyfaceEffectIndex(kind)]);
+                    setMasterOn(masterId, next);
+                    renderMaster();
+                };
+
+                block.appendChild(title);
+                block.appendChild(faderBox);
+                block.appendChild(on);
+                root.appendChild(block);
+            }
+
+            appendEffectBlock("REVERB", "reverb", "effect1", "masterFader.effect1");
+            appendEffectBlock("ECHO", "echo", "effect2", "masterFader.effect2");
+
+            var select = document.createElement("button");
+            var masterCopyClass = "";
+            if (state.copy.source && state.copy.source.type === "masterSettings" && state.copy.source.mode === state.mode) masterCopyClass = " copy-source";
+            if (copyTargetSelected("masterSettings", state.mode)) masterCopyClass = " copy-target";
+            var masterSelectClass = state.view === "masterStrip" ? " active" : "";
+            select.className = "btn-hw master-select" + masterSelectClass + masterCopyClass;
+            select.textContent = master.label;
+            select.onclick = function() {
+                if (state.copy.phase === "source" && state.mode !== "MIX") {
+                    setCopySource({ type: "masterSettings", mode: state.mode });
+                    return;
+                }
+                if (state.copy.phase === "targets" && state.copy.source && state.copy.source.type === "masterSettings" && state.mode !== "MIX") {
+                    addCopyTarget({ type: "masterSettings", mode: state.mode });
+                    return;
+                }
+                state.view = state.view === "masterStrip" ? "mixer" : "masterStrip";
+                state.selectedId = "master:" + state.mode;
+                state.selectedLabel = master.label;
+                selectMixerMasterBus(state.mode);
+                render();
+            };
+            root.appendChild(select);
+        }
+
         function renderMaster() {
             var root = document.getElementById("masterStrip");
             var master = masterByMode[state.mode];
             var key = master.parameter;
             root.innerHTML = "";
+
+            if (isBabyfaceMode() && state.mode === "EFF1") {
+                renderBabyfaceEffectsMaster(root, master);
+                return;
+            }
 
             var masterMeterActive = isMasterMeterActive(master);
             var autoMixMasterSolo = isAutoMixMasterSolo(master);
@@ -7696,6 +7952,7 @@
                 var next = !state.masterSolo[master.id];
                 if (next) prepareMasterSoloSelection(master.id);
                 state.masterSolo[master.id] = next;
+                if (isBabyfaceMode()) setMasterSolo(master.id, next);
                 updateRawEqSnapshotCache();
                 syncSoloRouting();
                 render();
