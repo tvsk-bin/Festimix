@@ -2227,7 +2227,7 @@
         }
 
         function isMixParameter(parameterId) {
-            return /^(channelFader|masterFader|pan|auxSend|fx1Send|fx2Send|effectReturnSend)\./.test(String(parameterId || ""));
+            return /^(channelFader|masterFader|pan|width|auxSend|fx1Send|fx2Send|effectReturnSend)\./.test(String(parameterId || ""));
         }
 
         function isMixAction(action) {
@@ -3111,7 +3111,8 @@
                 });
             }
             sendPanControl(channel, controls.pan);
-            sendStereoSpreadControl(channel, controls.stereoSpreadMode, controls.stereoPan);
+            if (channel.id === "player") sendPlayerWidthControl(channel, controls.stereoSpreadMode);
+            else sendStereoSpreadControl(channel, controls.stereoSpreadMode, controls.stereoPan);
             if (isPlaybackChannel(channel)) return;
             if (!isBabyfaceMode()) sendEqControl(channel, "hpf", controls.hpf);
             sendEqControl(channel, "lowGain", controls.lowGain);
@@ -3125,6 +3126,10 @@
         function sendPanControl(channel, value) {
             if (!channel) return;
             if (isStereoWidthSource(channel)) {
+                if (channel.id === "player") {
+                    sendPlayerPanControl(channel, channelControls(channel).stereoPan);
+                    return;
+                }
                 sendStereoSpreadControl(channel, channelControls(channel).stereoSpreadMode, channelControls(channel).stereoPan);
                 return;
             }
@@ -3161,10 +3166,8 @@
             var keys = stereoPanKeys(channel);
             if (!keys || !isStereoWidthSource(channel)) return;
             if (channel.id === "player") {
-                var panValue = Math.round(((parseFloat(pan) + 16) / 32) * 32);
-                var widthValue = playerWidthByMode[mode] !== undefined ? playerWidthByMode[mode] : playerWidthByMode.Stereo;
-                sendParameter("pan." + keys[0], panValue);
-                sendParameter("width." + keys[0], playerWidthToOscValue(widthValue));
+                sendPlayerPanControl(channel, pan);
+                sendPlayerWidthControl(channel, mode);
                 return;
             }
             var config = stereoSpreadConfig[mode] || stereoSpreadConfig.Stereo;
@@ -3174,6 +3177,20 @@
             sendParameter("pan." + keys[1], config.right + panValue + 16);
             if (channel.id === "13_14") sendParameter("attenuator.CH13_14.level", 0x60);
             if (channel.id === "15_16") sendParameter("attenuator.CH15_16.level", 0x60);
+        }
+
+        function sendPlayerPanControl(channel, pan) {
+            var keys = stereoPanKeys(channel);
+            if (!keys) return;
+            var panValue = Math.round(((parseFloat(pan) + 16) / 32) * 32);
+            sendParameter("pan." + keys[0], panValue);
+        }
+
+        function sendPlayerWidthControl(channel, mode) {
+            var keys = stereoPanKeys(channel);
+            if (!keys) return;
+            var widthValue = playerWidthByMode[mode] !== undefined ? playerWidthByMode[mode] : playerWidthByMode.Stereo;
+            sendParameter("width." + keys[0], playerWidthToOscValue(widthValue));
         }
 
         function channelAttenuatorParameters(channel) {
@@ -6264,7 +6281,10 @@
                     if (!silent && !isReturnChannelId(channel.id) && channelCompressorEnabled()) sendCompressorControl(channel, currentPreset, controls);
                 } else {
                     if (!silent && knob.dataset.control === "pan") sendPanControl(channel, stepped);
-                    if (!silent && knob.dataset.control === "stereoPan") sendStereoSpreadControl(channel, controls.stereoSpreadMode, stepped);
+                    if (!silent && knob.dataset.control === "stereoPan") {
+                        if (channel && channel.id === "player") sendPlayerPanControl(channel, stepped);
+                        else sendStereoSpreadControl(channel, controls.stereoSpreadMode, stepped);
+                    }
                     if (!silent && knob.dataset.control === "inputGain") {
                         scheduleInputGainSend(channel, stepped);
                     }
@@ -6369,6 +6389,7 @@
                 knob.onclick = function(event) {
                     if (knob.dataset.control !== "pan" && knob.dataset.control !== "stereoPan") return;
                     event.preventDefault();
+                    if (knob.dataset.dragMoved === "1") return;
                     setKnobValue(knob, 0);
                 };
                 knob.onpointermove = function(event) {
@@ -6605,6 +6626,12 @@
                 var next = Math.max(0, Math.min(stereoSpreadPresets.length - 1, current - step));
                 if (next === current) return;
                 controls.stereoSpreadMode = stereoSpreadPresets[next];
+                if (channel.id === "player") {
+                    sendPlayerWidthControl(channel, controls.stereoSpreadMode);
+                    if (valueBox) valueBox.textContent = controls.stereoSpreadMode;
+                    renderStripPage();
+                    return;
+                }
                 var config = stereoSpreadConfig[controls.stereoSpreadMode] || stereoSpreadConfig.Stereo;
                 controls.stereoPan = Math.max(config.panRange[0], Math.min(config.panRange[1], controls.stereoPan || 0));
                 sendStereoSpreadControl(channel, controls.stereoSpreadMode, controls.stereoPan);
@@ -7625,14 +7652,14 @@
                         if (panTap && !panTap.moved) return;
                         var next = parseFloat(event.target.value) || 0;
                         controls.stereoPan = Math.max(-16, Math.min(16, next));
-                        sendStereoSpreadControl(channel, mode, controls.stereoPan);
+                        sendPlayerPanControl(channel, controls.stereoPan);
                     };
                     pan.onpointerup = function(event) {
                         if (pan.hasPointerCapture && pan.hasPointerCapture(event.pointerId)) pan.releasePointerCapture(event.pointerId);
                         finishPanTap(function() {
                             controls.stereoPan = 0;
                             pan.value = 0;
-                            sendStereoSpreadControl(channel, mode, controls.stereoPan);
+                            sendPlayerPanControl(channel, controls.stereoPan);
                         });
                     };
                     pan.onclick = function(event) {
