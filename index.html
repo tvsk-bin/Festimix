@@ -1161,14 +1161,41 @@
         .raw-eq-side .assist-send-cell:nth-child(4) { grid-column: 4; grid-row: 1; }
         .raw-eq-side .assist-send-cell:nth-child(5) { grid-column: 1; grid-row: 2; }
 
-        .raw-eq-side .assist-gain-cell {
+        .raw-eq-side.babyface .assist-gain-cell {
             grid-column: 1 / span 3;
             grid-row: 3;
         }
 
-        .raw-eq-side .assist-phase-cell {
+        .raw-eq-side.babyface .assist-phase-cell {
             grid-column: 2 / span 2;
             grid-row: 2;
+        }
+
+        .raw-eq-side.yamaha .assist-send-cell:nth-child(6) {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .raw-eq-side.yamaha .assist-spread-cell {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        .raw-eq-side.yamaha .assist-att-cell {
+            grid-column: 1 / span 2;
+            grid-row: 3;
+        }
+
+        .raw-eq-side.yamaha .assist-phase-cell {
+            grid-column: 3;
+            grid-row: 3;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0;
+        }
+
+        .raw-eq-side.yamaha .assist-master-fader {
+            grid-column: 4;
+            grid-row: 2 / span 2;
         }
 
         .assist-send-cell .send-row {
@@ -7372,10 +7399,15 @@
             var effectCells = effectSendIds().map(function(sendId) {
                 return renderAssistSendCell(sendId, controls[sendId], isReturnChannelId(channel.id));
             }).join("");
+            var sideClass = "raw-eq-side " + (isBabyfaceMode() ? "babyface" : "yamaha");
+            var mixFaderCell = "<div class='control-cell assist-master-fader'><div class='control-label'>MIX</div><input class='v-fader' data-assist-channel-fader='1' type='range' min='0' max='127' step='1' value='" + (state.faders[channel.id] || 0) + "'></div>";
             if (isPlaybackChannel(channel)) {
-                return "<div class='assist-eq-body'><div class='assist-eq-left'><div class='empty-module-slot'></div><div class='empty-module-slot'></div></div><div class='raw-eq-side'>" + renderAssistSendCell("aux1", controls.aux1) + renderAssistSendCell("aux2", controls.aux2) + renderAssistSendCell("aux3", controls.aux3) + renderAssistSendCell("aux4", controls.aux4) + effectCells + "<div class='control-cell empty-module-slot'></div><div class='control-cell empty-module-slot'></div><div class='control-cell empty-module-slot'></div><div class='control-cell assist-master-fader'><div class='control-label'>MIX</div><input class='v-fader' data-assist-channel-fader='1' type='range' min='0' max='127' step='1' value='" + (state.faders[channel.id] || 0) + "'></div></div></div>";
+                return "<div class='assist-eq-body'><div class='assist-eq-left'><div class='empty-module-slot'></div><div class='empty-module-slot'></div></div><div class='" + sideClass + "'>" + renderAssistSendCell("aux1", controls.aux1) + renderAssistSendCell("aux2", controls.aux2) + renderAssistSendCell("aux3", controls.aux3) + renderAssistSendCell("aux4", controls.aux4) + effectCells + "<div class='control-cell empty-module-slot'></div><div class='control-cell empty-module-slot'></div><div class='control-cell empty-module-slot'></div>" + mixFaderCell + "</div></div>";
             }
-            return "<div class='assist-eq-body'><div class='assist-eq-left'>" + renderRawEqPad(channel, false) + renderRawEqQRow(channel, false) + "</div><div class='raw-eq-side'>" + renderAssistSendCell("aux1", controls.aux1) + renderAssistSendCell("aux2", controls.aux2) + renderAssistSendCell("aux3", controls.aux3) + renderAssistSendCell("aux4", controls.aux4) + effectCells + renderAssistStereoSpreadCell(channel, controls) + renderAssistPhaseCell(channel, controls) + renderInputGainCell(controls, "assist-gain-cell", channel) + "<div class='control-cell assist-master-fader'><div class='control-label'>MIX</div><input class='v-fader' data-assist-channel-fader='1' type='range' min='0' max='127' step='1' value='" + (state.faders[channel.id] || 0) + "'></div></div></div>";
+            if (isBabyfaceMode()) {
+                return "<div class='assist-eq-body'><div class='assist-eq-left'>" + renderRawEqPad(channel, false) + renderRawEqQRow(channel, false) + "</div><div class='" + sideClass + "'>" + renderAssistSendCell("aux1", controls.aux1) + renderAssistSendCell("aux2", controls.aux2) + renderAssistSendCell("aux3", controls.aux3) + renderAssistSendCell("aux4", controls.aux4) + effectCells + renderAssistStereoSpreadCell(channel, controls) + renderAssistPhaseCell(channel, controls) + renderInputGainCell(controls, "assist-gain-cell", channel) + mixFaderCell + "</div></div>";
+            }
+            return "<div class='assist-eq-body'><div class='assist-eq-left'>" + renderRawEqPad(channel, false) + renderRawEqQRow(channel, false) + "</div><div class='" + sideClass + "'>" + renderAssistSendCell("aux1", controls.aux1) + renderAssistSendCell("aux2", controls.aux2) + renderAssistSendCell("aux3", controls.aux3) + renderAssistSendCell("aux4", controls.aux4) + effectCells + renderAssistStereoSpreadCell(channel, controls) + mixFaderCell + renderAssistAttCell(channel, controls) + renderAssistPhaseCell(channel, controls) + "</div></div>";
         }
 
         function renderAssistMasterPage(master, eq) {

@@ -1,18 +1,17 @@
 {
-  "mixerProfileId": "rmeBabyfaceProFs12",
+  "mixerProfileId": "yamaha01vDefault",
   "mixerProfile": {
-    "id": "rmeBabyfaceProFs12",
-    "label": "Babyface Pro FS 12ch",
-    "integration": "osc"
+    "id": "yamaha01vDefault",
+    "label": "Yamaha 01V",
+    "integration": "midi"
   },
-  "midiInput": null,
-  "midiOutput": null,
-  "meterAudioDeviceName": "",
+  "midiInput": "Babyface Midi Port 1",
+  "midiOutput": "Babyface Midi Port 1",
+  "meterAudioDeviceName": "Analog (1+2) (RME Babyface Pro)",
   "meterAudioChannels": {
-    "left": 2,
-    "right": 3,
-    "label": "3-4",
-    "name": "Software Input 3-4"
+    "left": 0,
+    "right": 1,
+    "label": "1-2"
   },
   "optionalInputBankEnabled": false,
   "auxPrePost": {
@@ -23,16 +22,15 @@
   },
   "safeReset": false,
   "appMode": "assist",
-  "midiProfile": "rmeBabyfaceProFs12",
+  "midiProfile": "yamaha01vDefault",
   "midiChannel": 1,
   "asioMeter": {
     "asioDriverName": "ASIO Fireface USB",
-    "inputLeftChannel": 3,
-    "inputRightChannel": 4,
+    "inputLeftChannel": 1,
+    "inputRightChannel": 2,
     "sampleRate": 44100,
     "channelCount": 12,
     "projectPath": "D:\\OneDrive\\Documents\\GitHub\\Festimix\\tools\\RmeAsioMeter\\RmeAsioMeter.csproj",
     "assemblyPath": "D:\\OneDrive\\Documents\\GitHub\\Festimix\\tools\\RmeAsioMeter\\bin\\Debug\\net8.0-windows\\RmeAsioMeter.dll"
-  },
-  "workspaceFile": "D:\\OneDrive\\Documents\\GitHub\\Festimix\\data\\festimix-babyface-pro-fs-12.json"
+  }
 }
