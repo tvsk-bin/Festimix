@@ -337,12 +337,7 @@ function parseAppModeAnswer(answer, defaultValue) {
 async function askAppMode(rl, defaultValue) {
     var envMode = process.env.FESTIMIX_APP_MODE || process.env.O1V_APP_MODE || "";
     if (envMode) return parseAppModeAnswer(envMode, defaultValue || "assist");
-    if (!process.stdin.isTTY) return defaultValue || "assist";
-    console.log("\nFestimix inditasi mod:");
-    console.log("  [a] assist: a tablet es a Yamaha felulet fuggetlen, nincs Yamaha channel/display select");
-    console.log("  [m] master: channel/display select parancsokat is kuld a pultnak");
-    var answer = await question(rl, "Valassz modot [assist]: ");
-    return parseAppModeAnswer(answer, defaultValue || "assist");
+    return defaultValue || "assist";
 }
 
 async function askLoadLastRunSettings(rl) {
