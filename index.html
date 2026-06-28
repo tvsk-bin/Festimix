@@ -2174,13 +2174,17 @@
         }
 
         function effectSendIds() {
-            var controls = state.mixerCapabilities && state.mixerCapabilities.controls || {};
+            var controls = controlsCapability();
             return Array.isArray(controls.effectSends) && controls.effectSends.length ? controls.effectSends : ["eff1", "eff2"];
         }
 
         function phantomCapable() {
-            var controls = state.mixerCapabilities && state.mixerCapabilities.controls || {};
+            var controls = controlsCapability();
             return controls.phantom === true;
+        }
+
+        function controlsCapability() {
+            return state.mixerCapabilities && state.mixerCapabilities.controls || {};
         }
 
         function channelPhantomCapable(channel) {
@@ -2192,6 +2196,26 @@
 
         function isReturnChannelId(id) {
             return id === "RTN1" || id === "RTN2";
+        }
+
+        function channelStripUsesOutputControls(channel) {
+            return isBabyfaceLayout() && channel && !isReturnChannelId(channel.id);
+        }
+
+        function channelStripUsesReturnMasterControls(channel) {
+            return isBabyfaceLayout() && channel && isReturnChannelId(channel.id);
+        }
+
+        function inputGainDisabledForChannel(channel) {
+            if (!isBabyfaceLayout() || !channel) return false;
+            var channelNumber = parseInt(channel.id, 10) || 0;
+            return (channelNumber >= 5 && channelNumber <= 12) || isPlaybackChannel(channel);
+        }
+
+        function inputGainMaxForChannel(channel) {
+            if (!isBabyfaceLayout() || !channel) return 65;
+            var channelNumber = parseInt(channel.id, 10) || 0;
+            return channelNumber === 3 || channelNumber === 4 ? 9 : 65;
         }
 
         function resetMixerModel() {
@@ -6475,9 +6499,8 @@
             if (controls.inputGain === undefined) controls.inputGain = 0;
             var compact = String(extraClass || "").indexOf("assist-gain-cell") >= 0;
             var channel = channelOverride || selectedChannel();
-            var channelNumber = parseInt(channel && channel.id, 10) || 0;
-            var disabled = isBabyfaceMode() && ((channelNumber >= 5 && channelNumber <= 12) || isPlaybackChannel(channel));
-            var gainMax = isBabyfaceMode() && (channelNumber === 3 || channelNumber === 4) ? 9 : 65;
+            var disabled = inputGainDisabledForChannel(channel);
+            var gainMax = inputGainMaxForChannel(channel);
             var gainStep = 0.1;
             var gainValue = Math.max(0, Math.min(gainMax, parseFloat(controls.inputGain) || 0));
             controls.inputGain = gainValue;
@@ -7850,7 +7873,8 @@
             }).join("") + "</div></div>";
             var phaseDisabled = !phaseCapable(channel);
             var isReturnChannel = isReturnChannelId(channel.id);
-            var isBabyfaceReturnPage = isBabyfaceMode() && isReturnChannel;
+            var usesReturnMasterControls = channelStripUsesReturnMasterControls(channel);
+            var usesOutputControls = channelStripUsesOutputControls(channel);
             var isPlaybackPage = isPlaybackChannel(channel);
             var useAssistEq = isExpertEqChannel(channel);
             var eqBody = channel.id === "player" ? renderPlayerMediaPanel() : isPlaybackPage ? [
@@ -7860,7 +7884,7 @@
                 "<div class='control-cell empty-module-slot'></div>",
                 "<div class='control-cell empty-module-slot'></div>",
                 "</div>"
-            ].join("") : isBabyfaceReturnPage ? [
+            ].join("") : usesReturnMasterControls ? [
                 "<div class='strip-section eq-section'>",
                 "<div class='control-cell empty-module-slot'></div>",
                 "<div class='control-cell empty-module-slot'></div>",
@@ -7882,7 +7906,7 @@
                 "<div class='control-cell'><div class='control-label'>HIGH</div><div class='knob' data-control='highGain' data-eq='1' data-min='-18' data-max='18' data-center='0' data-detent='center' data-value='" + controls.highGain + "' data-unit=' dB'>0 dB</div></div>",
                 "</div>"
             ].join("");
-            var utilityBody = isBabyfaceReturnPage ? renderAllEffectReturnMasterRow() : isBabyfaceMode() && !isReturnChannel ? [
+            var utilityBody = usesReturnMasterControls ? renderAllEffectReturnMasterRow() : usesOutputControls ? [
                 "<div class='strip-section utility-section babyface-channel-controls'>",
                 isPlaybackPage ? "<div class='control-cell empty-module-slot'></div>" : renderInputGainCell(controls, "", channel),
                 panCellHtml(channel, controls),
@@ -7924,7 +7948,7 @@
             bindKnobs(page);
             bindStripButtons(page, channel);
             if (channel.id === "player") bindPlayerMediaControls(page);
-            if (isBabyfaceReturnPage) bindEffectReturnMaster(page, null);
+            if (usesReturnMasterControls) bindEffectReturnMaster(page, null);
             if (useAssistEq) {
                 bindRawEqPad(page, channel, false);
                 bindRawEqQRow(page, channel, false);
@@ -7937,7 +7961,7 @@
                     };
                 }
             }
-            if (isReturnChannel && !isBabyfaceReturnPage) bindEffectReturnEq(page, channel);
+            if (isReturnChannel && !usesReturnMasterControls) bindEffectReturnEq(page, channel);
             document.getElementById("stripPrev").onclick = function() { selectChannelByOffset(-1); };
             document.getElementById("stripNext").onclick = function() { selectChannelByOffset(1); };
             document.getElementById("stripNameInput").disabled = !isFreeMode();
