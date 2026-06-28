@@ -10,12 +10,56 @@ var MidiService = require("./lib/midi/service").MidiService;
 var profileRegistry = require("./lib/midi/profiles");
 var LogicalEngine = require("./lib/engine/logicalEngine").LogicalEngine;
 var formatSysExBytes = require("./lib/midi/yamaha01vSysex").formatBytes;
+var AsioMeterBridge = require("./lib/audio/asioMeterBridge").AsioMeterBridge;
+var mediaControl = require("./lib/media/mediaControl");
 
 app.get("/", (req, res) => {
     res.sendFile(__dirname + "/index.html");
 });
 var outPort;
 app.use("/assets", express.static(__dirname + '/assets'));
+
+function sendMediaResponse(res, error, payload) {
+    if (error) {
+        res.status(500).json({
+            ok: false,
+            supported: mediaControl.isSupported(),
+            error: error.message
+        });
+        return;
+    }
+    res.json(Object.assign({ ok: true }, payload || {}));
+}
+
+app.get("/api/media/status", function(req, res) {
+    mediaControl.getStatus(function(error, status) {
+        sendMediaResponse(res, error, status);
+    });
+});
+
+app.post("/api/media/playpause", function(req, res) {
+    mediaControl.playPause(function(error, status) {
+        sendMediaResponse(res, error, status);
+    });
+});
+
+app.post("/api/media/next", function(req, res) {
+    mediaControl.next(function(error, status) {
+        sendMediaResponse(res, error, status);
+    });
+});
+
+app.post("/api/media/previous", function(req, res) {
+    mediaControl.previous(function(error, status) {
+        sendMediaResponse(res, error, status);
+    });
+});
+
+app.post("/api/media/launch-spotify", function(req, res) {
+    mediaControl.launchSpotify(function(error, status) {
+        sendMediaResponse(res, error, status);
+    });
+});
 
 var sceneStorePath = path.join(__dirname, "data", "mix-setups.json");
 var latestAudioMeterFrame = null;
@@ -121,6 +165,12 @@ function channelNumberFromKey(channel) {
     var text = String(channel || "").trim().toUpperCase();
     var match = text.match(/^CH(\d+)$/) || text.match(/^(\d+)$/);
     return match ? parseInt(match[1], 10) : 0;
+}
+
+function channelPairFromKey(channel) {
+    var text = String(channel || "").trim().toUpperCase().replace(/^CH/, "");
+    var match = text.match(/^(\d+)_(\d+)$/);
+    return match ? [match[1], match[2]] : null;
 }
 
 function midiToUnit(value) {
@@ -273,7 +323,7 @@ TotalMixOscService.prototype.oscAddress = function(page, control) {
 TotalMixOscService.prototype.channelTarget = function(channel) {
     var number = channelNumberFromKey(channel);
     if (!number) return null;
-    if (number >= 13 && number <= 20) {
+    if (number >= 13 && number <= 22) {
         return {
             number: number,
             singleIndex: (number - 13) * 2,
@@ -570,14 +620,34 @@ TotalMixOscService.prototype.selectChannelTarget = function(target) {
 };
 
 TotalMixOscService.prototype.sendChannelControl = function(channel, control, value, payload) {
+    var pair = channelPairFromKey(channel);
+    if (pair) {
+        var messages = pair.map(function(pairChannel) {
+            return this.sendChannelControl(pairChannel, control, value, Object.assign({}, payload || {}, {
+                pairedChannel: channel,
+                pairMember: pairChannel
+            }));
+        }, this);
+        return {
+            sent: messages.every(function(message) { return !!(message && message.sent); }),
+            integration: "osc",
+            profile: this.profile.id,
+            action: payload && payload.action || "sendChannelControl",
+            channel: channel,
+            control: control,
+            value: value,
+            messages: messages
+        };
+    }
     var target = this.channelTarget(channel);
     if (!target) return this.pending("sendChannelControl", { channel: channel, control: control, value: value });
     if (control === "solo" && this.profile && this.profile.id === "rmeBabyfaceProFs12") {
         return this.setBabyfaceChannelPfl(channel, !!(payload && payload.enabled), payload);
     }
+    var useSelectedChannelControl = target.bus === "playback" && (control === "volume" || control === "pan");
     var page1Address = null;
-    if (control === "volume") page1Address = "/1/volume" + target.index;
-    if (control === "pan") page1Address = "/1/pan" + target.index;
+    if (!useSelectedChannelControl && control === "volume") page1Address = "/1/volume" + target.index;
+    if (!useSelectedChannelControl && control === "pan") page1Address = "/1/pan" + target.index;
     if (control === "mute") page1Address = "/1/mute/1/" + target.index;
     if (control === "solo") page1Address = "/1/solo/1/" + target.index;
     if (control === "select") page1Address = "/1/select/1/" + target.index;
@@ -680,6 +750,7 @@ TotalMixOscService.prototype.initializeBabyfaceEqState = function() {
 TotalMixOscService.prototype.parameterValue = function(parameterId, value) {
     if (/^masterFader\.|^channelFader\.|^auxSend\.|^fx[12]Send\.|^effectReturnSend\./.test(parameterId)) return midiToUnit(value);
     if (/^pan\./.test(parameterId)) return clamp(value, 0, 32) / 32;
+    if (/^width\./.test(parameterId)) return clamp(value, 0, 1);
     if (/^gain\./.test(parameterId)) {
         var gainChannel = channelNumberFromKey(String(parameterId).split(".")[1]);
         if (gainChannel === 3 || gainChannel === 4) return clamp(value, 0, 9) / 9;
@@ -798,6 +869,9 @@ TotalMixOscService.prototype.sendParameter = function(parameterId, value) {
     }
     if (parts[0] === "pan") {
         return this.sendChannelControl(parts[1], "pan", this.parameterValue(id, value), { action: "sendParameter", parameterId: id, value: value });
+    }
+    if (parts[0] === "width") {
+        return this.sendChannelControl(parts[1], "width", this.parameterValue(id, value), { action: "sendParameter", parameterId: id, value: value });
     }
     if (parts[0] === "phantom") {
         if (channelNumberFromKey(parts[1]) > 2) return this.pending("sendParameter", { parameterId: id, value: value, reason: "phantom-not-available-on-adat-channel" });
@@ -1130,7 +1204,7 @@ TotalMixOscService.prototype.writeBabyfaceEqParameter = function(channel, band, 
         }
         if (paramKey === "FREQ") {
             address = "/2/lowcutFreq";
-            oscValue = clamp(value * 1.3, 0, 120) / 120;
+            oscValue = clamp(value, 0, 120) / 120;
         }
         if (!address) return done(this.pending("writeEqParameter", { channel: channel, band: band, parameter: parameter, value: value }));
         return done(this.sendOsc(address, [oscValue], { action: "writeEqParameter", channel: channel, band: band, parameter: parameter, value: value }));
@@ -1197,7 +1271,7 @@ TotalMixOscService.prototype.sendCh1PrototypeEqBand = function(band, gainDb) {
 };
 
 TotalMixOscService.prototype.channelKeyFromPageIndex = function(index) {
-    if (this.currentBusSection === "playback") return "CH" + (12 + index);
+    if (this.currentBusSection === "playback") return "CH" + (12 + (this.currentBankStart || 0) + index);
     return "CH" + (this.currentBankStart + index);
 };
 
@@ -1345,6 +1419,7 @@ TotalMixOscService.prototype.mapIncomingToUi = function(message) {
         }
     }
     else if (address === "/2/pan") events.push({ group: "pan", target: this.selectedChannelKey(), value: unitToMidi(value), valueMax: 127 });
+    else if (address === "/2/width") events.push({ group: "width", target: this.selectedChannelKey(), value: clamp(parseFloat(value) || 0, 0, 1) });
     else if (address === "/2/mute") {
         if (this.currentBusSection === "output") {
             var muted = !!toggleToInt(value);
@@ -1381,9 +1456,9 @@ TotalMixOscService.prototype.mapIncomingToUi = function(message) {
     else if (address === "/2/lowcutGrade") events.push({ group: "rawEq", target: this.selectedChannelKey(), band: "HPF", control: "q", value: Math.round((parseFloat(value) || 0) * 3) + 1 });
     else if ((match = address.match(/^\/2\/eqGain([123])$/))) events.push({ group: "rawEq", target: this.selectedChannelKey(), band: ["LOW", "MID", "HIGH"][parseInt(match[1], 10) - 1], control: "gain", value: Math.round((parseFloat(value) || 0) * 72) });
     else if ((match = address.match(/^\/2\/eqFreq([123])$/))) events.push({ group: "rawEq", target: this.selectedChannelKey(), band: ["LOW", "MID", "HIGH"][parseInt(match[1], 10) - 1], control: "freq", value: Math.round((parseFloat(value) || 0) * 120) });
-    else if ((match = address.match(/^\/2\/eqQ([12])$/))) events.push({ group: "rawEq", target: this.selectedChannelKey(), band: ["LOW", "MID"][parseInt(match[1], 10) - 1], control: "q", value: Math.round((parseFloat(value) || 0) * 40) });
-    else if (address === "/2/eqType1") events.push({ group: "rawEq", target: this.selectedChannelKey(), band: "LOW", control: "q", value: (parseFloat(value) || 0) >= 0.5 ? 41 : 40 });
-    else if (address === "/2/eqType3") events.push({ group: "rawEq", target: this.selectedChannelKey(), band: "HIGH", control: "q", value: (parseFloat(value) || 0) >= 0.5 ? 41 : 40 });
+    else if ((match = address.match(/^\/2\/eqQ([123])$/))) events.push({ group: "rawEq", target: this.selectedChannelKey(), band: ["LOW", "MID", "HIGH"][parseInt(match[1], 10) - 1], control: "q", value: Math.round((parseFloat(value) || 0) * 40) });
+    else if (address === "/2/eqType1") events.push({ group: "rawEq", target: this.selectedChannelKey(), band: "LOW", control: "type", value: (parseFloat(value) || 0) >= 0.5 ? 42 : 0 });
+    else if (address === "/2/eqType3") events.push({ group: "rawEq", target: this.selectedChannelKey(), band: "HIGH", control: "type", value: (parseFloat(value) || 0) >= 0.5 ? 42 : 0 });
     else if (address === "/2/reverbSend") events.push({ group: "fx2Send", target: this.selectedChannelKey(), value: unitToMidi(value) });
     else if (address === "/2/reverbReturn") events.push({ group: "effectReturnSend", channelId: "RTN1", bus: this.currentSubmixMode === "mix" ? "master" : this.currentSubmixMode, value: unitToMidi(value) });
     else if (address === "/2/levelLeft") this.emitOscMeter(1, "left", value);
@@ -1447,6 +1522,7 @@ function connectOutport(input, output, port, options) {
     var engine = new LogicalEngine({ profile: useOsc ? "rmeBabyfaceProFs12" : "yamaha01v" });
     var meterAudioChannels = options.meterAudioChannels || { left: 0, right: 1, label: "1-2" };
     var meterAudioDeviceName = options.meterAudioDeviceName || "";
+    var asioMeter = null;
     var optionalInputBankEnabled = !!options.optionalInputBankEnabled;
     var appMode = options.appMode === "tablet-only" ? "tablet-only" : "assist";
 
@@ -1454,10 +1530,22 @@ function connectOutport(input, output, port, options) {
         midi.onIncoming = function(event) {
             io.emit("midi incoming", event);
         };
-        midi.onMeterFrame = function(frame) {
+        asioMeter = new AsioMeterBridge(options.asioMeter || {}, function(frame) {
             latestAudioMeterFrame = frame;
             io.emit("audio meter frame", frame);
-        };
+        });
+        asioMeter.start();
+        process.once("exit", function() {
+            if (asioMeter) asioMeter.stop();
+        });
+        process.once("SIGINT", function() {
+            if (asioMeter) asioMeter.stop();
+            process.exit(0);
+        });
+        process.once("SIGTERM", function() {
+            if (asioMeter) asioMeter.stop();
+            process.exit(0);
+        });
     }
 
     function midiStatus() {
@@ -1490,6 +1578,15 @@ function connectOutport(input, output, port, options) {
     console.log(useOsc ? "OSC channel:" : "MIDI channel:", midi.channel);
     if (useOsc) console.log("OSC target:", midi.oscHost + ":" + midi.oscPort);
     if (useOsc) console.log("OSC local receive port:", midi.oscLocalPort);
+    if (useOsc && asioMeter) {
+        console.log(
+            "ASIO meter:",
+            asioMeter.config.asioDriverName,
+            "CH" + String(asioMeter.config.inputLeftChannel).padStart(2, "0") + "/CH" + String(asioMeter.config.inputRightChannel).padStart(2, "0"),
+            asioMeter.config.sampleRate + "Hz",
+            "channels=" + asioMeter.config.channelCount
+        );
+    }
     var auxPrePost = options.auxPrePost || {};
     var auxPreStartupNeeded = Object.keys(auxPrePost).some(function(auxId) {
         return String(auxPrePost[auxId] || "").toLowerCase() === "pre";
@@ -1570,7 +1667,7 @@ function connectOutport(input, output, port, options) {
         socket.emit("scene store", readSceneStore());
         socket.emit("engine modules", engine.describeModules());
         socket.emit("app mode", { mode: appMode });
-        socket.emit("meter config", { audioChannels: meterAudioChannels, audioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled });
+        socket.emit("meter config", { audioChannels: meterAudioChannels, audioDeviceName: meterAudioDeviceName, optionalInputBankEnabled: optionalInputBankEnabled, asioMeter: options.asioMeter || null });
         if (latestAudioMeterFrame) socket.emit("audio meter frame", latestAudioMeterFrame);
         socket.on("scene store save", (store) => {
             try {
@@ -1602,6 +1699,7 @@ function connectOutport(input, output, port, options) {
             socket.broadcast.emit("audio meter frame", latestAudioMeterFrame);
         });
         socket.on("audio meter request", (payload) => {
+            if (asioMeter && (!payload || payload.active !== false)) asioMeter.start();
             socket.broadcast.emit("audio meter request", payload || { active: true });
         });
         socket.on("midi command", (command) => {

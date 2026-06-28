@@ -25,5 +25,14 @@
   "appMode": "assist",
   "midiProfile": "rmeBabyfaceProFs12",
   "midiChannel": 1,
+  "asioMeter": {
+    "asioDriverName": "ASIO Fireface USB",
+    "inputLeftChannel": 3,
+    "inputRightChannel": 4,
+    "sampleRate": 44100,
+    "channelCount": 12,
+    "projectPath": "D:\\OneDrive\\Documents\\GitHub\\Festimix\\tools\\RmeAsioMeter\\RmeAsioMeter.csproj",
+    "assemblyPath": "D:\\OneDrive\\Documents\\GitHub\\Festimix\\tools\\RmeAsioMeter\\bin\\Debug\\net8.0-windows\\RmeAsioMeter.dll"
+  },
   "workspaceFile": "D:\\OneDrive\\Documents\\GitHub\\Festimix\\data\\festimix-babyface-pro-fs-12.json"
 }

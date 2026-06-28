@@ -967,6 +967,56 @@
             align-items: stretch;
         }
 
+        .player-media-cell {
+            grid-column: 1 / -1;
+            min-height: 0;
+            align-items: stretch;
+        }
+
+        .player-media-panel {
+            width: 100%;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: minmax(132px, 1.2fr) repeat(3, minmax(72px, 0.7fr));
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        .player-media-panel .btn-hw {
+            min-height: clamp(38px, 5.5vh, 52px);
+            height: 100%;
+            font-size: clamp(10px, 1.15vw, 13px);
+        }
+
+        .player-media-launch.running {
+            background: #18472d;
+            border-color: rgba(128, 240, 181, 0.7);
+            color: #d8ffe7;
+        }
+
+        .player-media-transport {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(19px, 2.5vw, 30px) !important;
+            line-height: 1;
+            background: linear-gradient(180deg, #303842 0%, #1d2329 100%);
+            border-color: #596674;
+            text-shadow: 0 1px 0 rgba(0,0,0,0.5);
+        }
+
+        .player-media-transport:active {
+            background: #1f7acb;
+            border-color: #8fc2ff;
+        }
+
+        .player-media-transport.playing {
+            background: #1f7acb;
+            border-color: #8fc2ff;
+            color: #f4fbff;
+            box-shadow: 0 0 14px rgba(31, 122, 203, 0.45), inset 0 1px 0 rgba(255,255,255,0.16);
+        }
+
         .assist-eq-body {
             flex: 1 1 auto;
             min-height: 0;
@@ -1078,6 +1128,10 @@
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 10px;
+        }
+
+        .raw-eq-q-row.babyface {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
         }
 
         .raw-eq-q-cell .swipe-value {
@@ -1890,6 +1944,7 @@
                 channelRightIndex: 1,
                 channelLabel: "1-2",
                 deviceName: "",
+                hostMeterEnabled: false,
                 optionalInputBankEnabled: false,
                 spectrumSmoothed: [],
                 lastGoodSpectrum: [],
@@ -1945,6 +2000,20 @@
             Narrow: { left: -6, right: 6, panRange: [-10, 10], panDisabled: false },
             Mono: { left: 0, right: 0, panRange: [-16, 16], panDisabled: false }
         };
+        var playerWidthByMode = {
+            Mono: 0,
+            Narrow: 0.33,
+            Wide: 0.66,
+            Stereo: 1
+        };
+
+        function playerWidthToOscValue(width) {
+            return (Math.max(0, Math.min(1, parseFloat(width) || 0)) + 1) / 2;
+        }
+
+        function playerWidthFromOscValue(value) {
+            return Math.max(0, Math.min(1, (parseFloat(value) || 0) * 2 - 1));
+        }
         var sceneIds = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15"];
         var ratioPresets = ["1:1", "1.1:1", "1.3:1", "1.5:1", "1.7:1", "2:1", "2.5:1", "3:1", "3.5:1", "4:1", "5:1", "6:1", "8:1", "10:1", "20:1", "INF"];
         var masterCompressorPresetSets = {
@@ -2097,6 +2166,7 @@
                     bank.channels = bank.channels.filter(function(channel) {
                         return ["9", "10", "11", "12", "RTN1"].indexOf(channel.id) !== -1;
                     });
+                    bank.channels.push({ id: "player", midiKey: "21_22", label: "Player", selectKey: "21_22", soloKey: "21_22", alignRight: true, playbackOnly: true, stereoPair: ["21", "22"] });
                     var returnChannel = bank.channels.find(function(channel) { return channel.id === "RTN1"; });
                     if (returnChannel) returnChannel.label = "RETURN";
                 }
@@ -2734,6 +2804,7 @@
             var params = new URLSearchParams(window.location.search || "");
             if (params.get("meterSource") === "1") return true;
             if (params.get("meterSource") === "0") return false;
+            if (state.audioMeter && state.audioMeter.hostMeterEnabled) return false;
             var host = window.location.hostname;
             return host === "localhost" || host === "127.0.0.1" || host === "::1";
         }
@@ -2743,7 +2814,14 @@
         }
 
         function isExpertEqChannel(channel) {
-            return !!(state.expertEqMode && channel && eqSupportedChannel(channel) && channel.id !== "RTN1" && channel.id !== "RTN2");
+            return !!(state.expertEqMode && channel && eqSupportedChannel(channel) && !isPlaybackChannel(channel) && channel.id !== "RTN1" && channel.id !== "RTN2");
+        }
+
+        function isPlaybackChannel(channel) {
+            if (!isBabyfaceMode() || !channel) return false;
+            if (channel.playbackOnly || channel.id === "player") return true;
+            var number = parseInt(channel.id || channel.midiKey, 10) || 0;
+            return number >= 13 && number <= 20;
         }
 
         function shouldSendHardwareChannelSelect() {
@@ -3034,6 +3112,7 @@
             }
             sendPanControl(channel, controls.pan);
             sendStereoSpreadControl(channel, controls.stereoSpreadMode, controls.stereoPan);
+            if (isPlaybackChannel(channel)) return;
             if (!isBabyfaceMode()) sendEqControl(channel, "hpf", controls.hpf);
             sendEqControl(channel, "lowGain", controls.lowGain);
             sendEqControl(channel, "midFrequency", midFreqPresets[controls.midFreqIndex]);
@@ -3064,6 +3143,7 @@
             if (!channel) return null;
             if (channel.id === "13_14") return ["CH13_L", "CH13_R"];
             if (channel.id === "15_16") return ["CH15_L", "CH15_R"];
+            if (channel.id === "player") return ["21", "22"];
             if (channel.id === "RTN1") return ["RTN1_L", "RTN1_R"];
             if (channel.id === "RTN2") return ["RTN2_L", "RTN2_R"];
             return null;
@@ -3074,12 +3154,19 @@
         }
 
         function isStereoWidthSource(channel) {
-            return !!channel && (channel.id === "13_14" || channel.id === "15_16" || channel.id === "RTN1" || channel.id === "RTN2");
+            return !!channel && (channel.id === "13_14" || channel.id === "15_16" || channel.id === "RTN1" || channel.id === "RTN2" || channel.id === "player");
         }
 
         function sendStereoSpreadControl(channel, mode, pan) {
             var keys = stereoPanKeys(channel);
             if (!keys || !isStereoWidthSource(channel)) return;
+            if (channel.id === "player") {
+                var panValue = Math.round(((parseFloat(pan) + 16) / 32) * 32);
+                var widthValue = playerWidthByMode[mode] !== undefined ? playerWidthByMode[mode] : playerWidthByMode.Stereo;
+                sendParameter("pan." + keys[0], panValue);
+                sendParameter("width." + keys[0], playerWidthToOscValue(widthValue));
+                return;
+            }
             var config = stereoSpreadConfig[mode] || stereoSpreadConfig.Stereo;
             var panRange = config.panRange || [0, 0];
             var panValue = config.panDisabled ? 0 : Math.max(panRange[0], Math.min(panRange[1], parseInt(pan, 10) || 0));
@@ -3443,6 +3530,7 @@
             state.audioMeter.channelRightIndex = Math.max(0, parseInt(audioChannels.right, 10) || state.audioMeter.channelLeftIndex);
             state.audioMeter.channelLabel = audioChannels.label || ((state.audioMeter.channelLeftIndex + 1) + "-" + (state.audioMeter.channelRightIndex + 1));
             state.audioMeter.deviceName = config.audioDeviceName || "";
+            state.audioMeter.hostMeterEnabled = !!config.asioMeter;
             state.audioMeter.optionalInputBankEnabled = !!config.optionalInputBankEnabled;
             banks.forEach(function(bank) {
                 if (!bank.optionalInput) return;
@@ -4007,7 +4095,7 @@
                     phantom: false,
                     midFreqIndex: 0,
                     pan: 0,
-                    stereoWidth: channel && (channel.id === "13_14" || channel.id === "15_16" || channel.id === "RTN1" || channel.id === "RTN2") ? 16 : 0,
+                    stereoWidth: channel && (channel.id === "13_14" || channel.id === "15_16" || channel.id === "RTN1" || channel.id === "RTN2" || channel.id === "player") ? 16 : 0,
                     stereoSpreadMode: "Stereo",
                     stereoPan: 0,
                     eqAtt: 0,
@@ -4855,6 +4943,7 @@
             var text = String(target || "").toUpperCase();
             if (text === "CH13_L" || text === "CH13_R") return channelById("13_14") || null;
             if (text === "CH15_L" || text === "CH15_R") return channelById("15_16") || null;
+            if (text === "CH21" || text === "CH22") return channelById("player") || null;
             if (text.indexOf("CH") === 0) text = text.slice(2);
             text = text.replace(/_(L|R)$/, "");
             return channelById(text) || null;
@@ -5054,11 +5143,26 @@
             var controls = channelControls(channel);
             var panValue = panFromIncoming(event.value, event.valueMax);
             if (isStereoWidthSource(channel)) {
-                controls.stereoSpreadMode = "Wide";
+                if (channel.id !== "player") controls.stereoSpreadMode = "Wide";
                 controls.stereoPan = Math.max(-16, Math.min(16, panValue));
             } else {
                 controls.pan = panValue;
             }
+            return true;
+        }
+
+        function playerModeFromWidth(value) {
+            var width = playerWidthFromOscValue(value);
+            if (width < 0.165) return "Mono";
+            if (width < 0.495) return "Narrow";
+            if (width < 0.83) return "Wide";
+            return "Stereo";
+        }
+
+        function applyIncomingWidth(event) {
+            var channel = channelByMidiTarget(event.target || event.channelId);
+            if (!channel || channel.id !== "player") return false;
+            channelControls(channel).stereoSpreadMode = playerModeFromWidth(event.value);
             return true;
         }
 
@@ -5136,6 +5240,7 @@
             if (event.control === "freq") raw[bandKey].freq = Math.max(0, Math.min(120, value));
             else if (event.control === "gain") raw[bandKey].gain = Math.max(0, Math.min(72, value));
             else if (event.control === "q") raw[bandKey].q = rawEqClampQValue(bandKey, value);
+            else if (event.control === "type") raw[bandKey].type = parseInt(event.value, 10) >= 41 ? 42 : 0;
             else return false;
             return true;
         }
@@ -5158,6 +5263,7 @@
             else if (event.group === "hpf") changed = applyIncomingHpf(event);
             else if (event.group === "effectState") changed = applyIncomingEffectState(event);
             else if (event.group === "pan") changed = applyIncomingPan(event);
+            else if (event.group === "width") changed = applyIncomingWidth(event);
             else if (event.group === "rawEq") changed = applyIncomingRawEq(event);
             else if (event.group === "auxSend") changed = applyIncomingAuxSend(event);
             else if (event.group === "fx1Send" || event.group === "fx2Send") changed = applyIncomingFxSend(event);
@@ -5382,10 +5488,10 @@
         ];
         var defaultRawEqBands = JSON.parse(JSON.stringify(rawEqBands));
         var babyfaceRawEqBands = [
-            { key: "hpf", band: "HPF", label: "HPF", qParam: "Q_OR_TYPE", defaultFreq: 50, defaultQ: 0, fixedQ: true },
-            { key: "low", band: "LOW", label: "LOW", qParam: "Q", defaultFreq: 125, defaultQ: 0x14 },
+            { key: "hpf", band: "HPF", label: "LC", qParam: "Q_OR_TYPE", defaultFreq: 50, defaultQ: 0, fixedQ: true },
+            { key: "low", band: "LOW", label: "LOW", qParam: "Q", typeParam: "Q_OR_TYPE", defaultFreq: 125, defaultQ: 0x14, defaultType: 0x2a },
             { key: "mid", band: "MID", label: "MID", qParam: "Q", defaultFreq: 1000, defaultQ: 0x14 },
-            { key: "high", band: "HIGH", label: "HIGH", qParam: "Q_OR_TYPE", defaultFreq: 8000, defaultQ: 0x2a, fixedQ: true }
+            { key: "high", band: "HIGH", label: "HIGH", qParam: "Q", typeParam: "Q_OR_TYPE", defaultFreq: 8000, defaultQ: 0x14, defaultType: 0x2a }
         ];
         var rawEqTypeModes = {
             hpf: { normalMax: 0x28, shelf: 0x29, pass: 0x2c, passLabel: "HPF", fixedPass: true, slopeValues: [0, 6, 12, 18, 24] },
@@ -5400,17 +5506,24 @@
             "0.10"
         ];
 
-        function hzToRawEqFreq(hz) {
-            var minHz = 20;
-            var maxHz = 20000;
+        function rawEqFreqBounds(bandKey) {
+            if (isBabyfaceMode() && bandKey === "hpf") return { min: 20, max: 500 };
+            return { min: 20, max: 20000 };
+        }
+
+        function hzToRawEqFreq(hz, bandKey) {
+            var bounds = rawEqFreqBounds(bandKey);
+            var minHz = bounds.min;
+            var maxHz = bounds.max;
             var safe = Math.max(minHz, Math.min(maxHz, parseFloat(hz) || minHz));
             var ratio = (Math.log(safe) - Math.log(minHz)) / (Math.log(maxHz) - Math.log(minHz));
             return Math.round(ratio * 120);
         }
 
-        function rawEqFreqToHz(raw) {
-            var minHz = 20;
-            var maxHz = 20000;
+        function rawEqFreqToHz(raw, bandKey) {
+            var bounds = rawEqFreqBounds(bandKey);
+            var minHz = bounds.min;
+            var maxHz = bounds.max;
             var value = Math.max(0, Math.min(120, parseInt(raw, 10) || 0));
             return Math.round(minHz * Math.pow(maxHz / minHz, value / 120));
         }
@@ -5484,11 +5597,7 @@
         }
 
         function babyfaceQIndexMax(bandKey) {
-            return bandKey === "low" || bandKey === "high" ? 41 : 40;
-        }
-
-        function isBabyfaceShelfQ(bandKey, value) {
-            return isBabyfaceMode() && (bandKey === "low" || bandKey === "high") && parseInt(value, 10) >= 41;
+            return 40;
         }
 
         function babyfaceQLabel(value) {
@@ -5522,7 +5631,6 @@
             }
             if (isBabyfaceMode() && (bandKey === "low" || bandKey === "mid" || bandKey === "high")) {
                 value = rawEqClampQValue(bandKey, value);
-                if (isBabyfaceShelfQ(bandKey, value)) return "SHELF";
                 return babyfaceQLabel(value);
             }
             if (mode) {
@@ -5567,8 +5675,20 @@
             return true;
         }
 
+        function rawEqFilterDisplay(type) {
+            return parseInt(type, 10) >= 41 ? "SHELF" : "BELL";
+        }
+
+        function rawEqNextFilterType(current) {
+            return parseInt(current, 10) >= 41 ? 0 : 42;
+        }
+
         function normalizeRawEqBandState(band, item) {
             if (!band || !item) return;
+            if (isBabyfaceMode() && band.typeParam) {
+                if (item.type === undefined) item.type = parseInt(item.q, 10) >= 41 ? item.q : band.defaultType;
+                item.type = parseInt(item.type, 10) >= 41 ? 42 : 0;
+            }
             item.q = rawEqClampQValue(band.key, item.q);
             if (band.key === "hpf") item.gain = rawEqHpfGainForSlope(item);
         }
@@ -5579,9 +5699,10 @@
             rawEqBands.forEach(function(band) {
                 if (!eq.rawEq[band.key]) {
                     eq.rawEq[band.key] = {
-                        freq: hzToRawEqFreq(band.defaultFreq),
+                        freq: hzToRawEqFreq(band.defaultFreq, band.key),
                         gain: rawEqDbToGain(0),
-                        q: band.defaultQ
+                        q: band.defaultQ,
+                        type: band.defaultType
                     };
                 }
                 normalizeRawEqBandState(band, eq.rawEq[band.key]);
@@ -5611,6 +5732,7 @@
                     gain: raw[band.key].gain,
                     q: raw[band.key].q
                 };
+                if (raw[band.key].type !== undefined) bands[band.band].type = raw[band.key].type;
             });
             sendAction({
                 type: "engineRawYamahaEqIntent",
@@ -6278,7 +6400,7 @@
             var compact = String(extraClass || "").indexOf("assist-gain-cell") >= 0;
             var channel = channelOverride || selectedChannel();
             var channelNumber = parseInt(channel && channel.id, 10) || 0;
-            var disabled = isBabyfaceMode() && channelNumber >= 5 && channelNumber <= 12;
+            var disabled = isBabyfaceMode() && ((channelNumber >= 5 && channelNumber <= 12) || isPlaybackChannel(channel));
             var gainMax = isBabyfaceMode() && (channelNumber === 3 || channelNumber === 4) ? 9 : 65;
             var gainStep = 0.1;
             var gainValue = Math.max(0, Math.min(gainMax, parseFloat(controls.inputGain) || 0));
@@ -6293,6 +6415,97 @@
         function renderNormalSendFaderCell(id, value, disabled) {
             var safeValue = Math.max(-70, Math.min(0, parseFloat(value) || 0));
             return "<div class='control-cell normal-send-cell'><div class='control-label'>" + id.toUpperCase() + "</div><div class='send-row" + (disabled ? " disabled" : "") + "' data-send='" + id + "' data-disabled='" + (disabled ? "1" : "0") + "'><div class='value-box swipe-value' data-swipe-send='" + id + "'>" + safeValue + "</div></div></div>";
+        }
+
+        function mediaStatusText(status) {
+            if (!status || status.loading) return "Checking...";
+            if (!status.supported) return "Media disabled";
+            return status.spotifyRunning ? "Spotify running" : "Launch Spotify";
+        }
+
+        function renderPlayerMediaPanel() {
+            var status = state.mediaStatus || { loading: true };
+            var runningClass = status.spotifyRunning ? " running" : "";
+            var playingClass = status.isPlaying ? " playing" : "";
+            return [
+                "<div class='strip-section eq-section player-media-section'>",
+                "<div class='control-cell player-media-cell'>",
+                "<div class='control-label'>SPOTIFY</div>",
+                "<div class='player-media-panel'>",
+                "<button class='btn-hw player-media-launch" + runningClass + "' data-media-action='launch-spotify' data-media-status='1'>" + mediaStatusText(status) + "</button>",
+                "<button class='btn-hw player-media-transport' data-media-action='previous' aria-label='Previous track'>&#x23EE;</button>",
+                "<button class='btn-hw player-media-transport" + playingClass + "' data-media-action='playpause' data-media-playpause='1' aria-label='Play pause'>&#x23EF;</button>",
+                "<button class='btn-hw player-media-transport' data-media-action='next' aria-label='Next track'>&#x23ED;</button>",
+                "</div></div></div>"
+            ].join("");
+        }
+
+        function updateMediaStatusDom(root, status) {
+            state.mediaStatus = status || state.mediaStatus || {};
+            var scope = root || document;
+            Array.prototype.forEach.call(scope.querySelectorAll("[data-media-status]"), function(node) {
+                node.textContent = mediaStatusText(state.mediaStatus);
+                node.classList.toggle("running", !!state.mediaStatus.spotifyRunning);
+            });
+            Array.prototype.forEach.call(scope.querySelectorAll("[data-media-playpause]"), function(node) {
+                node.classList.toggle("playing", !!state.mediaStatus.isPlaying);
+            });
+            Array.prototype.forEach.call(scope.querySelectorAll("[data-media-action]"), function(node) {
+                node.disabled = state.mediaStatus.supported === false;
+            });
+        }
+
+        function postMediaAction(root, action, button) {
+            if (!window.fetch) return Promise.resolve();
+            if (button) button.disabled = true;
+            return fetch("/api/media/" + action, { method: "POST" })
+                .then(function(response) { return response.json(); })
+                .then(function(status) { updateMediaStatusDom(root, status); })
+                .catch(function(error) {
+                    updateMediaStatusDom(root, { supported: false, spotifyRunning: false, error: error.message });
+                })
+                .then(function() {
+                    if (button) button.disabled = state.mediaStatus && state.mediaStatus.supported === false;
+                    if (action === "playpause" || action === "launch-spotify") {
+                        setTimeout(function() { requestMediaStatus(root); }, action === "playpause" ? 450 : 900);
+                    }
+                });
+        }
+
+        function requestMediaStatus(root) {
+            if (!window.fetch) return;
+            fetch("/api/media/status")
+                .then(function(response) { return response.json(); })
+                .then(function(status) { updateMediaStatusDom(root, status); })
+                .catch(function() { updateMediaStatusDom(root, { supported: false, spotifyRunning: false }); });
+        }
+
+        function bindPlayerMediaControls(root) {
+            requestMediaStatus(root);
+            var previousClickTimer = null;
+            Array.prototype.forEach.call(root.querySelectorAll("[data-media-action]"), function(button) {
+                button.onclick = function() {
+                    var action = button.dataset.mediaAction;
+                    if (action === "previous") {
+                        if (previousClickTimer) {
+                            clearTimeout(previousClickTimer);
+                            previousClickTimer = null;
+                            postMediaAction(root, "previous", button).then(function() {
+                                return new Promise(function(resolve) { setTimeout(resolve, 80); });
+                            }).then(function() {
+                                return postMediaAction(root, "previous", button);
+                            });
+                            return;
+                        }
+                        previousClickTimer = setTimeout(function() {
+                            previousClickTimer = null;
+                            postMediaAction(root, "previous", button);
+                        }, 230);
+                        return;
+                    }
+                    postMediaAction(root, action, button);
+                };
+            });
         }
 
         function sendParameterForSend(channel, id, value) {
@@ -6349,6 +6562,15 @@
             var className = "control-cell" + (extraClass ? " " + extraClass : "");
             if (isStereoWidthSource(channel)) {
                 var mode = controls.stereoSpreadMode || "Stereo";
+                if (channel.id === "player") {
+                    controls.stereoPan = Math.max(-16, Math.min(16, controls.stereoPan || 0));
+                    return [
+                        "<div class='" + className + "'><div class='control-label'>PAN</div><div class='pan-stereo-stack'>",
+                        "<div class='mini-row'><div class='value-box swipe-value' data-stereo-spread='1'>" + mode + "</div></div>",
+                        "<div class='knob' data-control='stereoPan' data-channel-midi='CH21' data-min='-16' data-max='16' data-step='0.25' data-center='0' data-detent='center' data-detent-range='0.25' data-value='" + controls.stereoPan + "' data-unit=''>0</div>",
+                        "</div></div>"
+                    ].join("");
+                }
                 var config = stereoSpreadConfig[mode] || stereoSpreadConfig.Stereo;
                 var min = config.panRange[0];
                 var max = config.panRange[1];
@@ -6892,6 +7114,17 @@
             return Math.max(6, Math.min(94, (Math.max(0, Math.min(120, raw)) / 120) * 100));
         }
 
+        function rawEqDisplayRawFromBandFreq(bandKey, raw) {
+            if (isBabyfaceMode() && bandKey === "hpf") {
+                return hzToRawEqFreq(rawEqFreqToHz(raw, bandKey));
+            }
+            return raw;
+        }
+
+        function rawEqBandPercentFromFreq(bandKey, raw) {
+            return rawEqPercentFromFreq(rawEqDisplayRawFromBandFreq(bandKey, raw));
+        }
+
         function rawEqPercentFromGain(raw) {
             var range = rawEqGainRange();
             var db = rawEqGainToDb(raw);
@@ -6909,9 +7142,9 @@
             var snapshotImage = snapshotActive ? "<img class='raw-eq-snapshot-image' alt='' draggable='false' src='" + escapeHtml(state.rawEqSnapshotCache.dataUrl) + "'>" : "";
             return "<div class='raw-eq-pad" + (snapshotActive ? " snapshot-active" : "") + "' data-raw-eq-pad='" + (isMaster ? "master" : "channel") + "'>" + snapshotImage + rawEqBands.map(function(band) {
                 var item = raw[band.key];
-                var left = rawEqPercentFromFreq(item.freq);
+                var left = rawEqBandPercentFromFreq(band.key, item.freq);
                 var top = rawEqNodeTop(band.key, item);
-                var hz = rawEqFreqToHz(item.freq);
+                var hz = rawEqFreqToHz(item.freq, band.key);
                 var hzLabel = hz >= 1000 ? Math.round(hz / 100) / 10 + "k" : hz;
                 return "<div class='raw-eq-gridline' data-raw-eq-line='" + band.key + "' style='left:" + left + "%'></div><div class='raw-eq-node' data-raw-eq-node='" + band.key + "' style='left:" + left + "%;top:" + top + "%'>" + rawEqNodeLabel(band.key, item) + "</div><div class='raw-eq-band-label' data-raw-eq-band-label='" + band.key + "' style='left:" + left + "%'>" + band.label + "</div><div class='raw-eq-freq-label' data-raw-eq-freq-label='" + band.key + "' style='left:" + left + "%'>" + hzLabel + "Hz</div>";
             }).join("") + "</div>";
@@ -6919,6 +7152,15 @@
 
         function renderRawEqQRow(owner, isMaster) {
             var raw = rawEqState(owner, isMaster);
+            if (isBabyfaceMode()) {
+                return "<div class='raw-eq-q-row babyface'>" +
+                    "<div class='control-cell raw-eq-q-cell'><div class='control-label'>Low Filter</div><div class='value-box swipe-value' data-raw-eq-filter='low'>" + rawEqFilterDisplay(raw.low.type) + "</div></div>" +
+                    "<div class='control-cell raw-eq-q-cell'><div class='control-label'>LOW Q</div><div class='value-box swipe-value' data-raw-eq-owner='" + (isMaster ? "master" : "channel") + "' data-raw-eq-q='low'>" + rawEqQDisplay("low", raw.low.q) + "</div></div>" +
+                    "<div class='control-cell raw-eq-q-cell'><div class='control-label'>MID Q</div><div class='value-box swipe-value' data-raw-eq-owner='" + (isMaster ? "master" : "channel") + "' data-raw-eq-q='mid'>" + rawEqQDisplay("mid", raw.mid.q) + "</div></div>" +
+                    "<div class='control-cell raw-eq-q-cell'><div class='control-label'>High Q</div><div class='value-box swipe-value' data-raw-eq-owner='" + (isMaster ? "master" : "channel") + "' data-raw-eq-q='high'>" + rawEqQDisplay("high", raw.high.q) + "</div></div>" +
+                    "<div class='control-cell raw-eq-q-cell'><div class='control-label'>High Filter</div><div class='value-box swipe-value' data-raw-eq-filter='high'>" + rawEqFilterDisplay(raw.high.type) + "</div></div>" +
+                    "</div>";
+            }
             return "<div class='raw-eq-q-row'>" + rawEqBands.map(function(band) {
                 if (band.key === "hpf") {
                     return "<div class='control-cell raw-eq-q-cell'><div class='control-label'>HPF</div><div class='value-box swipe-value' data-raw-hpf-toggle='1'>" + (raw.hpf && raw.hpf.q ? "ON" : "OFF") + "</div></div>";
@@ -6935,7 +7177,7 @@
             function refreshPad() {
                 rawEqBands.forEach(function(band) {
                     var item = raw[band.key];
-                    var left = rawEqPercentFromFreq(item.freq);
+                    var left = rawEqBandPercentFromFreq(band.key, item.freq);
                     var top = rawEqNodeTop(band.key, item);
                     var line = pad.querySelector("[data-raw-eq-line='" + band.key + "']");
                     var node = pad.querySelector("[data-raw-eq-node='" + band.key + "']");
@@ -6949,7 +7191,7 @@
                     }
                     if (bandLabel) bandLabel.style.left = left + "%";
                     if (freqLabel) {
-                        var hz = rawEqFreqToHz(item.freq);
+                        var hz = rawEqFreqToHz(item.freq, band.key);
                         freqLabel.textContent = (hz >= 1000 ? Math.round(hz / 100) / 10 + "k" : hz) + "Hz";
                         freqLabel.style.left = left + "%";
                     }
@@ -6961,7 +7203,7 @@
                 var winner = rawEqBands[0];
                 var best = Infinity;
                 rawEqBands.forEach(function(band) {
-                    var distance = Math.abs(rawEqPercentFromFreq(raw[band.key].freq) - xPercent);
+                    var distance = Math.abs(rawEqBandPercentFromFreq(band.key, raw[band.key].freq) - xPercent);
                     if (distance < best) {
                         best = distance;
                         winner = band;
@@ -6975,7 +7217,11 @@
                 var x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
                 var y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
                 var gainRange = rawEqGainRange();
-                raw[band.key].freq = Math.round(x * 120);
+                if (band.key === "hpf" && isBabyfaceMode()) {
+                    raw[band.key].freq = hzToRawEqFreq(rawEqFreqToHz(Math.round(x * 120)), band.key);
+                } else {
+                    raw[band.key].freq = Math.round(x * 120);
+                }
                 if (band.key === "hpf") {
                     var mode = rawEqTypeMode("hpf");
                     raw[band.key].q = Math.max(0, Math.min(mode.slopeValues.length - 1, Math.round(y * (mode.slopeValues.length - 1))));
@@ -7019,6 +7265,15 @@
                         node.style.top = rawEqNodeTop("hpf", raw.hpf) + "%";
                         node.textContent = rawEqNodeLabel("hpf", raw.hpf);
                     }
+                    sendRawEq(owner, isMaster);
+                };
+            });
+            Array.prototype.forEach.call(page.querySelectorAll("[data-raw-eq-filter]"), function(valueBox) {
+                valueBox.onclick = function() {
+                    var bandKey = valueBox.dataset.rawEqFilter;
+                    if (!raw[bandKey]) return;
+                    raw[bandKey].type = rawEqNextFilterType(raw[bandKey].type);
+                    valueBox.textContent = rawEqFilterDisplay(raw[bandKey].type);
                     sendRawEq(owner, isMaster);
                 };
             });
@@ -7090,6 +7345,9 @@
             var effectCells = effectSendIds().map(function(sendId) {
                 return renderAssistSendCell(sendId, controls[sendId], isReturnChannelId(channel.id));
             }).join("");
+            if (isPlaybackChannel(channel)) {
+                return "<div class='assist-eq-body'><div class='assist-eq-left'><div class='empty-module-slot'></div><div class='empty-module-slot'></div></div><div class='raw-eq-side'>" + renderAssistSendCell("aux1", controls.aux1) + renderAssistSendCell("aux2", controls.aux2) + renderAssistSendCell("aux3", controls.aux3) + renderAssistSendCell("aux4", controls.aux4) + effectCells + "<div class='control-cell empty-module-slot'></div><div class='control-cell empty-module-slot'></div><div class='control-cell empty-module-slot'></div><div class='control-cell assist-master-fader'><div class='control-label'>MIX</div><input class='v-fader' data-assist-channel-fader='1' type='range' min='0' max='127' step='1' value='" + (state.faders[channel.id] || 0) + "'></div></div></div>";
+            }
             return "<div class='assist-eq-body'><div class='assist-eq-left'>" + renderRawEqPad(channel, false) + renderRawEqQRow(channel, false) + "</div><div class='raw-eq-side'>" + renderAssistSendCell("aux1", controls.aux1) + renderAssistSendCell("aux2", controls.aux2) + renderAssistSendCell("aux3", controls.aux3) + renderAssistSendCell("aux4", controls.aux4) + effectCells + renderAssistStereoSpreadCell(channel, controls) + renderAssistPhaseCell(channel, controls) + renderInputGainCell(controls, "assist-gain-cell", channel) + "<div class='control-cell assist-master-fader'><div class='control-label'>MIX</div><input class='v-fader' data-assist-channel-fader='1' type='range' min='0' max='127' step='1' value='" + (state.faders[channel.id] || 0) + "'></div></div></div>";
         }
 
@@ -7316,6 +7574,7 @@
             grid.className = "strip-grid";
             currentChannels().forEach(function(channel) {
                 grid.appendChild(renderStrip(channel));
+                if (channel.alignRight) grid.lastChild.style.gridColumn = "8";
             });
             root.appendChild(grid);
             bindStripDrag(grid);
@@ -7355,6 +7614,32 @@
             pan.onpointermove = updatePanTap;
             if (isStereoWidthSource(channel)) {
                 var mode = controls.stereoSpreadMode || "Stereo";
+                if (channel.id === "player") {
+                    pan.min = "-16";
+                    pan.max = "16";
+                    controls.stereoPan = Math.max(-16, Math.min(16, controls.stereoPan || 0));
+                    pan.value = controls.stereoPan;
+                    pan.disabled = !canEditMixControls();
+                    pan.oninput = function(event) {
+                        updatePanTap(event);
+                        if (panTap && !panTap.moved) return;
+                        var next = parseFloat(event.target.value) || 0;
+                        controls.stereoPan = Math.max(-16, Math.min(16, next));
+                        sendStereoSpreadControl(channel, mode, controls.stereoPan);
+                    };
+                    pan.onpointerup = function(event) {
+                        if (pan.hasPointerCapture && pan.hasPointerCapture(event.pointerId)) pan.releasePointerCapture(event.pointerId);
+                        finishPanTap(function() {
+                            controls.stereoPan = 0;
+                            pan.value = 0;
+                            sendStereoSpreadControl(channel, mode, controls.stereoPan);
+                        });
+                    };
+                    pan.onclick = function(event) {
+                        event.preventDefault();
+                    };
+                    return pan;
+                }
                 var config = stereoSpreadConfig[mode] || stereoSpreadConfig.Stereo;
                 var range = config.panRange || [0, 0];
                 pan.min = String(range[0]);
@@ -7479,8 +7764,16 @@
             var phaseDisabled = !phaseCapable(channel);
             var isReturnChannel = isReturnChannelId(channel.id);
             var isBabyfaceReturnPage = isBabyfaceMode() && isReturnChannel;
+            var isPlaybackPage = isPlaybackChannel(channel);
             var useAssistEq = isExpertEqChannel(channel);
-            var eqBody = isBabyfaceReturnPage ? [
+            var eqBody = channel.id === "player" ? renderPlayerMediaPanel() : isPlaybackPage ? [
+                "<div class='strip-section eq-section'>",
+                "<div class='control-cell empty-module-slot'></div>",
+                "<div class='control-cell empty-module-slot'></div>",
+                "<div class='control-cell empty-module-slot'></div>",
+                "<div class='control-cell empty-module-slot'></div>",
+                "</div>"
+            ].join("") : isBabyfaceReturnPage ? [
                 "<div class='strip-section eq-section'>",
                 "<div class='control-cell empty-module-slot'></div>",
                 "<div class='control-cell empty-module-slot'></div>",
@@ -7504,7 +7797,7 @@
             ].join("");
             var utilityBody = isBabyfaceReturnPage ? renderAllEffectReturnMasterRow() : isBabyfaceMode() && !isReturnChannel ? [
                 "<div class='strip-section utility-section babyface-channel-controls'>",
-                renderInputGainCell(controls, "", channel),
+                isPlaybackPage ? "<div class='control-cell empty-module-slot'></div>" : renderInputGainCell(controls, "", channel),
                 panCellHtml(channel, controls),
                 renderNormalSendFaderCell("aux1", controls.aux1),
                 renderNormalSendFaderCell("aux2", controls.aux2),
@@ -7543,6 +7836,7 @@
             root.appendChild(page);
             bindKnobs(page);
             bindStripButtons(page, channel);
+            if (channel.id === "player") bindPlayerMediaControls(page);
             if (isBabyfaceReturnPage) bindEffectReturnMaster(page, null);
             if (useAssistEq) {
                 bindRawEqPad(page, channel, false);
@@ -7846,6 +8140,7 @@
                     event.preventDefault();
                     channelButton(channel);
                 };
+                if (channel.alignRight) button.style.gridColumn = "8";
                 root.appendChild(button);
             });
         }

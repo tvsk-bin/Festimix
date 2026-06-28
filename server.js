@@ -6,6 +6,7 @@ var fs = require("fs");
 var path = require("path");
 var readline = require("readline");
 var midiApp = require("./app");
+var normalizeAsioMeterConfig = require("./lib/audio/asioMeterBridge").normalizeAsioMeterConfig;
 
 var DEFAULT_MIDI_PORT = "Babyface Midi Port 1";
 var SERVER_VERSION = "3.0.0";
@@ -287,6 +288,9 @@ function summarizeLastRunSettings(settings) {
     console.log("  midi input:", settings.midiInput || "default");
     console.log("  midi output:", settings.midiOutput || "default");
     console.log("  meter audio:", settings.meterAudioDeviceName || "default", "channels", (settings.meterAudioChannels && settings.meterAudioChannels.label) || "1-2");
+    if (settings.asioMeter) {
+        console.log("  ASIO meter:", settings.asioMeter.asioDriverName || "default", "CH" + String(settings.asioMeter.inputLeftChannel).padStart(2, "0") + "/CH" + String(settings.asioMeter.inputRightChannel).padStart(2, "0"));
+    }
     console.log("  optional input bank:", settings.optionalInputBankEnabled ? "YES" : "NO");
     console.log("  aux pre/post:", JSON.stringify(settings.auxPrePost || defaultAuxPrePostModes()));
     console.log("  safe reset:", settings.safeReset ? "YES" : "NO");
@@ -311,6 +315,9 @@ function logStartupSettings(settings, heading) {
         console.log("  OSC profile:", settings.profile);
         if (settings.workspaceFile) console.log("  workspace:", settings.workspaceFile);
         console.log("  spectrum loopback input:", settings.meterAudioChannels.name || settings.meterAudioChannels.label);
+        if (settings.asioMeter) {
+            console.log("  ASIO meter:", settings.asioMeter.asioDriverName, "CH" + String(settings.asioMeter.inputLeftChannel).padStart(2, "0") + "/CH" + String(settings.asioMeter.inputRightChannel).padStart(2, "0"), settings.asioMeter.sampleRate + "Hz", "channels=" + settings.asioMeter.channelCount);
+        }
     }
     if (settings.mixerProfile.id === "yamaha01vDefault") {
         console.log("  AUX pre/post startup:", JSON.stringify(settings.auxPrePost));
@@ -362,6 +369,32 @@ function parseMeterAudioChannels(answer) {
         right: right - 1,
         label: left === right ? String(left) : left + "-" + right
     };
+}
+
+function envValue(names) {
+    for (var i = 0; i < names.length; i++) {
+        if (process.env[names[i]] !== undefined && process.env[names[i]] !== "") return process.env[names[i]];
+    }
+    return "";
+}
+
+function savedOrEnvAsioValue(names, saved, key, fallback) {
+    var env = envValue(names);
+    if (env !== "") return env;
+    if (saved && saved[key] !== undefined && saved[key] !== null && saved[key] !== "") return saved[key];
+    return fallback;
+}
+
+function parseAsioMeterConfig(meterAudioChannels, saved) {
+    var defaultLeft = meterAudioChannels ? ((parseInt(meterAudioChannels.left, 10) || 0) + 1) : 3;
+    var defaultRight = meterAudioChannels ? ((parseInt(meterAudioChannels.right, 10) || defaultLeft - 1) + 1) : 4;
+    return normalizeAsioMeterConfig({
+        asioDriverName: savedOrEnvAsioValue(["FESTIMIX_ASIO_DRIVER_NAME", "ASIO_DRIVER_NAME"], saved, "asioDriverName", "ASIO Fireface USB"),
+        inputLeftChannel: savedOrEnvAsioValue(["FESTIMIX_ASIO_INPUT_LEFT_CHANNEL", "ASIO_INPUT_LEFT_CHANNEL"], saved, "inputLeftChannel", defaultLeft),
+        inputRightChannel: savedOrEnvAsioValue(["FESTIMIX_ASIO_INPUT_RIGHT_CHANNEL", "ASIO_INPUT_RIGHT_CHANNEL"], saved, "inputRightChannel", defaultRight),
+        sampleRate: savedOrEnvAsioValue(["FESTIMIX_ASIO_SAMPLE_RATE", "ASIO_SAMPLE_RATE"], saved, "sampleRate", 44100),
+        channelCount: savedOrEnvAsioValue(["FESTIMIX_ASIO_CHANNEL_COUNT", "ASIO_CHANNEL_COUNT"], saved, "channelCount", 12)
+    });
 }
 
 function babyfaceSoftwareInputIndexForChannels(channels) {
@@ -517,6 +550,7 @@ async function main() {
     var mixerProfile = MIXER_PROFILES[0];
     var workspace = null;
     var appMode = "assist";
+    var savedAsioMeter = null;
 
     try {
         var acceptedStartup = false;
@@ -531,9 +565,11 @@ async function main() {
             mixerProfile = MIXER_PROFILES[0];
             workspace = null;
             appMode = "assist";
+            savedAsioMeter = null;
 
         var lastRunSettings = await askLoadLastRunSettings(rl);
         if (lastRunSettings) {
+            savedAsioMeter = lastRunSettings.asioMeter || null;
             mixerProfile = mixerProfileById(lastRunSettings.mixerProfileId);
             mixerProfile = await pickMixerProfile(rl, mixerProfile);
             inputSelection = { port: lastRunSettings.midiInput, reason: "last run settings" };
@@ -607,6 +643,7 @@ async function main() {
             var previewOutput = outputSelection && outputSelection.port;
             var previewProfile = process.env.O1V_MIDI_PROFILE || mixerProfile.id;
             var previewChannel = parseInt(process.env.O1V_MIDI_CHANNEL || "1", 10);
+            var previewAsioMeter = parseAsioMeterConfig(meterAudioChannels, savedAsioMeter);
             acceptedStartup = await confirmStartupSettings(rl, {
                 mixerProfile: mixerProfile,
                 appMode: appMode,
@@ -621,6 +658,7 @@ async function main() {
                 optionalInputBankEnabled: optionalInputBankEnabled,
                 auxPrePost: auxPrePost,
                 safeReset: safeReset,
+                asioMeter: previewAsioMeter,
                 workspaceFile: mixerProfile.workspaceFile
             });
             if (!acceptedStartup) {
@@ -636,6 +674,7 @@ async function main() {
     var port = parseInt(process.env.PORT || process.env.O1V_WEB_PORT || "3000", 10);
     var profile = process.env.O1V_MIDI_PROFILE || mixerProfile.controlProfile || mixerProfile.id;
     var channel = parseInt(process.env.O1V_MIDI_CHANNEL || "1", 10);
+    var asioMeterConfig = parseAsioMeterConfig(meterAudioChannels, savedAsioMeter);
 
     logStartupSettings({
         mixerProfile: mixerProfile,
@@ -651,6 +690,7 @@ async function main() {
         optionalInputBankEnabled: optionalInputBankEnabled,
         auxPrePost: auxPrePost,
         safeReset: safeReset,
+        asioMeter: asioMeterConfig,
         workspaceFile: mixerProfile.workspaceFile
     }, "Selected startup settings");
     writeLastRunSettings({
@@ -666,6 +706,7 @@ async function main() {
         appMode: appMode,
         midiProfile: profile,
         midiChannel: channel,
+        asioMeter: asioMeterConfig,
         workspaceFile: mixerProfile.workspaceFile
     });
 
@@ -680,6 +721,7 @@ async function main() {
         appMode: appMode,
         mixerProfile: mixerProfile,
         integration: mixerProfile.integration,
+        asioMeter: asioMeterConfig,
         workspace: workspace
     });
     if (result === 1) {
