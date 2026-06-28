@@ -2132,7 +2132,7 @@
         }
 
         function mixerLayoutId() {
-            return isBabyfaceMode() ? "babyface" : "yamaha";
+            return mixerModel().layout || (isBabyfaceMode() ? "babyface" : "yamaha");
         }
 
         function isBabyfaceLayout() {
@@ -2157,6 +2157,30 @@
 
         function rawEqHasFixedHpf() {
             return rawEqCapability().hpfFixed === true;
+        }
+
+        function mixerHasPlaybackChannels() {
+            return mixerModel().playbackChannels === true;
+        }
+
+        function mixerHasOptionalInputBank() {
+            return mixerModel().optionalInputBank !== false;
+        }
+
+        function mixerHasSingleEffectReturn() {
+            return mixerModel().effectBusCount === 1;
+        }
+
+        function mixerIntegration() {
+            return mixerModel().integration || "";
+        }
+
+        function mixerUsesOscLiveState() {
+            return mixerIntegration() === "osc";
+        }
+
+        function normalEqSendsHpf() {
+            return isYamahaLayout();
         }
 
         function compressorCapability(scope) {
@@ -2189,7 +2213,7 @@
 
         function channelPhantomCapable(channel) {
             if (!phantomCapable() || !channel || !channel.midiKey) return false;
-            if (!isBabyfaceMode()) return true;
+            if (!isBabyfaceLayout()) return true;
             var number = parseInt(String(channel.midiKey).replace(/\D/g, ""), 10) || 0;
             return number > 0 && number <= 2;
         }
@@ -2230,7 +2254,7 @@
         function applyMixerModel() {
             resetMixerModel();
             if (typeof defaultRawEqBands !== "undefined" && defaultRawEqBands) rawEqBands = JSON.parse(JSON.stringify(defaultRawEqBands));
-            if (!isBabyfaceMode()) return;
+            if (!isBabyfaceLayout()) return;
             modes = ["MIX", "AUX1", "AUX2", "AUX3", "AUX4", "FX", "MIX"];
             modeIds = ["MIX", "AUX1", "AUX2", "AUX3", "AUX4", "EFF1", "MIX"];
             masterByMode.EFF1 = { id: "effects", label: "EFFECTS", parameter: "masterFader.effect1" };
@@ -2712,7 +2736,7 @@
                 allChannels().forEach(function(other) {
                     if (other.id !== channel.id && state.solo[other.id]) {
                         setChannelSoloState(other.id, false);
-                        if (!isBabyfaceMode()) setChannelSolo(other.soloKey, false);
+                        if (isYamahaLayout()) setChannelSolo(other.soloKey, false);
                     }
                 });
             }
@@ -2840,7 +2864,7 @@
         }
 
         function meterModeReturnChannelId(mode) {
-            if (isBabyfaceMode() && (mode === "EFF1" || mode === "EFF2")) return "RTN1";
+            if (mixerHasSingleEffectReturn() && (mode === "EFF1" || mode === "EFF2")) return "RTN1";
             if (mode === "EFF1") return "RTN1";
             if (mode === "EFF2") return "RTN2";
             return null;
@@ -2897,7 +2921,7 @@
         }
 
         function isPlaybackChannel(channel) {
-            if (!isBabyfaceMode() || !channel) return false;
+            if (!mixerHasPlaybackChannels() || !channel) return false;
             if (channel.playbackOnly || channel.id === "player") return true;
             var number = parseInt(channel.id || channel.midiKey, 10) || 0;
             return number >= 13 && number <= 20;
@@ -2908,7 +2932,7 @@
         }
 
         function selectMixerMasterBus(mode) {
-            if (!isBabyfaceMode()) return;
+            if (!isBabyfaceLayout()) return;
             if (isModeDisabled(mode)) return;
             sendAction({ type: "selectMasterBus", mode: mode });
         }
@@ -2973,7 +2997,7 @@
         function sendChannelEqBundle(channel) {
             if (!eqSupportedChannel(channel)) return;
             var controls = channelControls(channel);
-            if (!isBabyfaceMode()) sendEqControl(channel, "hpf", controls.hpf);
+            if (normalEqSendsHpf()) sendEqControl(channel, "hpf", controls.hpf);
             sendEqControl(channel, "lowGain", controls.lowGain);
             sendEqControl(channel, "midGain", controls.midGain);
             sendEqControl(channel, "highGain", controls.highGain);
@@ -3193,7 +3217,7 @@
             if (channel.id === "player") sendPlayerWidthControl(channel, controls.stereoSpreadMode);
             else sendStereoSpreadControl(channel, controls.stereoSpreadMode, controls.stereoPan);
             if (isPlaybackChannel(channel)) return;
-            if (!isBabyfaceMode()) sendEqControl(channel, "hpf", controls.hpf);
+            if (normalEqSendsHpf()) sendEqControl(channel, "hpf", controls.hpf);
             sendEqControl(channel, "lowGain", controls.lowGain);
             sendEqControl(channel, "midFrequency", midFreqPresets[controls.midFreqIndex]);
             sendEqControl(channel, "midGain", controls.midGain);
@@ -3630,7 +3654,7 @@
             state.audioMeter.optionalInputBankEnabled = !!config.optionalInputBankEnabled;
             banks.forEach(function(bank) {
                 if (!bank.optionalInput) return;
-                if (isBabyfaceMode()) {
+                if (!mixerHasOptionalInputBank()) {
                     bank.hidden = true;
                     bank.disabled = true;
                     return;
@@ -3983,7 +4007,7 @@
             masterSoloTargetIds.forEach(function(id) {
                 if (id !== exceptId && state.masterSolo[id]) {
                     state.masterSolo[id] = false;
-                    if (isBabyfaceMode()) setMasterSolo(id, false);
+                    if (isBabyfaceLayout()) setMasterSolo(id, false);
                 }
             });
             updateRawEqSnapshotCache();
@@ -4009,7 +4033,7 @@
                 syncAudioMeterService();
                 return;
             }
-            if (isBabyfaceMode()) {
+            if (isBabyfaceLayout()) {
                 syncAudioMeterService();
                 return;
             }
@@ -4027,7 +4051,7 @@
         function clearActiveEffectMasterReturnIfNeeded() {
             var returnId = state.activeMasterSoloTarget === "effect1" ? "RTN1" :
                 state.activeMasterSoloTarget === "effect2" ? "RTN2" : null;
-            if (returnId && !state.solo[returnId] && !isBabyfaceMode()) setChannelSolo(returnId, false);
+            if (returnId && !state.solo[returnId] && isYamahaLayout()) setChannelSolo(returnId, false);
         }
 
         function hasAnySoloSelection() {
@@ -4035,7 +4059,7 @@
         }
 
         function isAutoMixMasterSolo(master) {
-            if (isBabyfaceMode()) return false;
+            if (isBabyfaceLayout()) return false;
             return master && master.id === "stereo" && state.mode === "MIX" && !hasAnySoloSelection();
         }
 
@@ -4356,7 +4380,7 @@
             });
             sendPanControl(target, targetControls.pan);
             sendStereoSpreadControl(target, targetControls.stereoSpreadMode, targetControls.stereoPan);
-            if (!isBabyfaceMode()) sendEqControl(target, "hpf", targetControls.hpf);
+            if (normalEqSendsHpf()) sendEqControl(target, "hpf", targetControls.hpf);
             sendEqControl(target, "lowGain", targetControls.lowGain);
             sendEqControl(target, "midFrequency", midFreqPresets[targetControls.midFreqIndex]);
             sendEqControl(target, "midGain", targetControls.midGain);
@@ -4655,7 +4679,7 @@
         }
 
         function renderBabyfaceInputModeCell(channel, controls, compact) {
-            if (!isBabyfaceMode()) return "";
+            if (!isBabyfaceLayout()) return "";
             var type = babyfaceInputModeType(channel);
             if (type === "pad") {
                 return "<div class='babyface-input-mode-cell'><button class='btn-hw" + (controls.pad ? " active" : "") + "' data-pad='1'>PAD</button></div>";
@@ -4675,7 +4699,7 @@
         }
 
         function effectReturnParameterForMaster(master) {
-            if (!isBabyfaceMode() || !master) return null;
+            if (!isBabyfaceLayout() || !master) return null;
             if (master.id === "stereo") return "effectReturnSend.master.effRtn1";
             if (master.id === "aux1") return "effectReturnSend.aux1.effRtn1";
             if (master.id === "aux2") return "effectReturnSend.aux2.effRtn1";
@@ -5082,7 +5106,7 @@
         }
 
         function beginOscStateRefresh() {
-            if (!isBabyfaceMode()) return;
+            if (!mixerUsesOscLiveState()) return;
             state.oscRefreshUntil = Date.now() + 1200;
         }
 
@@ -5096,7 +5120,7 @@
         }
 
         function shouldApplyIncomingEvent(event) {
-            if (!isBabyfaceMode()) return true;
+            if (!mixerUsesOscLiveState()) return true;
             return false;
         }
 
@@ -5194,7 +5218,7 @@
             if (pending) delete state.pendingGain[channel.id];
             var unit = Math.max(0, Math.min(1, parseFloat(event.value) || 0));
             var controls = channelControls(channel);
-            if (isBabyfaceMode()) {
+            if (isBabyfaceLayout()) {
                 var number = parseInt(channel.id, 10) || 0;
                 controls.inputGain = Math.round(unit * (number === 3 || number === 4 ? 9 : 65) * 10) / 10;
             } else {
@@ -5436,7 +5460,7 @@
         }
 
         function faderParameter(channel) {
-            if (isBabyfaceMode() && channel && channel.id === "RTN1") {
+            if (isBabyfaceLayout() && channel && channel.id === "RTN1") {
                 if (state.mode === "MIX") return "effectReturnSend.master.effRtn1";
                 if (state.mode === "AUX1") return "effectReturnSend.aux1.effRtn1";
                 if (state.mode === "AUX2") return "effectReturnSend.aux2.effRtn1";
@@ -5490,7 +5514,7 @@
         }
 
         function linkedAuxMode(mode) {
-            if (isBabyfaceMode()) return null;
+            if (isBabyfaceLayout()) return null;
             var sendId = sendControlIdForMode(mode);
             var linked = linkedAuxSendId(sendId);
             return {
@@ -6035,7 +6059,7 @@
                 return;
             }
             state.bankId = bankId;
-            if (isBabyfaceMode() && !bank.page) {
+            if (isBabyfaceLayout() && !bank.page) {
                 var firstChannel = bank.channels && bank.channels[0] ? parseInt(bank.channels[0].id, 10) : 1;
                 sendAction({ type: "sendCommand", commandId: "totalmix.bankStart." + Math.max(0, firstChannel - 1) });
             }
@@ -6608,7 +6632,7 @@
         }
 
         function sendParameterForSend(channel, id, value) {
-            if (isBabyfaceMode() && channel && channel.id === "RTN1" && (id === "eff1" || id === "eff2")) return;
+            if (isBabyfaceLayout() && channel && channel.id === "RTN1" && (id === "eff1" || id === "eff2")) return;
             if (channel && channel.id === "RTN1" && id === "eff1") return;
             if (channel && channel.id === "RTN2" && id === "eff2") return;
             var modeMap = {
@@ -6629,7 +6653,7 @@
                 MIX: "effectReturnSend.master."
             };
             if (channel.id === "RTN1" || channel.id === "RTN2") {
-                if (isBabyfaceMode() && channel.id === "RTN2") return;
+                if (isBabyfaceLayout() && channel.id === "RTN2") return;
                 var returnId = channel.id === "RTN1" ? "effRtn1" : "effRtn2";
                 var returnPrefix = effectReturnMap[id] || effectReturnMap[state.mode] || null;
                 if (!returnPrefix) return;
@@ -6924,7 +6948,7 @@
         }
 
         function masterEqFrequencyPresets(gainKey) {
-            if (isBabyfaceMode() && babyfaceMasterEqFreqPresets[gainKey]) return babyfaceMasterEqFreqPresets[gainKey];
+            if (isBabyfaceLayout() && babyfaceMasterEqFreqPresets[gainKey]) return babyfaceMasterEqFreqPresets[gainKey];
             return masterEqFreqPresets[gainKey] || [];
         }
 
@@ -7115,7 +7139,7 @@
                     var row = button.dataset.effectPresetRow || master.id;
                     state.effectPreset[row] = index;
                     var preset = effectPresets[index];
-                    var commandId = preset && isBabyfaceMode() ? "totalmix.effect." + row + "." + preset.label.toLowerCase() :
+                    var commandId = preset && isBabyfaceLayout() ? "totalmix.effect." + row + "." + preset.label.toLowerCase() :
                         preset && master.id === "effect1" ? preset.effect1CommandId : preset && preset.commandId;
                     if (commandId) {
                         sendAction({ type: "sendCommand", commandId: commandId });
@@ -8003,13 +8027,13 @@
             if (!masterCompressorEnabled(master)) {
                 masterCompRow = "<div class='strip-section master-comp-grid'><div class='control-cell disabled'><div class='control-label'>DYNAMICS</div><div class='knob disabled'>OFF</div></div></div>";
             }
-            var masterLowerRow = isBabyfaceMode() && !isEffectMaster ? renderEffectReturnMasterRow(master) : masterCompRow;
+            var masterLowerRow = isBabyfaceLayout() && !isEffectMaster ? renderEffectReturnMasterRow(master) : masterCompRow;
             var page = document.createElement("div");
             page.className = "strip-page";
             if (useAssistEq) {
                 page.innerHTML = renderAssistMasterPage(master, eq);
             } else if (isEffectMaster) {
-                var effectSelectorHtml = isBabyfaceMode() ? [
+                var effectSelectorHtml = isBabyfaceLayout() ? [
                     "<div class='strip-section babyface-effect-grid'>",
                     renderBabyfaceEffectRow("reverb", "Reverb"),
                     renderBabyfaceEffectRow("echo", "Echo"),
@@ -8021,7 +8045,7 @@
                     "<div class='control-cell disabled'><div class='control-label'>PARAM 2</div><div class='knob disabled'>0</div></div>",
                     "</div>"
                 ].join("");
-                page.innerHTML = isBabyfaceMode() ? [
+                page.innerHTML = isBabyfaceLayout() ? [
                     "<div class='strip-body' style='grid-template-rows:minmax(0, 1fr);'>",
                     effectSelectorHtml,
                     "</div>"
@@ -8044,7 +8068,7 @@
                     "</div>"
                 ].join("");
             } else {
-                var masterEqCells = isBabyfaceMode() ? [
+                var masterEqCells = isBabyfaceLayout() ? [
                     renderSubsonicFilterCell(eq),
                     renderMasterToneEqCell("LOW", "low", "lowFrequency", eq),
                     renderMasterToneEqCell("MID", "lowMid", "lowMidFrequency", eq),
@@ -8073,7 +8097,7 @@
             }
             if (isAuxMaster) bindAuxMasterEq(page, master);
             if (!isAuxMaster && !isEffectMaster) bindMasterToneEq(page, master);
-            if (isBabyfaceMode() && !isAuxMaster && !isEffectMaster) bindMasterSubsonicFilter(page, master);
+            if (isBabyfaceLayout() && !isAuxMaster && !isEffectMaster) bindMasterSubsonicFilter(page, master);
             if (isEffectMaster) bindEffectPreset(page, master);
             bindEffectReturnMaster(page, master);
             if (!isEffectMaster && masterCompressorEnabled(master)) bindMasterComp(page, master);
@@ -8342,7 +8366,7 @@
             var key = master.parameter;
             root.innerHTML = "";
 
-            if (isBabyfaceMode() && state.mode === "EFF1") {
+            if (isBabyfaceLayout() && state.mode === "EFF1") {
                 renderBabyfaceEffectsMaster(root, master);
                 return;
             }
@@ -8358,7 +8382,7 @@
                 var next = !state.masterSolo[master.id];
                 if (next) prepareMasterSoloSelection(master.id);
                 state.masterSolo[master.id] = next;
-                if (isBabyfaceMode()) setMasterSolo(master.id, next);
+                if (isBabyfaceLayout()) setMasterSolo(master.id, next);
                 updateRawEqSnapshotCache();
                 syncSoloRouting();
                 render();
