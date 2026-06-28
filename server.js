@@ -7,20 +7,12 @@ var path = require("path");
 var readline = require("readline");
 var midiApp = require("./app");
 var normalizeAsioMeterConfig = require("./lib/audio/asioMeterBridge").normalizeAsioMeterConfig;
+var mixerRegistry = require("./lib/mixers");
 
 var DEFAULT_MIDI_PORT = "Babyface Midi Port 1";
 var SERVER_VERSION = "3.0.0";
 var lastRunSettingsPath = path.join(__dirname, "data", "last-run-settings.json");
-var MIXER_PROFILES = [
-    { id: "yamaha01vDefault", label: "Yamaha 01V", integration: "midi", controlProfile: "yamaha01vDefault" },
-    {
-        id: "rmeBabyfaceProFs12",
-        label: "Babyface Pro FS 12ch",
-        integration: "osc",
-        controlProfile: "rmeBabyfaceProFs12",
-        workspaceFile: path.join(__dirname, "data", "festimix-babyface-pro-fs-12.json")
-    }
-];
+var MIXER_PROFILES = mixerRegistry.allMixerProfiles();
 var BABYFACE_SOFTWARE_INPUT_PAIRS = [
     { left: 0, right: 1, label: "1-2", name: "Software Input 1-2" },
     { left: 2, right: 3, label: "3-4", name: "Software Input 3-4" },
@@ -270,16 +262,6 @@ function loadOrCreateWorkspaceFile(mixerProfile) {
     }
 }
 
-function mixerProfileById(id) {
-    return MIXER_PROFILES.find(function(profile) { return profile.id === id; }) || MIXER_PROFILES[0];
-}
-
-function configuredMixerProfile(defaultProfile) {
-    var requested = process.env.FESTIMIX_MIXER_PROFILE || process.env.MIXER_PROFILE || "";
-    if (!requested) return defaultProfile || MIXER_PROFILES[0];
-    return mixerProfileById(requested);
-}
-
 function summarizeLastRunSettings(settings) {
     if (!settings) return;
     console.log("\nLast run settings:");
@@ -338,6 +320,10 @@ async function askAppMode(rl, defaultValue) {
     var envMode = process.env.FESTIMIX_APP_MODE || process.env.O1V_APP_MODE || "";
     if (envMode) return parseAppModeAnswer(envMode, defaultValue || "assist");
     return defaultValue || "assist";
+}
+
+function mixerStartupAppMode(mixerProfile) {
+    return mixerProfile && mixerProfile.startup && mixerProfile.startup.appMode || "assist";
 }
 
 async function askLoadLastRunSettings(rl) {
@@ -491,7 +477,7 @@ async function askAuxPrePostModes(rl, mixerProfile) {
 }
 
 async function pickMixerProfile(rl, defaultProfile) {
-    var fallback = configuredMixerProfile(defaultProfile || MIXER_PROFILES[0]);
+    var fallback = mixerRegistry.configuredMixerProfile(defaultProfile || MIXER_PROFILES[0]);
     console.log("\nMixer tipus:");
     MIXER_PROFILES.forEach(function(profile, index) {
         console.log("  [" + index + "] " + profile.label + " (" + profile.integration + ")");
@@ -562,29 +548,66 @@ async function main() {
             appMode = "assist";
             savedAsioMeter = null;
 
-        var lastRunSettings = await askLoadLastRunSettings(rl);
-        if (lastRunSettings) {
-            savedAsioMeter = lastRunSettings.asioMeter || null;
-            mixerProfile = mixerProfileById(lastRunSettings.mixerProfileId);
-            mixerProfile = await pickMixerProfile(rl, mixerProfile);
-            inputSelection = { port: lastRunSettings.midiInput, reason: "last run settings" };
-            outputSelection = { port: lastRunSettings.midiOutput, reason: "last run settings" };
-            safeReset = !!lastRunSettings.safeReset;
-            meterAudioChannels = lastRunSettings.meterAudioChannels || meterAudioChannels;
-            meterAudioDeviceName = lastRunSettings.meterAudioDeviceName || "";
-            optionalInputBankEnabled = !!lastRunSettings.optionalInputBankEnabled;
-            auxPrePost = lastRunSettings.auxPrePost || auxPrePost;
-            if (mixerProfile.integration === "midi") {
-                appMode = await askAppMode(rl, "assist");
+            var lastRunSettings = await askLoadLastRunSettings(rl);
+            if (lastRunSettings) {
+                savedAsioMeter = lastRunSettings.asioMeter || null;
+                mixerProfile = mixerRegistry.mixerProfileById(lastRunSettings.mixerProfileId);
+                mixerProfile = await pickMixerProfile(rl, mixerProfile);
+                appMode = mixerStartupAppMode(mixerProfile);
+                inputSelection = { port: lastRunSettings.midiInput, reason: "last run settings" };
+                outputSelection = { port: lastRunSettings.midiOutput, reason: "last run settings" };
+                safeReset = !!lastRunSettings.safeReset;
+                meterAudioChannels = lastRunSettings.meterAudioChannels || meterAudioChannels;
+                meterAudioDeviceName = lastRunSettings.meterAudioDeviceName || "";
+                optionalInputBankEnabled = !!lastRunSettings.optionalInputBankEnabled;
+                auxPrePost = lastRunSettings.auxPrePost || auxPrePost;
+                if (mixerProfile.integration === "midi") {
+                    appMode = await askAppMode(rl, appMode);
+                } else {
+                    console.log("\nBabyface mode: loading Festimix workspace file.");
+                    workspace = loadOrCreateWorkspaceFile(mixerProfile);
+                    meterAudioChannels = parseBabyfaceSoftwareInputAnswer(process.env.FESTIMIX_BABYFACE_SPECTRUM_INPUT || "3-4", meterAudioChannels);
+                }
             } else {
-                console.log("\nBabyface mode: loading Festimix workspace file.");
-                workspace = loadOrCreateWorkspaceFile(mixerProfile);
-                meterAudioChannels = parseBabyfaceSoftwareInputAnswer(process.env.FESTIMIX_BABYFACE_SPECTRUM_INPUT || "3-4", meterAudioChannels);
+                mixerProfile = await pickMixerProfile(rl);
+                appMode = mixerStartupAppMode(mixerProfile);
+                if (mixerProfile.integration === "midi") {
+                    appMode = await askAppMode(rl, appMode);
+                    var info = listPorts();
+                    inputSelection = await pickInteractivePort(info.inputs, {
+                        label: "input",
+                        envName: "O1V_MIDI_INPUT",
+                        indexEnvName: "O1V_MIDI_INPUT_INDEX",
+                        defaultName: DEFAULT_MIDI_PORT
+                    }, rl);
+                    outputSelection = await pickInteractivePort(info.outputs, {
+                        label: "output",
+                        envName: "O1V_MIDI_OUTPUT",
+                        indexEnvName: "O1V_MIDI_OUTPUT_INDEX",
+                        defaultName: DEFAULT_MIDI_PORT
+                    }, rl);
+                }
+                if (mixerProfile.integration === "midi" && process.stdin.isTTY && !process.env.FESTIMIX_MIXER_PROFILE && !process.env.MIXER_PROFILE) {
+                    var resetAnswer = await question(rl, "Nullazzam a Yamaha 01V-t safe reset SysEx-szel indulaskor? [y/N]: ");
+                    safeReset = resetAnswer.trim().toLowerCase() === "y" || resetAnswer.trim().toLowerCase() === "yes";
+                    console.log("\nIndits merojelet azon a solo monitor audio bemeneten, amit a meterhez hasznalni akarsz.");
+                    console.log("Igy konnyebb lesz a megfelelo aktiv hangkartyat/bemenetet kivalasztani.");
+                    var audioInputs = listMeterAudioInputs();
+                    var deviceAnswer = await question(rl, "Meter audio bemenet eszkoz [ENTER=default, index vagy nevreszlet]: ");
+                    meterAudioDeviceName = pickAudioInputName(audioInputs, deviceAnswer);
+                    var meterAnswer = await question(rl, "Meter audio input csatorna/par [1-2]: ");
+                    meterAudioChannels = parseMeterAudioChannels(meterAnswer);
+                    var optionalAnswer = await question(rl, "Van opcionális input bank / harmadik channel bank? [n]: ");
+                    optionalInputBankEnabled = parseYesNoAnswer(optionalAnswer, false);
+                    auxPrePost = await askAuxPrePostModes(rl, mixerProfile);
+                }
+                if (mixerProfile.integration === "osc") {
+                    console.log("\nBabyface mode: loading Festimix workspace file.");
+                    workspace = loadOrCreateWorkspaceFile(mixerProfile);
+                    meterAudioChannels = parseBabyfaceSoftwareInputAnswer(process.env.FESTIMIX_BABYFACE_SPECTRUM_INPUT || "3-4", meterAudioChannels);
+                }
             }
-        } else {
-            mixerProfile = await pickMixerProfile(rl);
-            if (mixerProfile.integration === "midi") {
-                appMode = await askAppMode(rl, appMode);
+            if (mixerProfile.integration === "midi" && (!inputSelection || !inputSelection.port || !outputSelection || !outputSelection.port)) {
                 var info = listPorts();
                 inputSelection = await pickInteractivePort(info.inputs, {
                     label: "input",
@@ -599,41 +622,6 @@ async function main() {
                     defaultName: DEFAULT_MIDI_PORT
                 }, rl);
             }
-            if (mixerProfile.integration === "midi" && process.stdin.isTTY && !process.env.FESTIMIX_MIXER_PROFILE && !process.env.MIXER_PROFILE) {
-                var resetAnswer = await question(rl, "Nullazzam a Yamaha 01V-t safe reset SysEx-szel indulaskor? [y/N]: ");
-                safeReset = resetAnswer.trim().toLowerCase() === "y" || resetAnswer.trim().toLowerCase() === "yes";
-                console.log("\nIndits merojelet azon a solo monitor audio bemeneten, amit a meterhez hasznalni akarsz.");
-                console.log("Igy konnyebb lesz a megfelelo aktiv hangkartyat/bemenetet kivalasztani.");
-                var audioInputs = listMeterAudioInputs();
-                var deviceAnswer = await question(rl, "Meter audio bemenet eszkoz [ENTER=default, index vagy nevreszlet]: ");
-                meterAudioDeviceName = pickAudioInputName(audioInputs, deviceAnswer);
-                var meterAnswer = await question(rl, "Meter audio input csatorna/par [1-2]: ");
-                meterAudioChannels = parseMeterAudioChannels(meterAnswer);
-                var optionalAnswer = await question(rl, "Van opcionális input bank / harmadik channel bank? [n]: ");
-                optionalInputBankEnabled = parseYesNoAnswer(optionalAnswer, false);
-                auxPrePost = await askAuxPrePostModes(rl, mixerProfile);
-            }
-            if (mixerProfile.integration === "osc") {
-                console.log("\nBabyface mode: loading Festimix workspace file.");
-                workspace = loadOrCreateWorkspaceFile(mixerProfile);
-                meterAudioChannels = parseBabyfaceSoftwareInputAnswer(process.env.FESTIMIX_BABYFACE_SPECTRUM_INPUT || "3-4", meterAudioChannels);
-            }
-        }
-        if (mixerProfile.integration === "midi" && (!inputSelection || !inputSelection.port || !outputSelection || !outputSelection.port)) {
-            var info = listPorts();
-            inputSelection = await pickInteractivePort(info.inputs, {
-                label: "input",
-                envName: "O1V_MIDI_INPUT",
-                indexEnvName: "O1V_MIDI_INPUT_INDEX",
-                defaultName: DEFAULT_MIDI_PORT
-            }, rl);
-            outputSelection = await pickInteractivePort(info.outputs, {
-                label: "output",
-                envName: "O1V_MIDI_OUTPUT",
-                indexEnvName: "O1V_MIDI_OUTPUT_INDEX",
-                defaultName: DEFAULT_MIDI_PORT
-            }, rl);
-        }
             var previewInput = inputSelection && inputSelection.port;
             var previewOutput = outputSelection && outputSelection.port;
             var previewProfile = process.env.O1V_MIDI_PROFILE || mixerProfile.id;
