@@ -20,7 +20,7 @@
     "AUX3": "pre",
     "AUX4": "pre"
   },
-  "safeReset": false,
+  "safeReset": true,
   "appMode": "assist",
   "midiProfile": "yamaha01vDefault",
   "midiChannel": 1,
