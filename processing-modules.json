@@ -41,6 +41,43 @@
           }
         }
       }
+    },
+    "rmeBabyfaceProFs12": {
+      "displayName": "RME Babyface Pro FS 12ch",
+      "slotAssignments": {
+        "channelPage": {
+          "slots": {
+            "tone": "ChannelToneEQ",
+            "assistEq": "RawYamahaEQ",
+            "pan": "ChannelPan",
+            "busSends": "ChannelBusSends"
+          }
+        },
+        "auxMasterPage": {
+          "slots": {
+            "tone": "AuxMonitorEQ",
+            "assistEq": "RawYamahaEQ"
+          }
+        },
+        "effectMasterPage": {
+          "slots": {
+            "selector": "EffectSelector"
+          }
+        },
+        "returnChannelPage": {
+          "slots": {
+            "tone": "EffectReturnEQ",
+            "pan": "ChannelPan",
+            "busSends": "ChannelBusSends"
+          }
+        },
+        "mixMasterPage": {
+          "slots": {
+            "tone": "MasterToneEQ",
+            "assistEq": "RawYamahaEQ"
+          }
+        }
+      }
     }
   },
   "modules": {

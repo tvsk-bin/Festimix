@@ -21,7 +21,16 @@
     "AUX4": "pre"
   },
   "safeReset": true,
-  "appMode": "tablet-only",
+  "appMode": "assist",
   "midiProfile": "yamaha01vDefault",
-  "midiChannel": 1
+  "midiChannel": 1,
+  "asioMeter": {
+    "asioDriverName": "ASIO Fireface USB",
+    "inputLeftChannel": 1,
+    "inputRightChannel": 2,
+    "sampleRate": 44100,
+    "channelCount": 12,
+    "projectPath": "D:\\OneDrive\\Documents\\GitHub\\Festimix\\tools\\RmeAsioMeter\\RmeAsioMeter.csproj",
+    "assemblyPath": "D:\\OneDrive\\Documents\\GitHub\\Festimix\\tools\\RmeAsioMeter\\bin\\Debug\\net8.0-windows\\RmeAsioMeter.dll"
+  }
 }
